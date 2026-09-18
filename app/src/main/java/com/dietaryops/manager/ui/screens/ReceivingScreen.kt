@@ -10,9 +10,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -42,6 +44,10 @@ import com.dietaryops.manager.data.model.CatalogItem
 import com.dietaryops.manager.data.model.ScanRecord
 import com.dietaryops.manager.util.DateCalculator
 import com.dietaryops.manager.util.SyscoUpcNormalizer
+import com.dietaryops.manager.ui.components.ScannerOverlay
+import com.dietaryops.manager.ui.theme.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -255,45 +261,80 @@ fun ReceivingScreen(
         // Printer & Live Status Header Card
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
+            Column(modifier = Modifier.padding(14.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.Default.Print, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("Printer", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = CircleShape,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.Print,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                        Column {
+                            Text("Thermal Printer", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Zebra ZPL High-Speed", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
 
                     val (stateColor, stateText) = when (printerState) {
-                        ConnectionState.CONNECTED -> Pair(Color(0xFF2E7D32), "CONNECTED")
-                        ConnectionState.CONNECTING -> Pair(Color(0xFFF57C00), "CONNECTING")
-                        ConnectionState.ERROR -> Pair(MaterialTheme.colorScheme.error, "ERROR")
-                        ConnectionState.DISCONNECTED -> Pair(Color.Gray, "DISCONNECTED")
+                        ConnectionState.CONNECTED -> Pair(SyncSuccessColor, "CONNECTED")
+                        ConnectionState.CONNECTING -> Pair(SyncPendingColor, "PAIRING...")
+                        ConnectionState.ERROR -> Pair(StatusErrorColor, "ERROR")
+                        ConnectionState.DISCONNECTED -> Pair(Color(0xFF64748B), "OFFLINE")
                     }
                     Surface(
-                        color = stateColor.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(12.dp)
+                        color = stateColor.copy(alpha = 0.14f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, stateColor.copy(alpha = 0.35f))
                     ) {
-                        Text(
-                            text = stateText,
-                            color = stateColor,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(stateColor)
+                            )
+                            Text(
+                                text = stateText,
+                                color = stateColor,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Printer selector dropdown
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(
                         onClick = { showPrinterDropdown = true },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -304,7 +345,7 @@ fun ReceivingScreen(
                             val displayName = (connectedDevice ?: selectedPrinter)?.let {
                                 try { it.name ?: it.address } catch (_: SecurityException) { it.address }
                             } ?: "No Printer Selected (Tap to pair)"
-                            Text(displayName, fontSize = 13.sp)
+                            Text(displayName, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                             Icon(Icons.Default.ArrowDropDown, contentDescription = null)
                         }
                     }
@@ -334,12 +375,17 @@ fun ReceivingScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(6.dp))
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Auto-print on scan:", fontSize = 13.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(Icons.Default.Bolt, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Text("Auto-print upon scan:", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    }
                     Switch(
                         checked = autoPrint,
                         onCheckedChange = {
@@ -354,7 +400,7 @@ fun ReceivingScreen(
         // Action Row: Positioned directly above Camera Window for Ergonomics
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Button(
                 onClick = {
@@ -364,14 +410,20 @@ fun ReceivingScreen(
                     currentScanRecord = null
                     statusMessage = "Ready to scan barcode..."
                 },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(
                     imageVector = if (isCameraActive) Icons.Default.QrCodeScanner else Icons.Default.CameraAlt,
-                    contentDescription = null
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(if (isCameraActive) "Scan Next Barcode" else "Start Scanner")
+                Text(
+                    text = if (isCameraActive) "Scan Next Barcode" else "Start Scanner",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
             }
 
             OutlinedButton(
@@ -379,45 +431,61 @@ fun ReceivingScreen(
                     val nextShowState = !showManualInputCard
                     showManualInputCard = nextShowState
                     if (nextShowState) {
-                        isCameraActive = false // Pause camera while typing
+                        isCameraActive = false
                     } else {
-                        isCameraActive = true // Resume camera when manual card closed
+                        isCameraActive = true
                     }
                 },
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                Icon(Icons.Default.Search, contentDescription = null)
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Manual UPC")
+                Icon(Icons.Default.Keyboard, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("Manual UPC", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
             }
         }
 
-        // Camera Preview Area
+        // Camera Preview Area with High-Tech Scanner HUD Reticle Overlay
         if (hasCameraPermission) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(210.dp),
-                shape = RoundedCornerShape(16.dp)
+                    .height(220.dp),
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                colors = CardDefaults.cardColors(containerColor = Color.Black)
             ) {
-                CameraXBarcodeScanner(
-                    modifier = Modifier.fillMaxSize(),
-                    isScanningEnabled = isScanningEnabled,
-                    isCameraActive = isCameraActive,
-                    onResumeCamera = {
-                        isCameraActive = true
-                        isScanningEnabled = true
-                        statusMessage = "Ready to scan barcode..."
-                    },
-                    onBarcodeFound = { rawUpc, _ ->
-                        processUpcScan(rawUpc)
-                    }
-                )
+                Box(modifier = Modifier.fillMaxSize()) {
+                    CameraXBarcodeScanner(
+                        modifier = Modifier.fillMaxSize(),
+                        isScanningEnabled = isScanningEnabled,
+                        isCameraActive = isCameraActive,
+                        onResumeCamera = {
+                            isCameraActive = true
+                            isScanningEnabled = true
+                            statusMessage = "Ready to scan barcode..."
+                        },
+                        onBarcodeFound = { rawUpc, _ ->
+                            processUpcScan(rawUpc)
+                        }
+                    )
+
+                    // Futuristic HUD Laser Reticle Overlay
+                    ScannerOverlay(
+                        isScanningActive = isCameraActive && isScanningEnabled,
+                        isCameraActive = isCameraActive,
+                        onResumeCamera = {
+                            isCameraActive = true
+                            isScanningEnabled = true
+                            statusMessage = "Ready to scan barcode..."
+                        }
+                    )
+                }
             }
         } else {
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -426,7 +494,7 @@ fun ReceivingScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                    Text("Camera permission required to scan barcodes.", color = MaterialTheme.colorScheme.onErrorContainer)
+                    Text("Camera permission required to scan barcodes.", color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -438,23 +506,24 @@ fun ReceivingScreen(
             else if (isSyncing)
                 MaterialTheme.colorScheme.tertiaryContainer
             else
-                MaterialTheme.colorScheme.secondaryContainer,
-            shape = RoundedCornerShape(10.dp),
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (isSyncing) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                 } else {
-                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                 }
                 Text(
                     text = statusMessage,
-                    fontSize = 13.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
             }
@@ -467,33 +536,71 @@ fun ReceivingScreen(
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
-                    modifier = Modifier.padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    // Title & Catalog Status Badge
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(prod.name, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text("Item Barcode: ${prod.upc}", fontSize = 11.sp, color = Color.Gray)
+                            Text(
+                                text = prod.name,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(6.dp)
+                            ) {
+                                Text(
+                                    text = "UPC: ${prod.upc}",
+                                    style = MonospaceBarcodeStyle,
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                        SuggestionChip(
-                            onClick = {},
-                            label = { Text(if (state.isKnownCatalog) "Catalog Item" else "New Item", fontSize = 11.sp) },
-                            icon = { Icon(Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(14.dp)) },
-                            modifier = Modifier.height(28.dp)
-                        )
+
+                        Surface(
+                            color = if (state.isKnownCatalog) FreshGreen.copy(alpha = 0.15f) else ExpiringSoonAmber.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, if (state.isKnownCatalog) FreshGreen.copy(alpha = 0.4f) else ExpiringSoonAmber.copy(alpha = 0.4f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (state.isKnownCatalog) Icons.Default.CheckCircle else Icons.Default.Help,
+                                    contentDescription = null,
+                                    tint = if (state.isKnownCatalog) FreshGreen else ExpiringSoonAmber,
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = if (state.isKnownCatalog) "CATALOG" else "NEW ITEM",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (state.isKnownCatalog) FreshGreen else ExpiringSoonAmber
+                                )
+                            }
+                        }
                     }
 
                     if (!state.isKnownCatalog) {
                         Surface(
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -511,51 +618,104 @@ fun ReceivingScreen(
                                         text = "Unrecognized Item",
                                         color = MaterialTheme.colorScheme.onErrorContainer,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
+                                        fontSize = 12.sp
                                     )
                                     Text(
-                                        text = "Search/select from catalog dropdown via Edit.",
+                                        text = "Select from catalog dropdown via Edit.",
                                         color = MaterialTheme.colorScheme.onErrorContainer,
                                         fontSize = 11.sp
                                     )
                                 }
                                 TextButton(onClick = { showEditDialog = true }) {
-                                    Text("Select Catalog", color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold)
+                                    Text("Match Catalog", color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                 }
                             }
                         }
                     }
 
-                    // Metadata row: Category chip + Inline On Hand Quantity Controller (aligned horizontally)
+                    // Metadata row: Category chip + Inline On Hand Quantity Controller
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(prod.category, fontSize = 11.sp) },
-                            modifier = Modifier.height(28.dp)
-                        )
-
-                        // Inline On Hand quantity controller badge alongside Category chip
+                        // Category Pill
                         Surface(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Default.Category, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                                Text(
+                                    text = prod.category,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+
+                        // Inline On Hand quantity controller badge with tactile circular buttons
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 val displayOnHand = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
-                                Text("On Hand:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
-                                IconButton(
-                                    onClick = {
-                                        val current = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
-                                        if (current > 0.5) {
-                                            val newQty = (current - 1.0).coerceAtLeast(0.5)
+                                Text("On Hand:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surface,
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clickable(enabled = displayOnHand > 0.5) {
+                                            val current = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
+                                            if (current > 0.5) {
+                                                val newQty = (current - 1.0).coerceAtLeast(0.5)
+                                                scannedState = state.copy(onHandAmount = newQty)
+                                                currentScanRecord = currentScanRecord?.copy(onHandAmount = newQty)
+                                                coroutineScope.launch {
+                                                    currentScanRecord?.let { rec ->
+                                                        productManager.repository.updateScanRecordOnHandAmount(rec.id, state.normalizedUpc, newQty)
+                                                    }
+                                                    val cat = productManager.repository.getCatalogItem(state.normalizedUpc)
+                                                    if (cat.name != "Unrecognized Item") {
+                                                        productManager.repository.saveCatalogItem(cat.copy(lastOnHandAmount = newQty))
+                                                    }
+                                                }
+                                            }
+                                        }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.Remove, contentDescription = "Decrease On Hand", modifier = Modifier.size(14.dp))
+                                    }
+                                }
+
+                                Text(
+                                    text = "${if (displayOnHand % 1.0 == 0.0) displayOnHand.toInt().toString() else displayOnHand} ${prod.unit}",
+                                    style = MonospaceQuantityStyle,
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surface,
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clickable {
+                                            val current = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
+                                            val newQty = current + 1.0
                                             scannedState = state.copy(onHandAmount = newQty)
                                             currentScanRecord = currentScanRecord?.copy(onHandAmount = newQty)
                                             coroutineScope.launch {
@@ -568,70 +728,88 @@ fun ReceivingScreen(
                                                 }
                                             }
                                         }
-                                    },
-                                    enabled = (if (state.onHandAmount > 0.0) state.onHandAmount else 1.0) > 0.5,
-                                    modifier = Modifier.size(28.dp)
                                 ) {
-                                    Icon(Icons.Default.Remove, contentDescription = "Decrease On Hand", modifier = Modifier.size(16.dp))
-                                }
-
-                                Text(
-                                    text = "${if (displayOnHand % 1.0 == 0.0) displayOnHand.toInt().toString() else displayOnHand} ${prod.unit}",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-
-                                IconButton(
-                                    onClick = {
-                                        val current = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
-                                        val newQty = current + 1.0
-                                        scannedState = state.copy(onHandAmount = newQty)
-                                        currentScanRecord = currentScanRecord?.copy(onHandAmount = newQty)
-                                        coroutineScope.launch {
-                                            currentScanRecord?.let { rec ->
-                                                productManager.repository.updateScanRecordOnHandAmount(rec.id, state.normalizedUpc, newQty)
-                                            }
-                                            val cat = productManager.repository.getCatalogItem(state.normalizedUpc)
-                                            if (cat.name != "Unrecognized Item") {
-                                                productManager.repository.saveCatalogItem(cat.copy(lastOnHandAmount = newQty))
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.size(28.dp)
-                                ) {
-                                    Icon(Icons.Default.Add, contentDescription = "Increase On Hand", modifier = Modifier.size(16.dp))
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.Add, contentDescription = "Increase On Hand", modifier = Modifier.size(14.dp))
+                                    }
                                 }
                             }
                         }
                     }
 
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-
-                    // Dates Grid
+                    // Side-by-Side Visual Date Boxes
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Column {
-                            Text("Delivery Date", fontSize = 11.sp, color = Color.Gray)
-                            Text(dateCalc.deliveryDateFormatted, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        // Received Date Box
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("RECEIVED", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.5.sp)
+                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(dateCalc.deliveryDateFormatted, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
                         }
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text("Use-By / Expiration", fontSize = 11.sp, color = Color.Gray)
-                            Text(
-                                "${dateCalc.useByDateFormatted} (+${prod.shelfLifeDays}d)",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+
+                        // Use-By Expiration Box with Freshness Indicator
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                            modifier = Modifier.weight(1.3f)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
+                                        Text("USE BY", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.5.sp)
+                                    }
+
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "+${prod.shelfLifeDays}d",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text(
+                                    text = dateCalc.useByDateFormatted,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
                         }
                     }
 
                     // Quick Shelf Life Chips Selector
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Quick Shelf Life:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Quick Shelf Life Preset:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -669,7 +847,7 @@ fun ReceivingScreen(
                                             }
                                         }
                                     },
-                                    label = { Text(label, fontSize = 10.sp) },
+                                    label = { Text(label, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                                     modifier = Modifier.height(28.dp)
                                 )
                             }
@@ -681,41 +859,54 @@ fun ReceivingScreen(
                         }
                     }
 
-                    // Label Quantity Selector Row
+                    // Label Quantity Stepper
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Number of Labels:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
+                        Text("Number of Labels:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Surface(
-                            color = MaterialTheme.colorScheme.surface,
-                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            shape = RoundedCornerShape(12.dp),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         ) {
                             Row(
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                IconButton(
-                                    onClick = { if (labelQuantity > 1) labelQuantity-- },
-                                    enabled = labelQuantity > 1,
-                                    modifier = Modifier.size(28.dp)
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surface,
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clickable(enabled = labelQuantity > 1) {
+                                            if (labelQuantity > 1) labelQuantity--
+                                        }
                                 ) {
-                                    Icon(Icons.Default.Remove, contentDescription = "Decrease labels", modifier = Modifier.size(16.dp))
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.Remove, contentDescription = "Decrease labels", modifier = Modifier.size(14.dp))
+                                    }
                                 }
                                 Text(
                                     text = "$labelQuantity",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
+                                    style = MonospaceQuantityStyle,
+                                    fontSize = 13.sp,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                                IconButton(
-                                    onClick = { labelQuantity++ },
-                                    modifier = Modifier.size(28.dp)
+                                Surface(
+                                    shape = CircleShape,
+                                    color = MaterialTheme.colorScheme.surface,
+                                    modifier = Modifier
+                                        .size(26.dp)
+                                        .clickable {
+                                            labelQuantity++
+                                        }
                                 ) {
-                                    Icon(Icons.Default.Add, contentDescription = "Increase labels", modifier = Modifier.size(16.dp))
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(Icons.Default.Add, contentDescription = "Increase labels", modifier = Modifier.size(14.dp))
+                                    }
                                 }
                             }
                         }
@@ -724,7 +915,7 @@ fun ReceivingScreen(
                     // Actions Row: Print Label & Save & Sync
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
                             onClick = {
@@ -746,12 +937,13 @@ fun ReceivingScreen(
                                     Toast.makeText(context, "Select or connect printer first!", Toast.LENGTH_SHORT).show()
                                 }
                             },
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1.1f),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Print ($labelQuantity)", fontSize = 12.sp)
+                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text("Print ($labelQuantity)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
@@ -798,22 +990,24 @@ fun ReceivingScreen(
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(1.1f),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Save & Sync", fontSize = 12.sp)
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text("Save & Sync", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
 
                         OutlinedButton(
                             onClick = { showEditDialog = true },
-                            modifier = Modifier.weight(0.7f),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.weight(0.8f),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
                         ) {
                             Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Edit", fontSize = 12.sp)
+                            Text("Edit", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }

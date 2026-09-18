@@ -1,25 +1,34 @@
 package com.dietaryops.manager.ui
 
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dietaryops.manager.ConnectionState
 import com.dietaryops.manager.ProductManager
 import com.dietaryops.manager.ZebraPrinterManager
 import com.dietaryops.manager.data.SettingsManager
 import com.dietaryops.manager.ui.screens.InventoryLogsScreen
 import com.dietaryops.manager.ui.screens.ReceivingScreen
 import com.dietaryops.manager.ui.screens.SettingsScreen
+import com.dietaryops.manager.ui.theme.PrimaryGradient
 
 enum class NavDestination(
     val title: String,
@@ -41,34 +50,61 @@ fun AdaptiveMainLayout(
     var showProfileDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+    val printerState by printerManager.connectionState.collectAsState()
+    val connectedDevice by printerManager.connectedDevice.collectAsState()
 
+    // Staff profile dialog
     if (showProfileDialog) {
         var profileName by remember { mutableStateOf(settingsManager.staffName) }
         var profileInitials by remember { mutableStateOf(settingsManager.staffInitials) }
 
         AlertDialog(
             onDismissRequest = { showProfileDialog = false },
-            icon = { Icon(Icons.Default.AccountCircle, contentDescription = null, modifier = Modifier.size(36.dp), tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("Staff User Profile Setup") },
+            shape = RoundedCornerShape(20.dp),
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(PrimaryGradient),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Badge,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            },
+            title = {
+                Text("Staff Profile & Label Signature", fontWeight = FontWeight.Bold)
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        "Enter staff name and initials. These will populate 'Staff:' / 'BY:' fields on ZPL labels and delivery scan logs.",
+                        "Enter staff name and initials. These populate the 'Staff:' and 'BY:' signatures on Zebra ZPL labels and Google Sheets audit logs.",
                         fontSize = 12.sp,
-                        color = Color.Gray
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
                         value = profileName,
                         onValueChange = { profileName = it },
-                        label = { Text("Staff Name (e.g. Terry)") },
+                        label = { Text("Staff Full Name") },
+                        placeholder = { Text("e.g. Terry Lee") },
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
                         value = profileInitials,
                         onValueChange = { profileInitials = it },
-                        label = { Text("Staff Initials (e.g. TR or DO)") },
+                        label = { Text("Staff Initials") },
+                        placeholder = { Text("e.g. TR or DO") },
+                        leadingIcon = { Icon(Icons.Default.Fingerprint, contentDescription = null) },
                         singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -79,10 +115,11 @@ fun AdaptiveMainLayout(
                         settingsManager.staffName = profileName
                         settingsManager.staffInitials = profileInitials
                         showProfileDialog = false
-                        Toast.makeText(context, "Saved user profile for ${settingsManager.staffName} (${settingsManager.staffInitials})", Toast.LENGTH_SHORT).show()
-                    }
+                        Toast.makeText(context, "Saved profile: ${settingsManager.staffName} (${settingsManager.staffInitials})", Toast.LENGTH_SHORT).show()
+                    },
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Save Profile")
+                    Text("Save Profile", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -99,24 +136,33 @@ fun AdaptiveMainLayout(
         if (isWideScreen) {
             // Tablet / Large Screen Multi-Pane Adaptive Layout
             Row(modifier = Modifier.fillMaxSize()) {
-                // Navigation Rail on left
+                // Navigation Rail on left with elevated styling
                 NavigationRail(
+                    containerColor = MaterialTheme.colorScheme.surface,
                     header = {
                         Column(
                             modifier = Modifier.padding(vertical = 16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            IconButton(onClick = { showProfileDialog = true }) {
-                                Icon(
-                                    Icons.Default.AccountCircle,
-                                    contentDescription = "User Profile",
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(32.dp)
+                            // Branded App Squircle
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(PrimaryGradient)
+                                    .clickable { showProfileDialog = true },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (settingsManager.staffInitials.isNotBlank()) settingsManager.staffInitials.take(2).uppercase() else "DO",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
                                 )
                             }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text("Dietary", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            Text("Ops Manager", fontSize = 10.sp, color = Color.Gray)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("DietaryOps", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("Manager", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 ) {
@@ -130,33 +176,22 @@ fun AdaptiveMainLayout(
                     }
                 }
 
-                VerticalDivider()
+                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                 // Multi-Pane Content Area
                 Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     when (currentDestination) {
                         NavDestination.RECEIVING, NavDestination.INVENTORY -> {
-                            // Side-by-side Multi-Pane Receiving & Logs
                             Row(modifier = Modifier.fillMaxSize()) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                ) {
+                                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                                     ReceivingScreen(
                                         productManager = productManager,
                                         printerManager = printerManager,
                                         settingsManager = settingsManager
                                     )
                                 }
-
-                                VerticalDivider()
-
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .fillMaxHeight()
-                                ) {
+                                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                                     InventoryLogsScreen(
                                         repository = productManager.repository,
                                         printerManager = printerManager,
@@ -176,47 +211,163 @@ fun AdaptiveMainLayout(
                 }
             }
         } else {
-            // Standard Phone Single-Column Layout
+            // Standard Phone Single-Column Layout with High-Tech Header & Bottom Bar
             Scaffold(
                 topBar = {
-                    TopAppBar(
-                        title = {
-                            Column {
-                                Text(
-                                    text = "Dietary Ops Manager",
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Dietary Receiving & Expiration Tracker",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        actions = {
-                            IconButton(onClick = { showProfileDialog = true }) {
-                                Icon(
-                                    Icons.Default.AccountCircle,
-                                    contentDescription = "User Profile Setup",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp)
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 3.dp,
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
                         )
-                    )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .statusBarsPadding()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            // Branded Left Title Area
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(PrimaryGradient),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        Icons.Default.QrCodeScanner,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                Column {
+                                    Text(
+                                        text = "DietaryOps Manager",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = "Century Villa • Operations",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+
+                            // Right Action / Profile & Printer Indicators
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                // Live Compact Printer Pill
+                                val (statusDotColor, statusLabel) = when (printerState) {
+                                    ConnectionState.CONNECTED -> Pair(Color(0xFF10B981), connectedDevice?.let { try { it.name } catch (_: SecurityException) { null } } ?: "Zebra")
+                                    ConnectionState.CONNECTING -> Pair(Color(0xFFF59E0B), "Pairing...")
+                                    ConnectionState.ERROR -> Pair(MaterialTheme.colorScheme.error, "Err")
+                                    ConnectionState.DISCONNECTED -> Pair(Color(0xFF64748B), "Offline")
+                                }
+
+                                Surface(
+                                    color = statusDotColor.copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, statusDotColor.copy(alpha = 0.3f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .clip(CircleShape)
+                                                .background(statusDotColor)
+                                        )
+                                        Icon(
+                                            Icons.Default.Print,
+                                            contentDescription = null,
+                                            tint = statusDotColor,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Text(
+                                            text = statusLabel,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = statusDotColor
+                                        )
+                                    }
+                                }
+
+                                // Staff Avatar Pill (tap to edit staff name/initials)
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = CircleShape,
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clickable { showProfileDialog = true }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        val initials = settingsManager.staffInitials.ifBlank {
+                                            settingsManager.staffName.take(2)
+                                        }.ifBlank { "TR" }.take(2).uppercase()
+
+                                        Text(
+                                            text = initials,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 },
                 bottomBar = {
-                    NavigationBar {
-                        NavDestination.entries.forEach { destination ->
-                            NavigationBarItem(
-                                selected = currentDestination == destination,
-                                onClick = { currentDestination = destination },
-                                icon = { Icon(destination.icon, contentDescription = destination.title) },
-                                label = { Text(destination.title) }
-                            )
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 8.dp,
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                        )
+                    ) {
+                        NavigationBar(
+                            containerColor = Color.Transparent,
+                            tonalElevation = 0.dp
+                        ) {
+                            NavDestination.entries.forEach { destination ->
+                                NavigationBarItem(
+                                    selected = currentDestination == destination,
+                                    onClick = { currentDestination = destination },
+                                    icon = {
+                                        Icon(
+                                            destination.icon,
+                                            contentDescription = destination.title
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            destination.title,
+                                            fontWeight = if (currentDestination == destination) FontWeight.Bold else FontWeight.Medium
+                                        )
+                                    },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                                    )
+                                )
+                            }
                         }
                     }
                 }

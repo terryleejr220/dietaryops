@@ -28,7 +28,9 @@ private val LightColorScheme = lightColorScheme(
     surface = SurfaceLight,
     onSurface = OnSurfaceLight,
     surfaceVariant = SurfaceVariantLight,
-    onSurfaceVariant = OnSurfaceVariantLight
+    onSurfaceVariant = OnSurfaceVariantLight,
+    outline = OutlineLight,
+    outlineVariant = OutlineVariantLight
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -49,13 +51,15 @@ private val DarkColorScheme = darkColorScheme(
     surface = SurfaceDark,
     onSurface = OnSurfaceDark,
     surfaceVariant = SurfaceVariantDark,
-    onSurfaceVariant = OnSurfaceVariantDark
+    onSurfaceVariant = OnSurfaceVariantDark,
+    outline = OutlineDark,
+    outlineVariant = OutlineVariantDark
 )
 
 @Composable
 fun DeliveryScannerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Preserve high-contrast curated brand theme
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -69,6 +73,7 @@ fun DeliveryScannerTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = AppTypography,
         content = content
     )
 }

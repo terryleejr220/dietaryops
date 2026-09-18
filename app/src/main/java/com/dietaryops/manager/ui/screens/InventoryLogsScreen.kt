@@ -38,10 +38,13 @@ import com.dietaryops.manager.data.SettingsManager
 import com.dietaryops.manager.data.model.CatalogItem
 import com.dietaryops.manager.data.model.ScanRecord
 import com.dietaryops.manager.data.repository.DeliveryRepository
-import com.dietaryops.manager.ui.theme.SyncPendingColor
-import com.dietaryops.manager.ui.theme.SyncSuccessColor
+import com.dietaryops.manager.ui.theme.*
 import com.dietaryops.manager.util.DateCalculator
 import com.dietaryops.manager.util.SyscoUpcNormalizer
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -169,26 +172,173 @@ fun InventoryLogsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Tab Navigation Bar (Scan Logs vs Master Catalog) - Text-only compact tabs
-        PrimaryTabRow(selectedTabIndex = activeTab) {
-            Tab(
-                selected = activeTab == 0,
-                onClick = { activeTab = 0 },
-                text = { Text("Scan Logs (${scanRecords.size})", fontWeight = FontWeight.Bold) }
-            )
-            Tab(
-                selected = activeTab == 1,
-                onClick = { activeTab = 1 },
-                text = { Text("Master Catalog (${catalogItems.size})", fontWeight = FontWeight.Bold) }
-            )
+        // Executive KPI Summary Dashboard Cards
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Metric 1: Total Scans
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ReceiptLong,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                        Text(
+                            "SCANS",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${scanRecords.size}",
+                        style = MonospaceQuantityStyle,
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            // Metric 2: Pending Sync
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = if (unsyncedCount > 0) ExpiringSoonAmber.copy(alpha = 0.2f) else FreshGreen.copy(alpha = 0.2f),
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = if (unsyncedCount > 0) Icons.Default.CloudSync else Icons.Default.CloudDone,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp),
+                                    tint = if (unsyncedCount > 0) ExpiringSoonAmber else FreshGreen
+                                )
+                            }
+                        }
+                        Text(
+                            "PENDING",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "$unsyncedCount",
+                        style = MonospaceQuantityStyle,
+                        fontSize = 18.sp,
+                        color = if (unsyncedCount > 0) ExpiringSoonAmber else FreshGreen
+                    )
+                }
+            }
+
+            // Metric 3: Master Catalog
+            Surface(
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.size(20.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.Inventory,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                        Text(
+                            "CATALOG",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            letterSpacing = 0.5.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${catalogItems.size}",
+                        style = MonospaceQuantityStyle,
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+            }
         }
 
-        // Search Bar (Full Width)
+        // Tab Navigation Bar (Scan Logs vs Master Catalog) - Rounded container
+        Surface(
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            PrimaryTabRow(
+                selectedTabIndex = activeTab,
+                containerColor = Color.Transparent
+            ) {
+                Tab(
+                    selected = activeTab == 0,
+                    onClick = { activeTab = 0 },
+                    text = { Text("Scan Logs (${scanRecords.size})", fontWeight = if (activeTab == 0) FontWeight.Bold else FontWeight.Medium) }
+                )
+                Tab(
+                    selected = activeTab == 1,
+                    onClick = { activeTab = 1 },
+                    text = { Text("Master Catalog (${catalogItems.size})", fontWeight = if (activeTab == 1) FontWeight.Bold else FontWeight.Medium) }
+                )
+            }
+        }
+
+        // Search Bar (Full Width Rounded Pill)
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text(if (activeTab == 0) "Search log item or UPC..." else "Search catalog item or UPC...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            placeholder = { Text(if (activeTab == 0) "Search log item or barcode..." else "Search catalog item or barcode...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }) {
@@ -196,6 +346,7 @@ fun InventoryLogsScreen(
                     }
                 }
             },
+            shape = RoundedCornerShape(14.dp),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -786,11 +937,13 @@ fun ScanRecordCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -798,8 +951,24 @@ fun ScanRecordCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(record.itemName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text("UPC: ${record.syscoUpc}", fontSize = 11.sp, color = Color.Gray)
+                    Text(
+                        text = record.itemName,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = "UPC: ${record.syscoUpc}",
+                            style = MonospaceBarcodeStyle,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     if (record.isAudit) {
                         Spacer(modifier = Modifier.height(2.dp))
                         Surface(
@@ -1178,11 +1347,13 @@ fun CatalogItemCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1190,8 +1361,24 @@ fun CatalogItemCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(item.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    Text("Barcode: ${item.syscoUpc}", fontSize = 11.sp, color = Color.Gray)
+                    Text(
+                        text = item.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = "UPC: ${item.syscoUpc}",
+                            style = MonospaceBarcodeStyle,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 Button(

@@ -7,9 +7,12 @@ import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.dietaryops.manager.ui.theme.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -155,6 +158,8 @@ fun SettingsScreen(
         // Section: Firebase Authentication & Cloud Firestore Sync
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -309,6 +314,8 @@ fun SettingsScreen(
         // Section: Firebase Remote Config Status & Sync
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -390,6 +397,8 @@ fun SettingsScreen(
         // Section: Audit / Info-Only Scan Mode (First Scan Day Mode)
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -428,6 +437,8 @@ fun SettingsScreen(
         // Section: Default Label Quantity
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -501,6 +512,8 @@ fun SettingsScreen(
         // Section 1: Bluetooth Zebra Printer Manager
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -672,6 +685,8 @@ fun SettingsScreen(
         // Section 2: Google Sheets API Configuration
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -843,6 +858,8 @@ fun SettingsScreen(
         // Section 3: Default Shelf-Life Rules Configuration (ServSafe Standard)
         Card(
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
