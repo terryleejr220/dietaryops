@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // Seed default catalog & expiration rules
-                        productManager.repository.seedDefaultsIfEmpty()
+                        productManager.seedDefaultsIfEmpty()
                     }
 
                     AdaptiveMainLayout(

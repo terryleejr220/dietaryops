@@ -142,7 +142,7 @@ fun ReceivingScreen(
             scannedState = state
             isScanningEnabled = false
 
-            // Create local scan record & automatically save to master catalog and log to sheets
+            // Create local scan record & save to master catalog
             val effectiveOnHand = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
             val scanRecord = ScanRecord(
                 syscoUpc = state.normalizedUpc,
@@ -156,24 +156,17 @@ fun ReceivingScreen(
                 isAudit = settingsManager.isAuditMode
             )
             productManager.saveProduct(state.product)
-            productManager.logScanToSheets(scanRecord)
             currentScanRecord = scanRecord
 
-            // Real-time background sync with Google Sheets
-            val webAppUrl = settingsManager.webAppUrl
-            if (webAppUrl.isNotBlank()) {
-                isSyncing = true
-                statusMessage = "Syncing scan to Google Sheets..."
-                coroutineScope.launch(Dispatchers.IO) {
-                    val result = productManager.repository.syncWithGoogleSheets(webAppUrl)
-                    withContext(Dispatchers.Main) {
-                        isSyncing = false
-                        result.onSuccess { count ->
-                            statusMessage = if (count > 0) "Scanned & synced to Google Sheets!" else "Scanned: ${state.product.name}"
-                        }.onFailure { err ->
-                            statusMessage = "Scanned locally. Sheets sync offline: ${err.localizedMessage}"
-                        }
-                    }
+            // Single sync entry point: saves to Room then pushes to Sheets in background
+            isSyncing = true
+            statusMessage = "Syncing scan to Google Sheets..."
+            productManager.logScanAsync(scanRecord, coroutineScope) { result ->
+                isSyncing = false
+                result.onSuccess { count ->
+                    statusMessage = if (count > 0) "Scanned & synced to Google Sheets!" else "Scanned: ${state.product.name}"
+                }.onFailure { err ->
+                    statusMessage = "Scanned locally. Sheets sync offline: ${err.localizedMessage}"
                 }
             }
 
@@ -182,13 +175,22 @@ fun ReceivingScreen(
             val printQty = if (state.onHandAmount > 0.0) state.onHandAmount.toInt() else settingsManager.defaultLabelQuantity
             if (autoPrint && activePrinter != null) {
                 statusMessage = "Printing $printQty label(s) for ${state.product.name}..."
-                val zpl = ZplGenerator.generateLabel(state.product, state.dateCalculation.deliveryDate, staffInitials = settingsManager.staffInitials)
+                val zpl = if (settingsManager.department.equals("Environmental Services", ignoreCase = true) || settingsManager.department.equals("EVS", ignoreCase = true)) {
+                    ZplGenerator.generateShelfLabelZpl(
+                        item = state.product,
+                        companyHeader = "EVS SHELF LABEL"
+                    )
+                } else {
+                    ZplGenerator.generateLabel(
+                        state.product, 
+                        state.dateCalculation.deliveryDate, 
+                        staffInitials = settingsManager.staffInitials
+                    )
+                }
                 printerManager.printDirect(activePrinter, zpl, quantity = printQty) { success, msg ->
                     statusMessage = msg
                     if (success) {
-                        coroutineScope.launch {
-                            productManager.repository.markRecordPrinted(scanRecord.id)
-                        }
+                        coroutineScope.launch { productManager.markRecordPrinted(scanRecord.id) }
                     }
                 }
             } else if (!isSyncing) {
@@ -198,14 +200,52 @@ fun ReceivingScreen(
     }
 
     val remoteBannerMessage by RemoteConfigManager.bannerMessage.collectAsState()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            AdminDrawerContent(
+                settingsManager = settingsManager,
+                printerState = printerState,
+                connectedDevice = connectedDevice,
+                pairedPrinters = pairedPrinters,
+                selectedPrinter = selectedPrinter,
+                onPrinterSelected = { 
+                    selectedPrinter = it
+                    settingsManager.preferredPrinterAddress = it.address
+                },
+                autoPrint = autoPrint,
+                onAutoPrintChanged = {
+                    autoPrint = it
+                    settingsManager.autoPrint = it
+                },
+                manualUpcInput = manualUpcInput,
+                onManualUpcInputChanged = { manualUpcInput = it },
+                onManualUpcSubmit = { upc ->
+                    if (upc.isNotBlank()) {
+                        processUpcScan(upc)
+                        manualUpcInput = ""
+                        coroutineScope.launch { drawerState.close() }
+                    }
+                },
+                onCloseDrawer = { coroutineScope.launch { drawerState.close() } }
+            )
+        }
     ) {
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            modifier = modifier
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
         if (remoteBannerMessage.isNotBlank()) {
             Surface(
                 color = MaterialTheme.colorScheme.primaryContainer,
@@ -258,142 +298,16 @@ fun ReceivingScreen(
             }
         }
 
-        // Printer & Live Status Header Card
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(modifier = Modifier.padding(14.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shape = CircleShape,
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.Default.Print,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                        Column {
-                            Text("Thermal Printer", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("Zebra ZPL High-Speed", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-
-                    val (stateColor, stateText) = when (printerState) {
-                        ConnectionState.CONNECTED -> Pair(SyncSuccessColor, "CONNECTED")
-                        ConnectionState.CONNECTING -> Pair(SyncPendingColor, "PAIRING...")
-                        ConnectionState.ERROR -> Pair(StatusErrorColor, "ERROR")
-                        ConnectionState.DISCONNECTED -> Pair(Color(0xFF64748B), "OFFLINE")
-                    }
-                    Surface(
-                        color = stateColor.copy(alpha = 0.14f),
-                        shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, stateColor.copy(alpha = 0.35f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(5.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .clip(CircleShape)
-                                    .background(stateColor)
-                            )
-                            Text(
-                                text = stateText,
-                                color = stateColor,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Printer selector dropdown
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(
-                        onClick = { showPrinterDropdown = true },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            val displayName = (connectedDevice ?: selectedPrinter)?.let {
-                                try { it.name ?: it.address } catch (_: SecurityException) { it.address }
-                            } ?: "No Printer Selected (Tap to pair)"
-                            Text(displayName, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                            Icon(Icons.Default.ArrowDropDown, contentDescription = null)
-                        }
-                    }
-
-                    DropdownMenu(
-                        expanded = showPrinterDropdown,
-                        onDismissRequest = { showPrinterDropdown = false }
-                    ) {
-                        if (pairedPrinters.isEmpty()) {
-                            DropdownMenuItem(
-                                text = { Text("No paired Bluetooth printers found") },
-                                onClick = { showPrinterDropdown = false }
-                            )
-                        } else {
-                            pairedPrinters.forEach { device ->
-                                val devName = try { device.name ?: device.address } catch (_: SecurityException) { device.address }
-                                DropdownMenuItem(
-                                    text = { Text(devName) },
-                                    onClick = {
-                                        selectedPrinter = device
-                                        settingsManager.preferredPrinterAddress = device.address
-                                        showPrinterDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(Icons.Default.Bolt, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                        Text("Auto-print upon scan:", fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                    }
-                    Switch(
-                        checked = autoPrint,
-                        onCheckedChange = {
-                            autoPrint = it
-                            settingsManager.autoPrint = it
-                        }
-                    )
-                }
+        // Open Admin Drawer Button
+        if (settingsManager.staffRole != "OPERATOR") {
+            Button(
+                onClick = { coroutineScope.launch { drawerState.open() } },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Icon(Icons.Default.Settings, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Admin Options", fontWeight = FontWeight.Bold)
             }
         }
 
@@ -686,11 +600,11 @@ fun ReceivingScreen(
                                                 currentScanRecord = currentScanRecord?.copy(onHandAmount = newQty)
                                                 coroutineScope.launch {
                                                     currentScanRecord?.let { rec ->
-                                                        productManager.repository.updateScanRecordOnHandAmount(rec.id, state.normalizedUpc, newQty)
+                                                        productManager.updateOnHandAmount(rec.id, state.normalizedUpc, newQty)
                                                     }
-                                                    val cat = productManager.repository.getCatalogItem(state.normalizedUpc)
+                                                    val cat = productManager.getCatalogItem(state.normalizedUpc)
                                                     if (cat.name != "Unrecognized Item") {
-                                                        productManager.repository.saveCatalogItem(cat.copy(lastOnHandAmount = newQty))
+                                                        productManager.saveCatalogItem(cat.copy(lastOnHandAmount = newQty))
                                                     }
                                                 }
                                             }
@@ -720,11 +634,11 @@ fun ReceivingScreen(
                                             currentScanRecord = currentScanRecord?.copy(onHandAmount = newQty)
                                             coroutineScope.launch {
                                                 currentScanRecord?.let { rec ->
-                                                    productManager.repository.updateScanRecordOnHandAmount(rec.id, state.normalizedUpc, newQty)
+                                                    productManager.updateOnHandAmount(rec.id, state.normalizedUpc, newQty)
                                                 }
-                                                val cat = productManager.repository.getCatalogItem(state.normalizedUpc)
+                                                val cat = productManager.getCatalogItem(state.normalizedUpc)
                                                 if (cat.name != "Unrecognized Item") {
-                                                    productManager.repository.saveCatalogItem(cat.copy(lastOnHandAmount = newQty))
+                                                    productManager.saveCatalogItem(cat.copy(lastOnHandAmount = newQty))
                                                 }
                                             }
                                         }
@@ -843,7 +757,7 @@ fun ReceivingScreen(
                                         )
                                         coroutineScope.launch {
                                             currentScanRecord?.let { rec ->
-                                                productManager.repository.addScanRecord(rec.copy(shelfLifeDays = days, useByDate = newCalc.useByDateIso))
+                                                productManager.addScanRecord(rec.copy(shelfLifeDays = days, useByDate = newCalc.useByDateIso))
                                             }
                                         }
                                     },
@@ -921,15 +835,22 @@ fun ReceivingScreen(
                             onClick = {
                                 val activePrinter = connectedDevice ?: selectedPrinter
                                 if (activePrinter != null) {
-                                    val zpl = ZplGenerator.generateLabel(
-                                        itemName = prod.name,
-                                        upc = prod.upc,
-                                        deliveryDate = dateCalc.deliveryDate,
-                                        useByDate = dateCalc.useByDate,
-                                        category = prod.category,
-                                        onHandAmount = state.onHandAmount,
-                                        staffInitials = settingsManager.staffInitials
-                                    )
+                                    val zpl = if (settingsManager.department.equals("Environmental Services", ignoreCase = true) || settingsManager.department.equals("EVS", ignoreCase = true)) {
+                                        ZplGenerator.generateShelfLabelZpl(
+                                            item = prod,
+                                            companyHeader = "EVS SHELF LABEL"
+                                        )
+                                    } else {
+                                        ZplGenerator.generateLabel(
+                                            itemName = prod.name,
+                                            upc = prod.upc,
+                                            deliveryDate = dateCalc.deliveryDate,
+                                            useByDate = dateCalc.useByDate,
+                                            category = prod.category,
+                                            onHandAmount = state.onHandAmount,
+                                            staffInitials = settingsManager.staffInitials
+                                        )
+                                    }
                                     printerManager.printDirect(activePrinter, zpl, quantity = labelQuantity) { _, msg ->
                                         statusMessage = msg
                                     }
@@ -969,14 +890,12 @@ fun ReceivingScreen(
                                         onHandAmount = state.onHandAmount,
                                         isAudit = settingsManager.isAuditMode
                                     )
-                                    productManager.repository.addScanRecord(recordToSave)
+                                    productManager.addScanRecord(recordToSave)
                                     currentScanRecord = recordToSave
 
-                                    val webAppUrl = settingsManager.webAppUrl
-                                    if (webAppUrl.isNotBlank()) {
-                                        isSyncing = true
-                                        statusMessage = "Syncing with Google Sheets..."
-                                        val res = productManager.repository.syncWithGoogleSheets(webAppUrl)
+                                    isSyncing = true
+                                    statusMessage = "Syncing with Google Sheets..."
+                                    productManager.logScanAsync(recordToSave, coroutineScope) { res ->
                                         isSyncing = false
                                         res.onSuccess {
                                             statusMessage = "Saved & Synced to Google Sheets!"
@@ -984,8 +903,6 @@ fun ReceivingScreen(
                                         }.onFailure { err ->
                                             statusMessage = "Saved locally. Sync error: ${err.localizedMessage}"
                                         }
-                                    } else {
-                                        Toast.makeText(context, "Saved record locally!", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             },
@@ -1014,39 +931,9 @@ fun ReceivingScreen(
             }
         }
 
-        // Manual UPC Entry Card
-        AnimatedVisibility(visible = showManualInputCard) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("Manual Barcode Lookup", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    OutlinedTextField(
-                        value = manualUpcInput,
-                        onValueChange = { manualUpcInput = it },
-                        label = { Text("Enter 12-digit Item Barcode (UPC)") },
-                        placeholder = { Text("e.g. 074865123401") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Button(
-                        onClick = {
-                            if (manualUpcInput.isNotBlank()) {
-                                processUpcScan(manualUpcInput)
-                                showManualInputCard = false
-                            } else {
-                                Toast.makeText(context, "Please enter a valid UPC barcode", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("Lookup & Calculate")
-                    }
-                }
-            }
-        }
-    }
+    } // End of Column
+    } // End of Scaffold
+    } // End of ModalNavigationDrawer
 
     // Manual Edit / Override Dialog
     if (showEditDialog && scannedState != null) {
@@ -1144,7 +1031,7 @@ fun ReceivingScreen(
                             expanded = isCategoryExpanded,
                             onDismissRequest = { isCategoryExpanded = false }
                         ) {
-                            DEFAULT_CATEGORIES.forEach { cat ->
+                            settingsManager.categories.forEach { cat ->
                                 DropdownMenuItem(
                                     text = { Text(cat) },
                                     onClick = {
@@ -1302,17 +1189,15 @@ fun ReceivingScreen(
                             syncedToSheets = false,
                             isAudit = settingsManager.isAuditMode
                         )
-                        productManager.repository.addScanRecord(updatedScanRecord)
+                        productManager.addScanRecord(updatedScanRecord)
                         currentScanRecord = updatedScanRecord
 
                         showEditDialog = false
                         statusMessage = "Saved product & date override!"
                         Toast.makeText(context, "Saved product & date override!", Toast.LENGTH_SHORT).show()
-                        
-                        val webAppUrl = settingsManager.webAppUrl
-                        if (webAppUrl.isNotBlank()) {
-                            isSyncing = true
-                            val res = productManager.repository.syncWithGoogleSheets(webAppUrl)
+
+                        isSyncing = true
+                        productManager.logScanAsync(updatedScanRecord, coroutineScope) { res ->
                             isSyncing = false
                             res.onSuccess {
                                 statusMessage = "Saved & Synced to Google Sheets!"
@@ -1377,7 +1262,7 @@ fun ReceivingScreen(
                             )
                             coroutineScope.launch {
                                 currentScanRecord?.let { rec ->
-                                    productManager.repository.addScanRecord(rec.copy(shelfLifeDays = validDays, useByDate = newCalc.useByDateIso))
+                                    productManager.addScanRecord(rec.copy(shelfLifeDays = validDays, useByDate = newCalc.useByDateIso))
                                 }
                             }
                             showCustomDaysDialog = false

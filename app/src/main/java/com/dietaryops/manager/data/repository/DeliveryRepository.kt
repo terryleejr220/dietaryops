@@ -85,6 +85,14 @@ class DeliveryRepository(context: Context) {
         CatalogItem("074861000036", "Alfredo Sauce", "Dry Storage", 365, "CS"),
         CatalogItem("074861000037", "Bread Crumbs", "Dry Storage", 365, "CS"),
 
+        // Housekeeping / EVS
+        CatalogItem("074863000001", "Vinyl Gloves Large", "Gloves & PPE", 365, "CS"),
+        CatalogItem("074863000002", "Depends Adult Briefs L", "Incontinence (Depends)", 365, "CS"),
+        CatalogItem("074863000003", "Toilet Bowl Cleaner", "Chemicals & Cleaners", 365, "CS"),
+        CatalogItem("074863000004", "Clorox Bleach", "Chemicals & Cleaners", 365, "EA"),
+        CatalogItem("074863000005", "Paper Towels Roll", "Paper Goods", 365, "CS"),
+        CatalogItem("074863000006", "Trash Bags 33 Gal", "Liners & Trash Bags", 365, "CS"),
+
         // Proteins & Frozen
         CatalogItem("074862000001", "Pork Loin CC BL", "Proteins & Frozen", 14, "CS"),
         CatalogItem("074862000002", "Mascarpone", "Dairy & Fresh", 7, "EA"),
@@ -1196,5 +1204,24 @@ class DeliveryRepository(context: Context) {
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    // ─── WorkManager Integration ───────────────────────────────────────────────
+
+    /**
+     * Push a single scan record to Firestore directly.
+     * Called by [SyncWorker] — throws on failure so the worker can retry.
+     */
+    suspend fun pushScanRecordToFirestore(record: ScanRecord) {
+        val result = firestoreRepository.addScanRecord(record)
+        if (result.isFailure) throw result.exceptionOrNull() ?: Exception("Firestore push failed")
+    }
+
+    /**
+     * Enqueue a background [SyncWorker] job.
+     * Safe to call from the main thread — WorkManager schedules automatically.
+     */
+    fun enqueueSyncWork(context: Context) {
+        com.dietaryops.manager.work.SyncWorker.enqueue(context)
     }
 }

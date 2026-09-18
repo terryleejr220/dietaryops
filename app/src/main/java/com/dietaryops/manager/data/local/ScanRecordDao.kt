@@ -15,11 +15,33 @@ interface ScanRecordDao {
     @Query("SELECT * FROM scan_records WHERE syncedToSheets = 0")
     suspend fun getUnsyncedScanRecords(): List<ScanRecord>
 
+    /**
+     * Returns records that have not been fully synced to Sheets OR Firestore
+     * and have not exceeded the retry cap. Used by [SyncWorker].
+     */
+    @Query(
+        "SELECT * FROM scan_records " +
+        "WHERE (syncedToSheets = 0 OR syncedToFirestore = 0) " +
+        "AND syncRetryCount < :maxRetries " +
+        "ORDER BY scanTimestamp ASC"
+    )
+    suspend fun getFailedSyncRecords(maxRetries: Int = 5): List<ScanRecord>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertScanRecord(record: ScanRecord)
 
     @Query("UPDATE scan_records SET syncedToSheets = 1 WHERE id = :id")
     suspend fun markSynced(id: String)
+
+    @Query("UPDATE scan_records SET syncedToSheets = 1 WHERE id = :id")
+    suspend fun markSheetsSynced(id: String)
+
+    @Query("UPDATE scan_records SET syncedToFirestore = 1 WHERE id = :id")
+    suspend fun markFirestoreSynced(id: String)
+
+    /** Increment the retry counter so we don't hammer a perpetually-failing record. */
+    @Query("UPDATE scan_records SET syncRetryCount = syncRetryCount + 1 WHERE id = :id")
+    suspend fun incrementRetryCount(id: String)
 
     @Query("UPDATE scan_records SET printed = :printed WHERE id = :id")
     suspend fun markPrinted(id: String, printed: Boolean)

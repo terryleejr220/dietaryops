@@ -22,6 +22,14 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean(KEY_AUTO_PRINT, true)
         set(value) = prefs.edit().putBoolean(KEY_AUTO_PRINT, value).apply()
 
+    private fun isEvsDepartment(): Boolean {
+        return department.equals("Environmental Services", ignoreCase = true) || 
+               department.equals("EVS", ignoreCase = true)
+    }
+
+    val categories: List<String>
+        get() = if (isEvsDepartment()) EVS_CATEGORIES else DEFAULT_CATEGORIES
+
     var preferredPrinterAddress: String?
         get() = prefs.getString(KEY_PREFERRED_PRINTER_ADDRESS, null)
         set(value) = prefs.edit().putString(KEY_PREFERRED_PRINTER_ADDRESS, value).apply()
@@ -117,6 +125,16 @@ class SettingsManager(context: Context) {
             "Dairy & Fresh",
             "Proteins & Frozen",
             "Supplement",
+            "General"
+        )
+
+        val EVS_CATEGORIES = listOf(
+            "Gloves & PPE",
+            "Incontinence (Depends)",
+            "Chemicals & Cleaners",
+            "Paper Goods",
+            "Liners & Trash Bags",
+            "Equipment",
             "General"
         )
     }

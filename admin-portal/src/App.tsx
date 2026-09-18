@@ -20,10 +20,12 @@ import {
 import { CompanyManager } from './components/CompanyManager';
 import { StaffRoster } from './components/StaffRoster';
 import { LiveScanFeed } from './components/LiveScanFeed';
+import { LoginScreen } from './components/LoginScreen';
 
 type NavTab = 'COMPANIES' | 'STAFF' | 'LIVE_FEED' | 'SHEETS_SYNC';
 
 export const App: React.FC = () => {
+  const [loggedInUser, setLoggedInUser] = useState<StaffUser | null>(null);
   const [activeTab, setActiveTab] = useState<NavTab>('STAFF');
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
@@ -33,17 +35,39 @@ export const App: React.FC = () => {
 
   const loadData = async () => {
     setIsLoading(true);
-    const comps = await fetchCompanies();
-    setCompanies(comps);
-    if (comps.length > 0) {
-      const current = selectedCompany 
-        ? (comps.find(c => c.code === selectedCompany.code) || comps[0]) 
-        : comps[0];
-      setSelectedCompany(current);
-      const users = await fetchStaffUsers(current.code);
-      setStaffUsers(users);
+    try {
+      const timeout = (ms: number) => new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms));
+      
+      const comps = await Promise.race([fetchCompanies(), timeout(3000)]);
+      setCompanies(comps);
+      if (comps.length > 0) {
+        const current = selectedCompany 
+          ? (comps.find(c => c.code === selectedCompany.code) || comps[0]) 
+          : comps[0];
+        setSelectedCompany(current);
+        const users = await Promise.race([fetchStaffUsers(current.code), timeout(3000)]);
+        setStaffUsers(users);
+      }
+    } catch (err) {
+      console.warn("Timeout or error loading data, using fallbacks:", err);
+      // Fallback
+      import('./services/firebase').then(fb => {
+        setCompanies(fb.DEFAULT_COMPANIES);
+        setSelectedCompany(fb.DEFAULT_COMPANIES[0]);
+        setStaffUsers([{
+          employeeId: "TL01",
+          displayName: "Terry Little Jr.",
+          companyCode: "DOPS",
+          department: "Dietary",
+          role: "ADMIN",
+          pin: "1234",
+          badgeToken: "CV-AUTH-8841",
+          active: true
+        }]);
+      });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -82,6 +106,28 @@ export const App: React.FC = () => {
     setStaffUsers(users);
   };
 
+  if (isLoading && companies.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#0A1016] text-white flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <QrCode className="w-12 h-12 text-teal-500 animate-pulse" />
+          <p className="text-slate-400 font-mono text-sm">Connecting to Firestore & Telemetry...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!loggedInUser) {
+    return <LoginScreen companies={companies} onLogin={(u, c) => {
+      setLoggedInUser(u);
+      setSelectedCompany(c);
+      setActiveTab('STAFF');
+      fetchStaffUsers(c.code).then(setStaffUsers);
+    }} />;
+  }
+
+  const isSuperAdmin = loggedInUser.role === 'SUPER_ADMIN';
+
   return (
     <div className="min-h-screen bg-[#0A1016] text-slate-100 flex flex-col font-sans">
       {/* Top Navigation Bar */}
@@ -96,7 +142,7 @@ export const App: React.FC = () => {
               <div className="text-base font-extrabold text-white flex items-center gap-2">
                 DietaryOps Manager
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 font-mono font-semibold border border-teal-500/30">
-                  SUPER-ADMIN CONSOLE
+                  {isSuperAdmin ? 'SUPER-ADMIN CONSOLE' : 'DEPT-ADMIN CONSOLE'}
                 </span>
               </div>
               <div className="text-[11px] text-slate-400">
@@ -110,20 +156,24 @@ export const App: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center gap-2 bg-[#0D141B] border border-slate-800 rounded-xl px-3 py-1.5 text-xs">
                 <span className="text-slate-400">Facility Context:</span>
-                <select
-                  value={selectedCompany.code}
-                  onChange={(e) => {
-                    const found = companies.find(c => c.code === e.target.value);
-                    if (found) handleSelectCompany(found);
-                  }}
-                  className="bg-transparent text-teal-300 font-bold focus:outline-none cursor-pointer"
-                >
-                  {companies.map(c => (
-                    <option key={c.code} value={c.code} className="bg-[#131B24] text-white">
-                      {c.name} ({c.code})
-                    </option>
-                  ))}
-                </select>
+                {isSuperAdmin ? (
+                  <select
+                    value={selectedCompany.code}
+                    onChange={(e) => {
+                      const found = companies.find(c => c.code === e.target.value);
+                      if (found) handleSelectCompany(found);
+                    }}
+                    className="bg-transparent text-teal-300 font-bold focus:outline-none cursor-pointer"
+                  >
+                    {companies.map(c => (
+                      <option key={c.code} value={c.code} className="bg-[#131B24] text-white">
+                        {c.name} ({c.code})
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-teal-300 font-bold">{selectedCompany.name}</span>
+                )}
               </div>
 
               <button
@@ -157,20 +207,22 @@ export const App: React.FC = () => {
             )}
           </button>
 
-          <button
-            onClick={() => setActiveTab('COMPANIES')}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-              activeTab === 'COMPANIES'
-                ? 'border-teal-500 text-teal-400 bg-teal-500/5'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Building2 className="w-4 h-4" />
-            Stores & Facilities
-            <span className="text-xs px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">
-              {companies.length}
-            </span>
-          </button>
+          {isSuperAdmin && (
+            <button
+              onClick={() => setActiveTab('COMPANIES')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+                activeTab === 'COMPANIES'
+                  ? 'border-teal-500 text-teal-400 bg-teal-500/5'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              Stores & Facilities
+              <span className="text-xs px-1.5 py-0.2 rounded-full bg-slate-800 text-slate-400">
+                {companies.length}
+              </span>
+            </button>
+          )}
 
           <button
             onClick={() => setActiveTab('LIVE_FEED')}
@@ -216,7 +268,7 @@ export const App: React.FC = () => {
               />
             )}
 
-            {activeTab === 'COMPANIES' && (
+            {activeTab === 'COMPANIES' && isSuperAdmin && (
               <CompanyManager
                 companies={companies}
                 selectedCompany={selectedCompany}

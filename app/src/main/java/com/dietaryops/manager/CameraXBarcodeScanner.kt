@@ -48,13 +48,15 @@ fun CameraXBarcodeScanner(
     var isFlashOn by remember { mutableStateOf(false) }
 
     val barcodeAnalyzer = remember {
-        BarcodeAnalyzer { raw, normalized ->
-            onBarcodeFound(raw, normalized)
-        }
+        BarcodeAnalyzer(
+            onBarcodeFound = { raw, normalized -> onBarcodeFound(raw, normalized) },
+            scanMode = ScanMode.DELIVERY
+        )
     }
 
+    // Re-arm the analyzer when the caller requests scanning enabled again
     LaunchedEffect(isScanningEnabled) {
-        barcodeAnalyzer.isScanningEnabled = isScanningEnabled
+        if (isScanningEnabled) barcodeAnalyzer.reset()
     }
 
     // Dynamic Camera Lifecycle binding / unbinding based on isCameraActive

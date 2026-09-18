@@ -65,8 +65,20 @@ fun BadgeLoginDialog(
         scope.launch {
             val result = firestoreRepository.verifyBadgeLogin(scanCompanyCode, scanEmployeeId, scanToken)
             result.onSuccess { user ->
+                // Also fetch company config
+                val compResult = firestoreRepository.fetchCompanyProfile(user.companyCode)
+                val comp = compResult.getOrNull()
+                
                 successUser = user
                 settingsManager.currentStaffUser = user
+                
+                if (comp != null) {
+                    settingsManager.companyName = comp.name
+                    settingsManager.sheetId = comp.spreadsheetId
+                    settingsManager.webAppUrl = comp.webAppUrl
+                    settingsManager.departmentSheetTab = comp.departmentTabs[user.department] ?: "Delivery Log"
+                }
+                
                 onLoginSuccess(user)
             }.onFailure { err ->
                 // Fallback for offline or local supervisor mode
@@ -104,8 +116,20 @@ fun BadgeLoginDialog(
         scope.launch {
             val result = firestoreRepository.verifyPinLogin(companyCode, employeeIdInput, pinInput)
             result.onSuccess { user ->
+                // Also fetch company config
+                val compResult = firestoreRepository.fetchCompanyProfile(user.companyCode)
+                val comp = compResult.getOrNull()
+                
                 successUser = user
                 settingsManager.currentStaffUser = user
+                
+                if (comp != null) {
+                    settingsManager.companyName = comp.name
+                    settingsManager.sheetId = comp.spreadsheetId
+                    settingsManager.webAppUrl = comp.webAppUrl
+                    settingsManager.departmentSheetTab = comp.departmentTabs[user.department] ?: "Delivery Log"
+                }
+                
                 onLoginSuccess(user)
             }.onFailure { err ->
                 // Fallback / local check if default test admin PIN

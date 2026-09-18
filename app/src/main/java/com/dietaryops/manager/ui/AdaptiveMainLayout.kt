@@ -229,6 +229,8 @@ fun AdaptiveMainLayout(
                     }
                 ) {
                     NavDestination.entries.forEach { destination ->
+                        if (destination == NavDestination.SETTINGS && settingsManager.staffRole == "OPERATOR") return@forEach
+                        
                         NavigationRailItem(
                             selected = currentDestination == destination,
                             onClick = { currentDestination = destination },

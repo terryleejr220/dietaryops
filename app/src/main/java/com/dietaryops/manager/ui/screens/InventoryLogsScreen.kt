@@ -71,6 +71,7 @@ fun InventoryLogsScreen(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedCategoryFilter by remember { mutableStateOf("All") }
     var selectedSyncFilter by remember { mutableStateOf("All") } // "All", "Synced", "Pending"
+    var selectedCatalogFilter by remember { mutableStateOf("All") } // "All", "Low Stock", "Recently Scanned"
 
     var isSyncing by remember { mutableStateOf(false) }
     var isImportingCatalog by remember { mutableStateOf(false) }
@@ -111,19 +112,32 @@ fun InventoryLogsScreen(
         }
     }
 
+    val recentlyScannedUpcs = remember(scanRecords) {
+        scanRecords.map { it.syscoUpc }.toSet()
+    }
+
     var sortMode by remember { mutableStateOf("Shelf Layout") } // "Shelf Layout", "Alphabetical", "Category"
 
     // Filtered master catalog items list
-    val filteredCatalogItems = remember(catalogItems, searchQuery, activeTab, sortMode) {
+    val filteredCatalogItems = remember(catalogItems, searchQuery, activeTab, sortMode, selectedCatalogFilter, recentlyScannedUpcs) {
         val filtered = catalogItems.filter { item ->
-            searchQuery.isBlank() ||
+            val matchesSearch = searchQuery.isBlank() ||
                     item.name.contains(searchQuery, ignoreCase = true) ||
                     item.syscoUpc.contains(searchQuery, ignoreCase = true) ||
                     item.syscoItemNumber.contains(searchQuery, ignoreCase = true) ||
                     item.piazzaItemNumber.contains(searchQuery, ignoreCase = true)
+                    
+            val matchesCatalogFilter = when (selectedCatalogFilter) {
+                "Low Stock" -> item.parLevel > 0 && item.lastOnHandAmount < item.parLevel
+                "Recently Scanned" -> recentlyScannedUpcs.contains(item.syscoUpc)
+                else -> true
+            }
+            
+            matchesSearch && matchesCatalogFilter
         }
 
-        when (sortMode) {
+        // Apply sorting: Always push zero'd items to the bottom unless specifically searching or filtering
+        val sorted = when (sortMode) {
             "Alphabetical" -> filtered.sortedBy { it.name }
             "Category" -> filtered.sortedWith(compareBy({ it.category }, { it.name }))
             else -> {
@@ -139,6 +153,13 @@ fun InventoryLogsScreen(
                      .thenBy { it.name }
                 )
             }
+        }
+        
+        // Push items with 0 on hand to the bottom if we aren't heavily filtering
+        if (searchQuery.isBlank() && selectedCatalogFilter == "All") {
+            sorted.sortedBy { it.lastOnHandAmount <= 0 }
+        } else {
+            sorted
         }
     }
 
@@ -475,17 +496,33 @@ fun InventoryLogsScreen(
             }
 
             // Compact Sort Row for Master Catalog (Streamlined single clean row)
-            Row(
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Sort:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
-                listOf("Shelf Layout", "Alphabetical", "Category").forEach { mode ->
+                item { Text("Sort:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray) }
+                items(listOf("Shelf Layout", "Alphabetical", "Category")) { mode ->
                     FilterChip(
                         selected = sortMode == mode,
                         onClick = { sortMode = mode },
                         label = { Text(mode, fontSize = 11.sp) }
+                    )
+                }
+                item {
+                    VerticalDivider(modifier = Modifier.height(20.dp).padding(horizontal = 4.dp))
+                }
+                item { Text("Filter:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray) }
+                items(listOf("All", "Low Stock", "Recently Scanned")) { filter ->
+                    FilterChip(
+                        selected = selectedCatalogFilter == filter,
+                        onClick = { selectedCatalogFilter = filter },
+                        label = { Text(filter, fontSize = 11.sp) },
+                        colors = if (filter == "Low Stock" && selectedCatalogFilter == filter) {
+                            FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.errorContainer, labelColor = MaterialTheme.colorScheme.onErrorContainer)
+                        } else {
+                            FilterChipDefaults.filterChipColors()
+                        }
                     )
                 }
             }

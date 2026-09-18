@@ -1,4 +1,4 @@
-export type StaffRole = 'OPERATOR' | 'SUPERVISOR' | 'ADMIN';
+export type StaffRole = 'OPERATOR' | 'SUPERVISOR' | 'ADMIN' | 'DEPT_ADMIN' | 'SUPER_ADMIN';
 
 export interface Company {
   id: string;

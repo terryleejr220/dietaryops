@@ -19,6 +19,8 @@ data class ScanRecord(
     val onHandAmount: Double = 1.0,
     val printed: Boolean = false,
     val syncedToSheets: Boolean = false,
+    val syncedToFirestore: Boolean = false,
+    val syncRetryCount: Int = 0,
     val isAudit: Boolean = false,
     val itemNumber: String = "",
     val receivedBy: String = ""

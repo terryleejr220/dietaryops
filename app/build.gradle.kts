@@ -6,8 +6,8 @@ import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
 import java.util.Properties
 
-val appVersionCode = 17
-val appVersionName = "1.0.17"
+val appVersionCode = 18
+val appVersionName = "1.0.18"
 
 val localProperties = Properties().apply {
     val localPropertiesFile = rootProject.file("local.properties")
@@ -23,7 +23,7 @@ val releaseKeyPassword = localProperties.getProperty("KEYSTORE_KEY_PASSWORD")
     ?: ""
 val releaseKeyAlias = localProperties.getProperty("KEYSTORE_KEY_ALIAS")
     ?: System.getenv("KEYSTORE_KEY_ALIAS")
-    ?: "century_villa"
+    ?: "dietaryops_release"
 
 plugins {
     id("com.android.application")
@@ -146,6 +146,9 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+
+    // WorkManager
+    implementation("androidx.work:work-runtime-ktx:2.10.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

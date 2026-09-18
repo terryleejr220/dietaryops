@@ -19,20 +19,32 @@ class ZebraPrinterManager(private val context: Context) {
     val connectedDevice: StateFlow<BluetoothDevice?> = sppManager.connectedDevice
     val discoveredDevices: StateFlow<List<BluetoothDevice>> = sppManager.discoveredDevices
 
+    // ─── Bluetooth Discovery Passthrough ──────────────────────────────────────
+
+    /** Start Bluetooth device discovery. Returns false if permissions are missing or BT is off. */
+    fun startDiscovery(): Boolean = sppManager.startDiscovery()
+
+    /** Stop Bluetooth device discovery and unregister the broadcast receiver. */
+    fun stopDiscovery() = sppManager.stopDiscovery()
+
+    fun hasBluetoothPermissions(): Boolean = sppManager.hasBluetoothPermissions()
+
+    // ─── Printer Identification ────────────────────────────────────────────────
+
     @SuppressLint("MissingPermission")
     fun isStrictPrinterDevice(device: BluetoothDevice): Boolean {
-        // 1. Check name for printer keywords
+        // 1. Check name for known printer keywords
         val name = try { device.name ?: "" } catch (_: SecurityException) { "" }
         if (name.contains("Printer", ignoreCase = true) ||
-            name.contains("Zebra", ignoreCase = true) ||
-            name.contains("QLn", ignoreCase = true) ||
-            name.contains("ZQ", ignoreCase = true) ||
-            name.contains("ZD", ignoreCase = true) ||
-            name.contains("ZPL", ignoreCase = true) ||
-            name.contains("Print", ignoreCase = true) ||
-            name.contains("POS", ignoreCase = true) ||
-            name.contains("Epson", ignoreCase = true) ||
-            name.contains("Star", ignoreCase = true) ||
+            name.contains("Zebra",   ignoreCase = true) ||
+            name.contains("QLn",     ignoreCase = true) ||
+            name.contains("ZQ",      ignoreCase = true) ||
+            name.contains("ZD",      ignoreCase = true) ||
+            name.contains("ZPL",     ignoreCase = true) ||
+            name.contains("Print",   ignoreCase = true) ||
+            name.contains("POS",     ignoreCase = true) ||
+            name.contains("Epson",   ignoreCase = true) ||
+            name.contains("Star",    ignoreCase = true) ||
             name.contains("Bixolon", ignoreCase = true) ||
             name.contains("Brother", ignoreCase = true)
         ) {
@@ -55,12 +67,6 @@ class ZebraPrinterManager(private val context: Context) {
     }
 
     @SuppressLint("MissingPermission")
-    fun isPrinterOrPaired(device: BluetoothDevice): Boolean {
-        if (device.bondState == BluetoothDevice.BOND_BONDED) return true
-        return isStrictPrinterDevice(device)
-    }
-
-    @SuppressLint("MissingPermission")
     fun getPairedPrinters(): List<BluetoothDevice> {
         val paired = sppManager.getPairedDevices()
         val pairedPrinters = paired.filter { isStrictPrinterDevice(it) }
@@ -76,17 +82,33 @@ class ZebraPrinterManager(private val context: Context) {
         } ?: paired.firstOrNull()
     }
 
-    suspend fun connect(device: BluetoothDevice): Boolean {
-        return sppManager.connect(device)
+    // ─── Connection ────────────────────────────────────────────────────────────
+
+    suspend fun connect(device: BluetoothDevice): Boolean = sppManager.connect(device)
+
+    suspend fun disconnect() = sppManager.disconnect()
+
+    // ─── ZPL Helpers ──────────────────────────────────────────────────────────
+
+    /**
+     * Injects a Zebra `^PQ` (Print Quantity) command into a ZPL template before `^XZ`.
+     * This is the single authoritative location for `^PQ` injection — do not duplicate elsewhere.
+     */
+    private fun injectPrintQuantity(zpl: String, quantity: Int): String {
+        val qty = quantity.coerceAtLeast(1)
+        return if (zpl.contains("^XZ")) {
+            zpl.replace("^XZ", "^PQ$qty,0,1,Y\n^XZ")
+        } else {
+            "$zpl\n^PQ$qty,0,1,Y\n"
+        }
     }
 
-    suspend fun disconnect() {
-        sppManager.disconnect()
-    }
+    // ─── Persistent-Connection Print (coroutine-safe, state-tracked) ──────────
 
-    suspend fun printZpl(zpl: String): Boolean {
-        return sppManager.printZpl(zpl)
-    }
+    suspend fun printZpl(zpl: String): Boolean = sppManager.printZpl(zpl)
+
+    suspend fun printZpl(zpl: String, quantity: Int): Boolean =
+        sppManager.printZpl(injectPrintQuantity(zpl, quantity))
 
     suspend fun printProductLabel(
         product: SyscoProduct,
@@ -98,11 +120,20 @@ class ZebraPrinterManager(private val context: Context) {
         return sppManager.printZpl(zpl)
     }
 
+    // ─── One-Shot Fire-and-Forget Print (no persistent connection needed) ──────
+
     /**
-     * One-shot asynchronous Bluetooth print connection for Zebra QLn420 printer.
+     * Opens a raw RFCOMM socket, prints [quantity] copies of [zplData], and closes the socket.
+     * Used for ad-hoc prints where a persistent [BluetoothSppManager] session is not established.
+     * Prefer [printZpl] for back-to-back prints during a receiving session.
      */
     @SuppressLint("MissingPermission")
-    fun printDirect(device: BluetoothDevice, zplData: String, quantity: Int = 1, onResult: (Boolean, String) -> Unit) {
+    fun printDirect(
+        device: BluetoothDevice,
+        zplData: String,
+        quantity: Int = 1,
+        onResult: (success: Boolean, message: String) -> Unit
+    ) {
         val mainHandler = Handler(Looper.getMainLooper())
         Thread {
             try {
@@ -113,24 +144,18 @@ class ZebraPrinterManager(private val context: Context) {
                 val socket = device.createRfcommSocketToServiceRecord(BluetoothSppManager.SPP_UUID)
                 socket.connect()
                 val outStream = socket.outputStream
-                val printCount = quantity.coerceAtLeast(1)
-
-                val modifiedZpl = if (zplData.contains("^XZ")) {
-                    zplData.replace("^XZ", "^PQ$printCount,0,1,Y\n^XZ")
-                } else {
-                    "$zplData\n^PQ$printCount,0,1,Y\n"
-                }
+                val modifiedZpl = injectPrintQuantity(zplData, quantity)
 
                 outStream.write(modifiedZpl.toByteArray(Charsets.US_ASCII))
                 outStream.flush()
 
-                // Add buffer drain / delay before closing Bluetooth socket so printer doesn't reset RFCOMM connection prematurely
+                // Drain buffer before closing RFCOMM so the printer doesn't reset prematurely
                 Thread.sleep(400)
 
                 outStream.close()
                 socket.close()
                 val nameStr = try { device.name ?: device.address } catch (_: SecurityException) { device.address }
-                mainHandler.post { onResult(true, "Printed $printCount label(s) successfully to $nameStr") }
+                mainHandler.post { onResult(true, "Printed ${quantity.coerceAtLeast(1)} label(s) successfully to $nameStr") }
             } catch (e: Exception) {
                 mainHandler.post { onResult(false, e.localizedMessage ?: "Bluetooth printer error") }
             }

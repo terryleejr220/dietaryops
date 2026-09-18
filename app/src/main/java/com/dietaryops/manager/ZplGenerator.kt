@@ -194,4 +194,28 @@ object ZplGenerator {
             barcodeType = barcodeType
         )
     }
+
+    /**
+     * Helper overload taking SyscoProduct object.
+     */
+    fun generateShelfLabelZpl(
+        item: SyscoProduct,
+        storageLocation: String? = null,
+        companyHeader: String = "DIETARY OPS SHELF LABEL",
+        barcodeType: String = "BC"
+    ): String {
+        val location = storageLocation ?: getStorageLocationForCategory(item.category)
+        return generateShelfLabelZpl(
+            itemName = item.name,
+            upc = item.upc,
+            storageLocation = location,
+            syscoItemNumber = item.syscoItemNumber,
+            piazzaItemNumber = "",
+            parLevel = 0.0,
+            lastOnHand = item.lastOnHandAmount,
+            unit = item.unit,
+            companyHeader = companyHeader,
+            barcodeType = barcodeType
+        )
+    }
 }

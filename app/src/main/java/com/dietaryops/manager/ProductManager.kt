@@ -9,7 +9,10 @@ import com.dietaryops.manager.util.DateCalculator
 import com.dietaryops.manager.util.DateCalculationResult
 import com.dietaryops.manager.util.Gs1BarcodeParser
 import com.dietaryops.manager.util.SyscoUpcNormalizer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -278,4 +281,53 @@ class ProductManager(context: Context) {
             } catch (_: Exception) {}
         }
     }
+
+    /**
+     * Persists [scanRecord] to Room and fires a background Sheets sync.
+     * Use this in UI coroutine scopes instead of calling repository directly.
+     * Returns immediately — the sync result is delivered via the returned [Result] or
+     * can be observed through [DeliveryRepository.syncWithGoogleSheets] if [onSyncResult] is provided.
+     */
+    fun logScanAsync(
+        scanRecord: ScanRecord,
+        scope: CoroutineScope,
+        onSyncResult: ((Result<Int>) -> Unit)? = null
+    ) {
+        scope.launch(Dispatchers.IO) {
+            repository.addScanRecord(scanRecord)
+            val url = webAppUrl
+            if (url.isNotBlank()) {
+                val result = try {
+                    repository.syncWithGoogleSheets(url)
+                } catch (e: Exception) {
+                    Result.failure(e)
+                }
+                onSyncResult?.invoke(result)
+            } else {
+                onSyncResult?.invoke(Result.success(0))
+            }
+        }
+    }
+
+    // ─── Repository Proxy Methods ──────────────────────────────────────────────
+    // These expose frequently-needed repository operations so UI screens never
+    // reach through productManager.repository directly.
+    // NOTE: getCatalogItem, saveCatalogItem, getAllCatalogItems already exist above.
+
+    /** Insert or update a scan record in Room. */
+    suspend fun addScanRecord(record: ScanRecord) = repository.addScanRecord(record)
+
+    /** Mark a previously saved scan record as printed. */
+    suspend fun markRecordPrinted(recordId: String) = repository.markRecordPrinted(recordId)
+
+    /** Update the on-hand amount of a scan record and keep catalog in sync. */
+    suspend fun updateOnHandAmount(recordId: String, upc: String, quantity: Double) =
+        repository.updateScanRecordOnHandAmount(recordId, upc, quantity)
+
+    /** Seed the default catalog if the database is empty (called once at startup). */
+    suspend fun seedDefaultsIfEmpty() = repository.seedDefaultsIfEmpty()
+
+    /** Sync unsynced records to Google Sheets. Returns count of records pushed. */
+    suspend fun syncWithGoogleSheets(webAppUrl: String = this.webAppUrl): Result<Int> =
+        repository.syncWithGoogleSheets(webAppUrl)
 }

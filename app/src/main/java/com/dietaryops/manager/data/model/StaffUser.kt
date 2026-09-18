@@ -22,7 +22,7 @@ data class StaffUser(
 
     fun hasPermission(permission: AppPermission): Boolean {
         if (!active) return false
-        if (role == StaffRole.ADMIN) return true
+        if (role == StaffRole.SUPER_ADMIN) return true
         return role.permissions.contains(permission)
     }
 
