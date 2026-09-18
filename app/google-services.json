@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1035289624449",
+    "project_id": "com-example-myapplicatio-46804",
+    "storage_bucket": "com-example-myapplicatio-46804.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1035289624449:android:301fe2b6cfb327ce927280",
+        "android_client_info": {
+          "package_name": "com.dietaryops.manager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHcz8JUXUU80ILDQ1LKizrix7jPaEHZk4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1035289624449:android:f5239724a65d0f52927280",
+        "android_client_info": {
+          "package_name": "com.example.myapplication"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHcz8JUXUU80ILDQ1LKizrix7jPaEHZk4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

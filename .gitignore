@@ -1,0 +1,36 @@
+*.iml
+.gradle/
+/local.properties
+local.properties
+
+# Android Studio / IntelliJ IDEA
+.idea/
+**/.idea/
+.vscode/
+
+# Signing keys & keystores (CRITICAL: Never commit to public repos)
+*.jks
+*.keystore
+
+# Build directories & automated build backups
+/build/
+**/build/
+/build_backups/
+build_backups/
+
+# Build artifacts & package outputs
+*.apk
+*.aab
+*.zip
+mapping.txt
+
+# External native & C++
+.externalNativeBuild
+.cxx
+/captures
+
+# OS generated & Agent caches
+.DS_Store
+Thumbs.db
+.agent
+.kotlin

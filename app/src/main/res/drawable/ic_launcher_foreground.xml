@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Vibrant Teal Outer Shield / Card -->
+    <path
+        android:fillColor="#00B4D8"
+        android:pathData="M54,18 C70,18 84,22 86,38 C86,58 72,80 54,92 C36,80 22,58 22,38 C24,22 38,18 54,18 Z" />
+    <!-- Dark Navy Inner Shield -->
+    <path
+        android:fillColor="#0B132B"
+        android:pathData="M54,22 C68,22 80,26 82,38 C82,55 68,76 54,88 C40,76 26,55 26,38 C28,26 40,22 54,22 Z" />
+    <!-- Cyan Accent Ring -->
+    <path
+        android:fillColor="#00A896"
+        android:pathData="M54,26 C65,26 75,29 77,39 C77,53 65,71 54,81 C43,71 31,53 31,39 C33,29 43,26 54,26 Z" />
+    <!-- "DIETARY OPS" Monogram "DO" -->
+    <!-- D -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M37,42 L45,42 C49,42 52,45 52,49 C52,53 49,56 45,56 L37,56 Z M40,45 L40,53 L45,53 C47,53 49,51 49,49 C49,47 47,45 45,45 Z" />
+    <!-- O -->
+    <path
+        android:fillColor="#00B4D8"
+        android:pathData="M57,49 C57,44 61,42 65,42 C69,42 73,44 73,49 C73,54 69,56 65,56 C61,56 57,54 57,49 Z M60,49 C60,52 62,53 65,53 C68,53 70,52 70,49 C70,46 68,45 65,45 C62,45 60,46 60,49 Z" />
+</vector>

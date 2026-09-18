@@ -1,0 +1,12 @@
+<en-US>
+Dietary Ops Manager v1.0.11: Fast 1D & GS1-128 barcode scanning with 1.5s debouncing, ServSafe shelf-life rules (+3d to +365d), staff initials on ZPL labels, admin PIN lock (1234), and auto Title Case formatting.
+</en-US>
+<de-DE>
+Dietary Ops Manager v1.0.11: Schnelles 1D- & GS1-128-Scannen, ServSafe-Haltbarkeitsregeln (+3d bis +365d), Personalinitialen auf ZPL-Etiketten, Admin-PIN-Schutz (1234) und automatische Formatierung.
+</de-DE>
+<es-419>
+Dietary Ops Manager v1.0.11: Escaneo rápido 1D y GS1-128, reglas de caducidad ServSafe (+3d a +365d), iniciales del personal en etiquetas ZPL, protección por PIN de administrador (1234) y formato automático.
+</es-419>
+<es-ES>
+Dietary Ops Manager v1.0.11: Escaneo rápido 1D y GS1-128, reglas de caducidad ServSafe (+3d a +365d), iniciales del personal en etiquetas ZPL, protección por PIN de administrador (1234) y formato automático.
+</es-ES>
