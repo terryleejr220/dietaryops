@@ -120,7 +120,7 @@ dependencies {
     implementation("com.google.android.material:material:1.14.0")
 
     // CameraX
-    val cameraxVersion = "1.3.4"
+    val cameraxVersion = "1.4.1"
     implementation("androidx.camera:camera-core:$cameraxVersion")
     implementation("androidx.camera:camera-camera2:$cameraxVersion")
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
