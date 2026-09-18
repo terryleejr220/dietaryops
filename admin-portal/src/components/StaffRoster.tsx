@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, QrCode, KeyRound, Shield, Trash2, Edit2, Users, Filter, CheckCircle } from 'lucide-react';
+import { UserPlus, QrCode, KeyRound, Trash2, Edit2, Users, Filter } from 'lucide-react';
 import type { Company, StaffUser, StaffRole } from '../types';
 import { BadgeGeneratorModal } from './BadgeGeneratorModal';
 

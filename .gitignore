@@ -34,3 +34,7 @@ mapping.txt
 Thumbs.db
 .agent
 .kotlin
+
+# Admin Portal Web App
+admin-portal/node_modules/
+admin-portal/dist/

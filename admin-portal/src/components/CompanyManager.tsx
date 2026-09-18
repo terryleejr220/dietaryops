@@ -185,7 +185,7 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
-                  {comp.code !== 'CVILLA' && (
+                  {comp.code !== 'DOPS' && (
                     <button
                       onClick={() => onDeleteCompany(comp.code)}
                       className="p-1.5 text-rose-400/80 hover:text-rose-300 rounded-lg hover:bg-rose-500/10 transition-colors"
@@ -222,7 +222,7 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Century Villa Healthcare"
+                  placeholder="e.g. Main Kitchen / Healthcare Center"
                   className="w-full px-3 py-2 bg-[#0D141B] border border-slate-700 rounded-xl text-sm focus:outline-none focus:border-teal-500 text-white"
                 />
               </div>
@@ -236,7 +236,7 @@ export const CompanyManager: React.FC<CompanyManagerProps> = ({
                   required
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  placeholder="e.g. CVILLA"
+                  placeholder="e.g. DOPS"
                   disabled={!!editingCompany}
                   className="w-full px-3 py-2 bg-[#0D141B] border border-slate-700 rounded-xl text-sm font-mono focus:outline-none focus:border-teal-500 text-teal-300 disabled:opacity-60"
                 />

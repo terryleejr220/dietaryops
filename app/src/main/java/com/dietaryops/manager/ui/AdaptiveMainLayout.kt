@@ -319,7 +319,7 @@ fun AdaptiveMainLayout(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "Century Villa • Operations",
+                                        text = "${settingsManager.companyName} • ${settingsManager.department}",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

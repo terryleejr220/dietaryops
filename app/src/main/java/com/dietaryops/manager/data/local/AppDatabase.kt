@@ -24,10 +24,17 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
+                val dbName = if (context.getDatabasePath("century_villa_delivery_db").exists() &&
+                    !context.getDatabasePath("dietaryops_manager_db").exists()
+                ) {
+                    "century_villa_delivery_db"
+                } else {
+                    "dietaryops_manager_db"
+                }
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "century_villa_delivery_db"
+                    dbName
                 )
                     .fallbackToDestructiveMigration(true)
                     .build()

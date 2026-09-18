@@ -41,7 +41,7 @@ object ZplGenerator {
         useByDate: LocalDate,
         category: String = "General",
         storageLocation: String? = null,
-        companyHeader: String = "DIETARY OPS KITCHEN",
+        companyHeader: String = "DIETARY KITCHEN OPS",
         barcodeType: String = "BC",
         onHandAmount: Double? = null,
         staffInitials: String = "DO"
@@ -87,7 +87,7 @@ object ZplGenerator {
 ; --- 4. STAFF INITIALS & ROTATION NOTICE ---
 ^FO10,168^A0N,20,20^FDBY: $cleanInitials^FS
 ^FO120,168^A0N,18,18^FDFIFO - ROTATE STOCK^FS
-^FO10,192^A0N,16,16^FDDIETARY KITCHEN OPS^FS
+^FO10,192^A0N,16,16^FD$companyHeader^FS
 
 ^XZ
         """.trimIndent()

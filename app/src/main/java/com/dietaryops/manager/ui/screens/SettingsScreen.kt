@@ -517,7 +517,7 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Company / Facility Code", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Facility routing identifier for spreadsheets & catalog (e.g. CVILLA).", fontSize = 11.sp, color = Color.Gray)
+                        Text("Facility routing identifier for spreadsheets & catalog (e.g. DOPS, MAIN, STORE1).", fontSize = 11.sp, color = Color.Gray)
                     }
 
                     var companyCodeInput by remember { mutableStateOf(settingsManager.companyCode) }

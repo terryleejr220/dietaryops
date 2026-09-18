@@ -29,9 +29,9 @@ export const db = getFirestore(app);
 // Initial Default Seed Company
 export const DEFAULT_COMPANIES: Company[] = [
   {
-    id: "CVILLA",
-    name: "Century Villa Healthcare",
-    code: "CVILLA",
+    id: "DOPS",
+    name: "DietaryOps Enterprise",
+    code: "DOPS",
     spreadsheetId: "16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY",
     webAppUrl: "https://script.google.com/macros/s/AKfycbx0heDYU0f1XyDELM_DFuKdlKmFW_ZJD6cEGegpLHva19PLv-_2CBE_U2EmAuJt1_FxDg/exec",
     departments: ["Dietary", "Housekeeping", "Nursing", "General Maintenance"],
@@ -82,18 +82,18 @@ export async function fetchStaffUsers(companyCode: string): Promise<StaffUser[]>
   try {
     const usersCol = collection(db, 'companies', code, 'users');
     const snap = await getDocs(usersCol);
-    if (snap.empty && code === 'CVILLA') {
+    if (snap.empty && (code === 'DOPS' || code === 'MAIN')) {
       const defaultUser: StaffUser = {
         employeeId: "TL01",
         displayName: "Terry Little Jr.",
-        companyCode: "CVILLA",
+        companyCode: code,
         department: "Dietary",
         role: "ADMIN",
         pin: "1234",
-        badgeToken: "CV-AUTH-8841",
+        badgeToken: "DOPS-AUTH-8841",
         active: true
       };
-      await saveStaffUser('CVILLA', defaultUser);
+      await saveStaffUser(code, defaultUser);
       return [defaultUser];
     }
     return snap.docs.map(d => ({ employeeId: d.id, ...d.data() } as StaffUser));

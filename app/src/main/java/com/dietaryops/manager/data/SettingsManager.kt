@@ -43,11 +43,11 @@ class SettingsManager(context: Context) {
         set(value) = prefs.edit().putString(KEY_STAFF_INITIALS, value.trim()).apply()
 
     var companyCode: String
-        get() = prefs.getString(KEY_COMPANY_CODE, "CVILLA") ?: "CVILLA"
+        get() = prefs.getString(KEY_COMPANY_CODE, "DOPS") ?: "DOPS"
         set(value) = prefs.edit().putString(KEY_COMPANY_CODE, value.trim().uppercase()).apply()
 
     var companyName: String
-        get() = prefs.getString(KEY_COMPANY_NAME, "Century Villa Healthcare") ?: "Century Villa Healthcare"
+        get() = prefs.getString(KEY_COMPANY_NAME, "DietaryOps Enterprise") ?: "DietaryOps Enterprise"
         set(value) = prefs.edit().putString(KEY_COMPANY_NAME, value.trim()).apply()
 
     var department: String
@@ -104,7 +104,7 @@ class SettingsManager(context: Context) {
         const val DEFAULT_SHEET_ID = "16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY"
         const val DEFAULT_PUBLISHED_WEB_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=1819479005&single=true"
 
-        // Century Villa Operational Default Shelf Life Guidelines
+        // Standard Operational Default Shelf Life Guidelines
         const val SHELF_LIFE_DAIRY_FRESH = 7                 // Cooler / TCS / Fresh (dairy, sliced meats, fresh produce)
         const val SHELF_LIFE_PROTEINS_FROZEN = 14            // Freezer / Frozen raw or prepared proteins
         const val SHELF_LIFE_COMMERCIAL_SHELF_STABLE = 365   // Commercial Shelf-Stable / Unopened (canned goods, dry storage, condiments, misc dry, supplement, general)
