@@ -124,6 +124,20 @@ data class CatalogSyncDto(
     val alternateBarcodes: String? = null
 )
 
+data class SheetSyncPayload(
+    @SerializedName("spreadsheetId")
+    val spreadsheetId: String? = null,
+
+    @SerializedName("sheetTab")
+    val sheetTab: String? = null,
+
+    @SerializedName("companyCode")
+    val companyCode: String? = null,
+
+    @SerializedName("records")
+    val records: List<SheetScanRecordDto>
+)
+
 interface GoogleSheetsApiService {
     companion object {
         const val DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx0heDYU0f1XyDELM_DFuKdlKmFW_ZJD6cEGegpLHva19PLv-_2CBE_U2EmAuJt1_FxDg/exec"
@@ -133,6 +147,12 @@ interface GoogleSheetsApiService {
     suspend fun syncScanRecords(
         @Url endpointUrl: String = DEFAULT_WEB_APP_URL,
         @Body records: List<SheetScanRecordDto>
+    ): Response<SheetSyncResponse>
+
+    @POST
+    suspend fun syncWithPayload(
+        @Url endpointUrl: String = DEFAULT_WEB_APP_URL,
+        @Body payload: SheetSyncPayload
     ): Response<SheetSyncResponse>
 
     @GET

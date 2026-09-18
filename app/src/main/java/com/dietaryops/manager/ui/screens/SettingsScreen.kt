@@ -506,6 +506,75 @@ fun SettingsScreen(
                         modifier = Modifier.width(100.dp)
                     )
                 }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                // Facility & Department Multi-Tenant Settings
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Company / Facility Code", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Facility routing identifier for spreadsheets & catalog (e.g. CVILLA).", fontSize = 11.sp, color = Color.Gray)
+                    }
+
+                    var companyCodeInput by remember { mutableStateOf(settingsManager.companyCode) }
+                    OutlinedTextField(
+                        value = companyCodeInput,
+                        onValueChange = {
+                            companyCodeInput = it.uppercase()
+                            settingsManager.companyCode = it.uppercase()
+                        },
+                        singleLine = true,
+                        modifier = Modifier.width(120.dp)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Department", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Active department for sheet tabs & permissions (e.g. Dietary, Housekeeping).", fontSize = 11.sp, color = Color.Gray)
+                    }
+
+                    var departmentInput by remember { mutableStateOf(settingsManager.department) }
+                    OutlinedTextField(
+                        value = departmentInput,
+                        onValueChange = {
+                            departmentInput = it
+                            settingsManager.department = it
+                        },
+                        singleLine = true,
+                        modifier = Modifier.width(140.dp)
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Operator Employee ID", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Active shift badge ID (e.g. TL01).", fontSize = 11.sp, color = Color.Gray)
+                    }
+
+                    var employeeIdInput by remember { mutableStateOf(settingsManager.employeeId) }
+                    OutlinedTextField(
+                        value = employeeIdInput,
+                        onValueChange = {
+                            employeeIdInput = it.uppercase()
+                            settingsManager.employeeId = it.uppercase()
+                        },
+                        singleLine = true,
+                        modifier = Modifier.width(120.dp)
+                    )
+                }
             }
         }
 

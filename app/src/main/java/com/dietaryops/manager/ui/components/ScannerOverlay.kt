@@ -34,9 +34,12 @@ import com.dietaryops.manager.ui.theme.ScannerLaserBrush
  */
 @Composable
 fun ScannerOverlay(
-    isScanningActive: Boolean,
-    isCameraActive: Boolean,
-    onResumeCamera: () -> Unit,
+    isScanningActive: Boolean = true,
+    isCameraActive: Boolean = true,
+    onResumeCamera: () -> Unit = {},
+    statusText: String? = null,
+    isScanning: Boolean = isScanningActive,
+    targetText: String? = statusText,
     modifier: Modifier = Modifier
 ) {
     val laserColor = MaterialTheme.colorScheme.primary

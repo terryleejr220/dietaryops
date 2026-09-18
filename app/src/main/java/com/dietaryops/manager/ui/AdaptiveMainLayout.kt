@@ -25,6 +25,7 @@ import com.dietaryops.manager.ConnectionState
 import com.dietaryops.manager.ProductManager
 import com.dietaryops.manager.ZebraPrinterManager
 import com.dietaryops.manager.data.SettingsManager
+import com.dietaryops.manager.ui.components.BadgeLoginDialog
 import com.dietaryops.manager.ui.screens.InventoryLogsScreen
 import com.dietaryops.manager.ui.screens.ReceivingScreen
 import com.dietaryops.manager.ui.screens.SettingsScreen
@@ -48,6 +49,8 @@ fun AdaptiveMainLayout(
 ) {
     var currentDestination by remember { mutableStateOf(NavDestination.RECEIVING) }
     var showProfileDialog by remember { mutableStateOf(false) }
+    var showBadgeLoginDialog by remember { mutableStateOf(false) }
+    var showOperatorSheet by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val printerState by printerManager.connectionState.collectAsState()
@@ -130,6 +133,65 @@ fun AdaptiveMainLayout(
         )
     }
 
+    if (showBadgeLoginDialog) {
+        BadgeLoginDialog(
+            settingsManager = settingsManager,
+            onDismiss = { showBadgeLoginDialog = false },
+            onLoginSuccess = { user ->
+                showBadgeLoginDialog = false
+                Toast.makeText(context, "Operator Active: ${user.displayName} • ${user.department}", Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    if (showOperatorSheet) {
+        AlertDialog(
+            onDismissRequest = { showOperatorSheet = false },
+            shape = RoundedCornerShape(20.dp),
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Shift Operator Session", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Facility: ${settingsManager.companyCode} (${settingsManager.companyName})", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text("Department: ${settingsManager.department}", fontSize = 13.sp)
+                    Text("Operator: ${settingsManager.staffName} (${settingsManager.employeeId})", fontSize = 13.sp)
+                    Text("Role: ${settingsManager.staffRole}", fontSize = 13.sp)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                    Text("Staff identity is stored locally and synchronized with the company backend. No email or phone is required.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showOperatorSheet = false
+                        showBadgeLoginDialog = true
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Scan Badge / Switch")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = {
+                        showOperatorSheet = false
+                        showProfileDialog = true
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Manual Signature")
+                }
+            }
+        )
+    }
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isWideScreen = maxWidth >= 720.dp
 
@@ -150,7 +212,7 @@ fun AdaptiveMainLayout(
                                     .size(42.dp)
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(PrimaryGradient)
-                                    .clickable { showProfileDialog = true },
+                                    .clickable { showOperatorSheet = true },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
@@ -315,7 +377,7 @@ fun AdaptiveMainLayout(
                                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
                                     modifier = Modifier
                                         .size(34.dp)
-                                        .clickable { showProfileDialog = true }
+                                        .clickable { showOperatorSheet = true }
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         val initials = settingsManager.staffInitials.ifBlank {

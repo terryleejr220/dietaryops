@@ -1,7 +1,10 @@
 package com.dietaryops.manager.data.remote
 
 import com.dietaryops.manager.data.model.CatalogItem
+import com.dietaryops.manager.data.model.CompanyProfile
 import com.dietaryops.manager.data.model.ScanRecord
+import com.dietaryops.manager.data.model.StaffRole
+import com.dietaryops.manager.data.model.StaffUser
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
 import com.google.firebase.firestore.PersistentCacheSettings
@@ -27,11 +30,28 @@ class FirestoreRepository(
     val firestore: FirebaseFirestore?
         get() = lazyFirestore.value
 
+    fun getCompanyDocument(companyCode: String) =
+        firestore?.collection("companies")?.document(companyCode.trim().uppercase())
+
+    private fun getCatalogCollection(companyCode: String? = null) =
+        if (!companyCode.isNullOrBlank()) {
+            getCompanyDocument(companyCode)?.collection("catalog")
+        } else {
+            firestore?.collection("catalog")
+        }
+
+    private fun getScanLogsCollection(companyCode: String? = null) =
+        if (!companyCode.isNullOrBlank()) {
+            getCompanyDocument(companyCode)?.collection("scan_logs")
+        } else {
+            firestore?.collection("scan_logs")
+        }
+
     private val catalogCollection
-        get() = firestore?.collection("catalog")
+        get() = getCatalogCollection(null)
 
     private val scanLogsCollection
-        get() = firestore?.collection("scan_logs")
+        get() = getScanLogsCollection(null)
 
     suspend fun saveCatalogItem(item: CatalogItem): Result<Unit> {
         val col = catalogCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
@@ -180,5 +200,93 @@ class FirestoreRepository(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    suspend fun fetchCompanyProfile(companyCode: String): Result<CompanyProfile?> {
+        val fs = firestore ?: return Result.failure(Exception("Firestore unavailable"))
+        return try {
+            val doc = fs.collection("companies").document(companyCode.trim().uppercase()).get().await()
+            if (!doc.exists()) {
+                return Result.success(null)
+            }
+            val profile = CompanyProfile(
+                companyId = doc.getString("companyId") ?: doc.id,
+                name = doc.getString("name") ?: "Company $companyCode",
+                code = doc.getString("code") ?: companyCode.trim().uppercase(),
+                spreadsheetId = doc.getString("spreadsheetId") ?: "",
+                webAppUrl = doc.getString("webAppUrl") ?: "",
+                departments = (doc.get("departments") as? List<*>)?.mapNotNull { it?.toString() } ?: listOf("Dietary"),
+                departmentTabs = (doc.get("departmentTabs") as? Map<*, *>)?.entries?.associate {
+                    it.key.toString() to it.value.toString()
+                } ?: mapOf("Dietary" to "Delivery Log"),
+                active = doc.getBoolean("active") ?: true
+            )
+            Result.success(profile)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun fetchStaffUser(companyCode: String, employeeId: String): Result<StaffUser?> {
+        val fs = firestore ?: return Result.failure(Exception("Firestore unavailable"))
+        return try {
+            val doc = fs.collection("companies")
+                .document(companyCode.trim().uppercase())
+                .collection("users")
+                .document(employeeId.trim().uppercase())
+                .get()
+                .await()
+
+            if (!doc.exists()) {
+                return Result.success(null)
+            }
+
+            val user = StaffUser(
+                employeeId = doc.getString("employeeId") ?: doc.id,
+                displayName = doc.getString("displayName") ?: "Staff $employeeId",
+                companyCode = companyCode.trim().uppercase(),
+                department = doc.getString("department") ?: "Dietary",
+                role = StaffRole.fromString(doc.getString("role")),
+                pin = doc.getString("pin") ?: "",
+                badgeToken = doc.getString("badgeToken") ?: "",
+                active = doc.getBoolean("active") ?: true
+            )
+            Result.success(user)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun verifyBadgeLogin(companyCode: String, employeeId: String, badgeToken: String): Result<StaffUser> {
+        val userResult = fetchStaffUser(companyCode, employeeId)
+        val user = userResult.getOrNull()
+            ?: return Result.failure(Exception("Employee ID '$employeeId' not found for facility '$companyCode'"))
+
+        if (!user.active) {
+            return Result.failure(Exception("Employee profile is currently inactive"))
+        }
+
+        // Verify badgeToken if configured on server, otherwise allow ID match
+        if (user.badgeToken.isNotBlank() && badgeToken.isNotBlank() && user.badgeToken != badgeToken) {
+            return Result.failure(Exception("Invalid or revoked badge token"))
+        }
+
+        return Result.success(user)
+    }
+
+    suspend fun verifyPinLogin(companyCode: String, employeeId: String, pin: String): Result<StaffUser> {
+        val userResult = fetchStaffUser(companyCode, employeeId)
+        val user = userResult.getOrNull()
+            ?: return Result.failure(Exception("Employee ID '$employeeId' not found for facility '$companyCode'"))
+
+        if (!user.active) {
+            return Result.failure(Exception("Employee profile is currently inactive"))
+        }
+
+        if (user.pin.isNotBlank() && user.pin != pin.trim()) {
+            return Result.failure(Exception("Incorrect PIN"))
+        }
+
+        return Result.success(user)
     }
 }

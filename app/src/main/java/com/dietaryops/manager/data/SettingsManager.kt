@@ -42,7 +42,54 @@ class SettingsManager(context: Context) {
         get() = prefs.getString(KEY_STAFF_INITIALS, "DO") ?: "DO"
         set(value) = prefs.edit().putString(KEY_STAFF_INITIALS, value.trim()).apply()
 
+    var companyCode: String
+        get() = prefs.getString(KEY_COMPANY_CODE, "CVILLA") ?: "CVILLA"
+        set(value) = prefs.edit().putString(KEY_COMPANY_CODE, value.trim().uppercase()).apply()
+
+    var companyName: String
+        get() = prefs.getString(KEY_COMPANY_NAME, "Century Villa Healthcare") ?: "Century Villa Healthcare"
+        set(value) = prefs.edit().putString(KEY_COMPANY_NAME, value.trim()).apply()
+
+    var department: String
+        get() = prefs.getString(KEY_DEPARTMENT, "Dietary") ?: "Dietary"
+        set(value) = prefs.edit().putString(KEY_DEPARTMENT, value.trim()).apply()
+
+    var employeeId: String
+        get() = prefs.getString(KEY_EMPLOYEE_ID, "TL01") ?: "TL01"
+        set(value) = prefs.edit().putString(KEY_EMPLOYEE_ID, value.trim().uppercase()).apply()
+
+    var staffRole: String
+        get() = prefs.getString(KEY_STAFF_ROLE, "ADMIN") ?: "ADMIN"
+        set(value) = prefs.edit().putString(KEY_STAFF_ROLE, value.trim().uppercase()).apply()
+
+    var departmentSheetTab: String
+        get() = prefs.getString(KEY_DEPARTMENT_SHEET_TAB, "Delivery Log") ?: "Delivery Log"
+        set(value) = prefs.edit().putString(KEY_DEPARTMENT_SHEET_TAB, value.trim()).apply()
+
+    var currentStaffUser: com.dietaryops.manager.data.model.StaffUser
+        get() = com.dietaryops.manager.data.model.StaffUser(
+            employeeId = employeeId,
+            displayName = staffName,
+            companyCode = companyCode,
+            department = department,
+            role = com.dietaryops.manager.data.model.StaffRole.fromString(staffRole)
+        )
+        set(value) {
+            employeeId = value.employeeId
+            staffName = value.displayName
+            staffInitials = value.initials
+            companyCode = value.companyCode
+            department = value.department
+            staffRole = value.role.name
+        }
+
     companion object {
+        private const val KEY_COMPANY_CODE = "company_code"
+        private const val KEY_COMPANY_NAME = "company_name"
+        private const val KEY_DEPARTMENT = "department"
+        private const val KEY_EMPLOYEE_ID = "employee_id"
+        private const val KEY_STAFF_ROLE = "staff_role"
+        private const val KEY_DEPARTMENT_SHEET_TAB = "department_sheet_tab"
         private const val KEY_WEB_APP_URL = "web_app_url"
         private const val KEY_SHEET_ID = "sheet_id"
         private const val KEY_PUBLISHED_WEB_URL = "published_web_url"

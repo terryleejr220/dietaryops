@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 
 // Light Theme Tokens (Crisp Clean Healthcare Slate, Rich Teal & Azure Accents)
 val PrimaryLight = Color(0xFF008375)
+val DarkTealPrimary = PrimaryLight
 val OnPrimaryLight = Color(0xFFFFFFFF)
 val PrimaryContainerLight = Color(0xFFD3F8F2)
 val OnPrimaryContainerLight = Color(0xFF00201B)
