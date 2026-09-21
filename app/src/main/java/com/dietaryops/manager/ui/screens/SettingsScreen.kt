@@ -7,12 +7,14 @@ import android.net.Uri
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.dietaryops.manager.ui.theme.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -27,9 +29,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.dietaryops.manager.ConnectionState
 import com.dietaryops.manager.RemoteConfigManager
 import com.dietaryops.manager.ZebraPrinterManager
@@ -38,6 +40,7 @@ import com.dietaryops.manager.data.SettingsManager
 import com.dietaryops.manager.data.model.ExpirationRule
 import com.dietaryops.manager.data.remote.FirebaseAuthManager
 import com.dietaryops.manager.data.repository.DeliveryRepository
+import com.dietaryops.manager.ui.theme.*
 import com.dietaryops.manager.util.DateCalculator
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,10 +74,11 @@ fun SettingsScreen(
     var sheetIdInput by remember { mutableStateOf(settingsManager.sheetId) }
     var publishedWebUrlInput by remember { mutableStateOf(settingsManager.publishedWebUrl) }
     var staffInitialsInput by remember { mutableStateOf(settingsManager.staffInitials) }
+    var staffNameInput by remember { mutableStateOf(settingsManager.staffName) }
     var isTestingSync by remember { mutableStateOf(false) }
 
     // Admin Privilege Lock state
-    var isAdminUnlocked by remember { mutableStateOf(false) }
+    var isAdminUnlocked by remember { mutableStateOf(settingsManager.staffRole.equals("ADMIN", ignoreCase = true)) }
     var showAdminPinDialog by remember { mutableStateOf(false) }
     var pinInput by remember { mutableStateOf("") }
 
@@ -88,7 +92,7 @@ fun SettingsScreen(
             title = { Text("Admin Privilege Lock") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter Admin PIN to edit Google Sheets & Webhook URLs (Configured PIN: $remoteAdminPin):", fontSize = 12.sp, color = Color.Gray)
+                    Text("Enter Admin PIN to unlock system integrations, Google Sheets URLs, and facility configuration:", fontSize = 12.sp, color = Color.Gray)
                     OutlinedTextField(
                         value = pinInput,
                         onValueChange = { pinInput = it },
@@ -103,11 +107,12 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (pinInput.trim() == remoteAdminPin) {
+                        val activePin = if (remoteAdminPin.isNotBlank()) remoteAdminPin else "2200"
+                        if (pinInput.trim() == activePin) {
                             isAdminUnlocked = true
                             showAdminPinDialog = false
                             pinInput = ""
-                            Toast.makeText(context, "Admin access unlocked!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Admin settings unlocked!", Toast.LENGTH_SHORT).show()
                         } else {
                             Toast.makeText(context, "Incorrect Admin PIN", Toast.LENGTH_SHORT).show()
                         }
@@ -155,167 +160,11 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Section: Firebase Authentication & Cloud Firestore Sync
+        // --- STAFF SECTION 1: Active Operator Profile & Sign-off ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("Firebase Cloud Backend", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                }
-
-                if (currentUser != null) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                    Text("Logged in as: ${currentUser?.email ?: "User"}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                                }
-                                OutlinedButton(
-                                    onClick = { authManager.signOut() },
-                                    modifier = Modifier.height(32.dp)
-                                ) {
-                                    Text("Sign Out", fontSize = 11.sp)
-                                }
-                            }
-                            Text("Cloud Firestore offline persistence enabled. Scanned items sync automatically.", fontSize = 11.sp, color = Color.Gray)
-                        }
-                    }
-                } else {
-                    Text("Sign in or create an account to sync inventory catalog & delivery scan logs across devices.", fontSize = 12.sp, color = Color.Gray)
-
-                    OutlinedTextField(
-                        value = emailInput,
-                        onValueChange = { emailInput = it },
-                        label = { Text("Email Address") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = passwordInput,
-                        onValueChange = { passwordInput = it },
-                        label = { Text("Password") },
-                        singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                if (emailInput.isBlank() || passwordInput.isBlank()) {
-                                    Toast.makeText(context, "Enter email and password", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    isAuthLoading = true
-                                    coroutineScope.launch {
-                                        val result = authManager.signIn(emailInput, passwordInput)
-                                        isAuthLoading = false
-                                        result.onSuccess { user ->
-                                            Toast.makeText(context, "Welcome back, ${user.email}!", Toast.LENGTH_SHORT).show()
-                                        }.onFailure { err ->
-                                            Toast.makeText(context, "Sign in failed: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
-                                        }
-                                    }
-                                }
-                            },
-                            enabled = !isAuthLoading,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            if (isAuthLoading) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
-                            } else {
-                                Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("Sign In")
-                            }
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                if (emailInput.isBlank() || passwordInput.isBlank()) {
-                                    Toast.makeText(context, "Enter email and password", Toast.LENGTH_SHORT).show()
-                                } else {
-                                    isAuthLoading = true
-                                    coroutineScope.launch {
-                                        val result = authManager.signUp(emailInput, passwordInput)
-                                        isAuthLoading = false
-                                        result.onSuccess { user ->
-                                            Toast.makeText(context, "Account created: ${user.email}!", Toast.LENGTH_SHORT).show()
-                                        }.onFailure { err ->
-                                            Toast.makeText(context, "Sign up failed: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
-                                        }
-                                    }
-                                }
-                            },
-                            enabled = !isAuthLoading,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Sign Up")
-                        }
-                    }
-                }
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                // Manual Firestore Sync Button
-                OutlinedButton(
-                    onClick = {
-                        isFirestoreSyncing = true
-                        coroutineScope.launch {
-                            val res = repository.syncFromFirestore()
-                            isFirestoreSyncing = false
-                            res.onSuccess {
-                                Toast.makeText(context, "Firestore sync complete!", Toast.LENGTH_SHORT).show()
-                            }.onFailure { err ->
-                                Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isFirestoreSyncing) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    } else {
-                        Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                    }
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Sync Local Database with Firestore")
-                }
-            }
-        }
-
-        // Section: Firebase Remote Config Status & Sync
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -331,17 +180,33 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("Firebase Remote Config", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = CircleShape,
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = settingsManager.staffInitials.ifBlank { "DO" }.take(2).uppercase(),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                        }
+                        Column {
+                            Text("Staff Operator Preferences", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text("${settingsManager.companyName} • ${settingsManager.department}", fontSize = 12.sp, color = Color.Gray)
+                        }
                     }
 
                     Surface(
-                        color = if (isRemoteFetchSuccessful) Color(0xFF2E7D32).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                        color = if (isAdminUnlocked) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = if (isRemoteFetchSuccessful) "FETCHED" else "DEFAULT",
-                            color = if (isRemoteFetchSuccessful) Color(0xFF2E7D32) else Color.Gray,
+                            text = if (isAdminUnlocked) "ADMIN" else "STAFF",
+                            color = if (isAdminUnlocked) MaterialTheme.colorScheme.primary else Color.Gray,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -349,102 +214,33 @@ fun SettingsScreen(
                     }
                 }
 
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Text("Welcome Message: $remoteWelcomeMsg", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Configured Admin PIN: $remoteAdminPin", fontSize = 12.sp)
-                        Text("Sheet Webhook URL: $remoteWebhookUrl", fontSize = 12.sp)
-                        Text("Min Required Version: $remoteMinVersion", fontSize = 12.sp)
-                        Text("Feature Flag (enable_new_feature): ${if (isRemoteFeatureEnabled) "ENABLED" else "DISABLED"}", fontSize = 12.sp)
-                        if (remoteBannerMsg.isNotBlank()) {
-                            Text("Banner Message: $remoteBannerMsg", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-
-                var isFetchingConfig by remember { mutableStateOf(false) }
-                OutlinedButton(
-                    onClick = {
-                        isFetchingConfig = true
-                        RemoteConfigManager.fetchAndActivate { success ->
-                            isFetchingConfig = false
-                            if (success) {
-                                Toast.makeText(context, "Remote Config updated!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(context, "Using default or cached Remote Config", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    if (isFetchingConfig) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    } else {
-                        Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                    }
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Fetch & Refresh Remote Config")
-                }
-            }
-        }
-        // Section: Audit / Info-Only Scan Mode (First Scan Day Mode)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Column {
-                            Text("Audit / Info-Only Scan Mode", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text("First Scan Day Mode: Scans logged for testing & info only, without committing to official on-hand inventory.", fontSize = 12.sp, color = Color.Gray)
-                        }
-                    }
-                    var auditModeChecked by remember { mutableStateOf(settingsManager.isAuditMode) }
-                    Switch(
-                        checked = auditModeChecked,
-                        onCheckedChange = { checked ->
-                            auditModeChecked = checked
-                            settingsManager.isAuditMode = checked
-                            Toast.makeText(context, if (checked) "Audit / Info-Only Mode ENABLED" else "Audit / Info-Only Mode DISABLED", Toast.LENGTH_SHORT).show()
-                        }
+                    OutlinedTextField(
+                        value = staffNameInput,
+                        onValueChange = {
+                            staffNameInput = it
+                            settingsManager.staffName = it
+                        },
+                        label = { Text("Staff Full Name") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1.4f)
+                    )
+
+                    OutlinedTextField(
+                        value = staffInitialsInput,
+                        onValueChange = {
+                            staffInitialsInput = it
+                            settingsManager.staffInitials = it
+                        },
+                        label = { Text("Initials") },
+                        singleLine = true,
+                        modifier = Modifier.weight(0.8f)
                     )
                 }
-            }
-        }
 
-        // Section: Default Label Quantity
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -457,15 +253,15 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.Print, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Column {
-                            Text("Default Label Quantity", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text("Default number of labels printed per scan when case/box amount is not specified.", fontSize = 12.sp, color = Color.Gray)
+                            Text("Default Label Quantity", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Labels per scan when amount isn't specified", fontSize = 11.sp, color = Color.Gray)
                         }
                     }
 
                     var defaultLabelQtyInput by remember { mutableStateOf(settingsManager.defaultLabelQuantity.toString()) }
                     OutlinedTextField(
                         value = defaultLabelQtyInput,
-                        onValueChange = { 
+                        onValueChange = {
                             defaultLabelQtyInput = it
                             it.toIntOrNull()?.let { qty ->
                                 settingsManager.defaultLabelQuantity = qty
@@ -473,112 +269,13 @@ fun SettingsScreen(
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        modifier = Modifier.width(90.dp)
-                    )
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Column {
-                            Text("Staff Initials", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text("Default staff initials printed on receiving labels (e.g. CV).", fontSize = 12.sp, color = Color.Gray)
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = staffInitialsInput,
-                        onValueChange = { 
-                            staffInitialsInput = it
-                            settingsManager.staffInitials = it
-                        },
-                        singleLine = true,
-                        modifier = Modifier.width(100.dp)
-                    )
-                }
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                // Facility & Department Multi-Tenant Settings
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Company / Facility Code", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Facility routing identifier for spreadsheets & catalog (e.g. DOPS, MAIN, STORE1).", fontSize = 11.sp, color = Color.Gray)
-                    }
-
-                    var companyCodeInput by remember { mutableStateOf(settingsManager.companyCode) }
-                    OutlinedTextField(
-                        value = companyCodeInput,
-                        onValueChange = {
-                            companyCodeInput = it.uppercase()
-                            settingsManager.companyCode = it.uppercase()
-                        },
-                        singleLine = true,
-                        modifier = Modifier.width(120.dp)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Department", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Active department for sheet tabs & permissions (e.g. Dietary, Housekeeping).", fontSize = 11.sp, color = Color.Gray)
-                    }
-
-                    var departmentInput by remember { mutableStateOf(settingsManager.department) }
-                    OutlinedTextField(
-                        value = departmentInput,
-                        onValueChange = {
-                            departmentInput = it
-                            settingsManager.department = it
-                        },
-                        singleLine = true,
-                        modifier = Modifier.width(140.dp)
-                    )
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Operator Employee ID", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Active shift badge ID (e.g. TL01).", fontSize = 11.sp, color = Color.Gray)
-                    }
-
-                    var employeeIdInput by remember { mutableStateOf(settingsManager.employeeId) }
-                    OutlinedTextField(
-                        value = employeeIdInput,
-                        onValueChange = {
-                            employeeIdInput = it.uppercase()
-                            settingsManager.employeeId = it.uppercase()
-                        },
-                        singleLine = true,
-                        modifier = Modifier.width(120.dp)
+                        modifier = Modifier.width(80.dp)
                     )
                 }
             }
         }
 
-        // Section 1: Bluetooth Zebra Printer Manager
+        // --- STAFF SECTION 2: Bluetooth Zebra Printer Manager ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -599,7 +296,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.Bluetooth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("Printer Connection", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Zebra Label Printer", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
 
                     val (stateColor, stateText) = when (printerState) {
@@ -650,7 +347,6 @@ fun SettingsScreen(
                     }
                 }
 
-                // Discover Bluetooth Devices
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -674,16 +370,15 @@ fun SettingsScreen(
                             Icon(Icons.AutoMirrored.Filled.BluetoothSearching, contentDescription = null, modifier = Modifier.size(16.dp))
                         }
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(if (isDiscovering) "Scanning..." else "Discover Printers")
+                        Text(if (isDiscovering) "Scanning..." else "Find Printers")
                     }
 
-                    // Send Test Label
                     OutlinedButton(
                         onClick = {
                             val targetDevice = connectedDevice ?: printerManager.getPreferredPrinter()
                             if (targetDevice != null) {
                                 val testZpl = ZplGenerator.generateLabel(
-                                    itemName = "TEST LABEL - SYSCO SCANNER",
+                                    itemName = "TEST LABEL - DIETARY OPS",
                                     upc = "074865123401",
                                     deliveryDate = LocalDate.now(),
                                     useByDate = LocalDate.now().plusDays(5),
@@ -704,9 +399,7 @@ fun SettingsScreen(
                     }
                 }
 
-                // Paired & Discovered Printers List
                 val pairedList = remember(pairedDevices) { pairedDevices.distinctBy { it.address } }
-
                 val displayDevices = if (pairedList.isNotEmpty()) {
                     pairedList
                 } else {
@@ -715,17 +408,7 @@ fun SettingsScreen(
                         .distinctBy { it.address }
                 }
 
-                val sectionHeader = if (pairedList.isNotEmpty()) {
-                    "Paired Printer Devices:"
-                } else {
-                    "Discovered Printer Devices:"
-                }
-
-                Text(sectionHeader, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
-
-                if (displayDevices.isEmpty()) {
-                    Text("No Bluetooth printers found. Make sure printer is paired in Android Settings.", fontSize = 12.sp, color = Color.Gray)
-                } else {
+                if (displayDevices.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         displayDevices.forEach { dev ->
                             BluetoothDeviceRow(
@@ -751,234 +434,562 @@ fun SettingsScreen(
             }
         }
 
-        // Section 2: Google Sheets API Configuration
+        // --- ADMIN / SYSTEM INTEGRATION TOGGLE BANNER ---
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable {
+                    if (isAdminUnlocked) {
+                        isAdminUnlocked = false
+                        Toast.makeText(context, "Admin settings locked", Toast.LENGTH_SHORT).show()
+                    } else {
+                        showAdminPinDialog = true
+                    }
+                },
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            border = BorderStroke(1.dp, if (isAdminUnlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+            colors = CardDefaults.cardColors(containerColor = if (isAdminUnlocked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("Google Sheets Integration", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    }
-
-                    IconButton(
-                        onClick = {
-                            if (isAdminUnlocked) {
-                                isAdminUnlocked = false
-                                Toast.makeText(context, "Admin settings locked", Toast.LENGTH_SHORT).show()
-                            } else {
-                                showAdminPinDialog = true
-                            }
-                        }
-                    ) {
-                        Icon(
-                            imageVector = if (isAdminUnlocked) Icons.Default.LockOpen else Icons.Default.Lock,
-                            contentDescription = if (isAdminUnlocked) "Lock Admin Settings" else "Unlock Admin Settings",
-                            tint = if (isAdminUnlocked) MaterialTheme.colorScheme.primary else Color.Gray
+                    Icon(
+                        imageVector = if (isAdminUnlocked) Icons.Default.LockOpen else Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = if (isAdminUnlocked) MaterialTheme.colorScheme.primary else Color.Gray
+                    )
+                    Column {
+                        Text(
+                            text = if (isAdminUnlocked) "Admin Settings Unlocked" else "Admin & System Settings",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                        Text(
+                            text = if (isAdminUnlocked) "Tap to lock system settings" else "Tap to enter Admin PIN & unlock Google Sheets, Firebase, & facility routing",
+                            fontSize = 12.sp,
+                            color = Color.Gray
                         )
                     }
                 }
-
-                Text(
-                    if (isAdminUnlocked) "Admin Mode Unlocked: You can edit Google Apps Script Web App REST endpoint URLs." else "URL settings are locked. Tap 🔒 lock icon to enter Admin PIN (1234) for editing. Sync button is available to all staff.",
-                    fontSize = 12.sp,
-                    color = if (isAdminUnlocked) MaterialTheme.colorScheme.primary else Color.Gray
+                Icon(
+                    imageVector = if (isAdminUnlocked) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = Color.Gray
                 )
-
-                OutlinedTextField(
-                    value = webAppUrlInput,
-                    onValueChange = { if (isAdminUnlocked) webAppUrlInput = it else showAdminPinDialog = true },
-                    readOnly = !isAdminUnlocked,
-                    label = { Text("Google Web App URL") },
-                    placeholder = { Text(SettingsManager.DEFAULT_WEB_APP_URL) },
-                    trailingIcon = {
-                        if (!isAdminUnlocked) {
-                            IconButton(onClick = { showAdminPinDialog = true }) {
-                                Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color.Gray)
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = sheetIdInput,
-                    onValueChange = { if (isAdminUnlocked) sheetIdInput = it else showAdminPinDialog = true },
-                    readOnly = !isAdminUnlocked,
-                    label = { Text("Google Sheet ID") },
-                    placeholder = { Text("16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY") },
-                    trailingIcon = {
-                        if (!isAdminUnlocked) {
-                            IconButton(onClick = { showAdminPinDialog = true }) {
-                                Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color.Gray)
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = publishedWebUrlInput,
-                    onValueChange = { if (isAdminUnlocked) publishedWebUrlInput = it else showAdminPinDialog = true },
-                    readOnly = !isAdminUnlocked,
-                    label = { Text("Published Google Sheet Web URL") },
-                    placeholder = { Text(SettingsManager.DEFAULT_PUBLISHED_WEB_URL) },
-                    trailingIcon = {
-                        if (!isAdminUnlocked) {
-                            IconButton(onClick = { showAdminPinDialog = true }) {
-                                Icon(Icons.Default.Lock, contentDescription = "Locked", tint = Color.Gray)
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = {
-                            if (!isAdminUnlocked) {
-                                showAdminPinDialog = true
-                            } else {
-                                settingsManager.webAppUrl = webAppUrlInput
-                                settingsManager.sheetId = sheetIdInput
-                                settingsManager.publishedWebUrl = publishedWebUrlInput
-                                Toast.makeText(context, "Saved Google Sheets config!", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Save Config")
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            if (webAppUrlInput.isBlank()) {
-                                Toast.makeText(context, "Enter Web App URL first", Toast.LENGTH_SHORT).show()
-                            } else {
-                                isTestingSync = true
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    val res = repository.syncWithGoogleSheets(webAppUrlInput)
-                                    withContext(Dispatchers.Main) {
-                                        isTestingSync = false
-                                        res.onSuccess { count ->
-                                            Toast.makeText(context, "Sheets endpoint reachable! ($count records synced)", Toast.LENGTH_SHORT).show()
-                                        }.onFailure { err ->
-                                            Toast.makeText(context, "Connection result: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        if (isTestingSync) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp))
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Test Sync")
-                    }
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        try {
-                            val intent = Intent(
-                                Intent.ACTION_VIEW,
-                                Uri.parse(publishedWebUrlInput.ifBlank { SettingsManager.DEFAULT_PUBLISHED_WEB_URL })
-                            )
-                            context.startActivity(intent)
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "Error opening link: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("View Published Web Sheet")
-                }
             }
         }
 
-        // Section 3: Default Shelf-Life Rules Configuration (ServSafe Standard)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+        // --- ADMIN ONLY SECTION: Advanced Integrations & Configuration ---
+        AnimatedVisibility(visible = isAdminUnlocked) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // Section: Audit / Info-Only Scan Mode (First Scan Day Mode)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Icon(Icons.Default.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Text("Default Expiration & Retention Rules", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Column {
+                                    Text("Audit / Info-Only Scan Mode", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Text("First Scan Day Mode: Scans logged for testing & info only.", fontSize = 12.sp, color = Color.Gray)
+                                }
+                            }
+                            var auditModeChecked by remember { mutableStateOf(settingsManager.isAuditMode) }
+                            Switch(
+                                checked = auditModeChecked,
+                                onCheckedChange = { checked ->
+                                    auditModeChecked = checked
+                                    settingsManager.isAuditMode = checked
+                                    Toast.makeText(context, if (checked) "Audit / Info-Only Mode ENABLED" else "Audit / Info-Only Mode DISABLED", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                        // Facility & Department Multi-Tenant Settings
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Facility / Company Code", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Facility identifier for routing (e.g. CVILLA, MAIN).", fontSize = 11.sp, color = Color.Gray)
+                            }
+
+                            var companyCodeInput by remember { mutableStateOf(settingsManager.companyCode) }
+                            OutlinedTextField(
+                                value = companyCodeInput,
+                                onValueChange = {
+                                    companyCodeInput = it.uppercase()
+                                    settingsManager.companyCode = it.uppercase()
+                                },
+                                singleLine = true,
+                                modifier = Modifier.width(110.dp)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Department", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Active department for sheet tabs (e.g. Dietary, EVS).", fontSize = 11.sp, color = Color.Gray)
+                            }
+
+                            var departmentInput by remember { mutableStateOf(settingsManager.department) }
+                            OutlinedTextField(
+                                value = departmentInput,
+                                onValueChange = {
+                                    departmentInput = it
+                                    settingsManager.department = it
+                                },
+                                singleLine = true,
+                                modifier = Modifier.width(120.dp)
+                            )
+                        }
+                    }
                 }
 
-                Text(
-                    "Configure ServSafe default retention days per food category (+3 to +14 days).",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+                // Section: Google Sheets API Configuration
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text("Google Sheets Webhook Integration", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
 
-                if (expirationRules.isEmpty()) {
-                    Text("No custom rules found. Default ServSafe rules apply.", fontSize = 12.sp, color = Color.Gray)
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        expirationRules.forEach { rule ->
+                        OutlinedTextField(
+                            value = webAppUrlInput,
+                            onValueChange = { webAppUrlInput = it },
+                            label = { Text("Google Web App URL") },
+                            placeholder = { Text(SettingsManager.DEFAULT_WEB_APP_URL) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = sheetIdInput,
+                            onValueChange = { sheetIdInput = it },
+                            label = { Text("Google Sheet ID") },
+                            placeholder = { Text("16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = publishedWebUrlInput,
+                            onValueChange = { publishedWebUrlInput = it },
+                            label = { Text("Published Google Sheet Web URL") },
+                            placeholder = { Text(SettingsManager.DEFAULT_PUBLISHED_WEB_URL) },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = {
+                                    settingsManager.webAppUrl = webAppUrlInput
+                                    settingsManager.sheetId = sheetIdInput
+                                    settingsManager.publishedWebUrl = publishedWebUrlInput
+                                    Toast.makeText(context, "Saved Google Sheets config!", Toast.LENGTH_SHORT).show()
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Save Config")
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    if (webAppUrlInput.isBlank()) {
+                                        Toast.makeText(context, "Enter Web App URL first", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        isTestingSync = true
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            val res = repository.syncWithGoogleSheets(webAppUrlInput)
+                                            withContext(Dispatchers.Main) {
+                                                isTestingSync = false
+                                                res.onSuccess { count ->
+                                                    Toast.makeText(context, "Sheets endpoint reachable! ($count records synced)", Toast.LENGTH_SHORT).show()
+                                                }.onFailure { err ->
+                                                    Toast.makeText(context, "Connection result: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                if (isTestingSync) {
+                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                } else {
+                                    Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp))
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Test Sync")
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                try {
+                                    val intent = Intent(
+                                        Intent.ACTION_VIEW,
+                                        Uri.parse(publishedWebUrlInput.ifBlank { SettingsManager.DEFAULT_PUBLISHED_WEB_URL })
+                                    )
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Error opening link: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("View Published Web Sheet")
+                        }
+                    }
+                }
+
+                // Section: Firebase Authentication & Cloud Firestore Sync
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text("Firebase Cloud Backend", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        if (currentUser != null) {
                             Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(10.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(rule.category, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        Text(rule.description.ifBlank { "ServSafe default retention" }, fontSize = 11.sp, color = Color.Gray)
-                                    }
-
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        SuggestionChip(
-                                            onClick = {},
-                                            label = { Text("+${rule.daysOffset} days", fontWeight = FontWeight.Bold) }
-                                        )
-                                        IconButton(onClick = { editingRule = rule }) {
-                                            Icon(Icons.Default.Edit, contentDescription = "Edit Rule", tint = MaterialTheme.colorScheme.primary)
+                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                            Text("Logged in as: ${currentUser?.email ?: "User"}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                        }
+                                        OutlinedButton(
+                                            onClick = { authManager.signOut() },
+                                            modifier = Modifier.height(32.dp)
+                                        ) {
+                                            Text("Sign Out", fontSize = 11.sp)
+                                        }
+                                    }
+                                    Text("Cloud Firestore offline persistence enabled. Scanned items sync automatically.", fontSize = 11.sp, color = Color.Gray)
+                                }
+                            }
+                        } else {
+                            Text("Sign in or create an account to sync inventory catalog & delivery scan logs across devices.", fontSize = 12.sp, color = Color.Gray)
+
+                            OutlinedTextField(
+                                value = emailInput,
+                                onValueChange = { emailInput = it },
+                                label = { Text("Email Address") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            OutlinedTextField(
+                                value = passwordInput,
+                                onValueChange = { passwordInput = it },
+                                label = { Text("Password") },
+                                singleLine = true,
+                                visualTransformation = PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        if (emailInput.isBlank() || passwordInput.isBlank()) {
+                                            Toast.makeText(context, "Enter email and password", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            isAuthLoading = true
+                                            coroutineScope.launch {
+                                                val result = authManager.signIn(emailInput, passwordInput)
+                                                isAuthLoading = false
+                                                result.onSuccess { user ->
+                                                    Toast.makeText(context, "Welcome back, ${user.email}!", Toast.LENGTH_SHORT).show()
+                                                }.onFailure { err ->
+                                                    Toast.makeText(context, "Sign in failed: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        }
+                                    },
+                                    enabled = !isAuthLoading,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    if (isAuthLoading) {
+                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                                    } else {
+                                        Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Sign In")
+                                    }
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        if (emailInput.isBlank() || passwordInput.isBlank()) {
+                                            Toast.makeText(context, "Enter email and password", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            isAuthLoading = true
+                                            coroutineScope.launch {
+                                                val result = authManager.signUp(emailInput, passwordInput)
+                                                isAuthLoading = false
+                                                result.onSuccess { user ->
+                                                    Toast.makeText(context, "Account created: ${user.email}!", Toast.LENGTH_SHORT).show()
+                                                }.onFailure { err ->
+                                                    Toast.makeText(context, "Sign up failed: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        }
+                                    },
+                                    enabled = !isAuthLoading,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Sign Up")
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                        OutlinedButton(
+                            onClick = {
+                                isFirestoreSyncing = true
+                                coroutineScope.launch {
+                                    val res = repository.syncFromFirestore()
+                                    isFirestoreSyncing = false
+                                    res.onSuccess {
+                                        Toast.makeText(context, "Firestore sync complete!", Toast.LENGTH_SHORT).show()
+                                    }.onFailure { err ->
+                                        Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (isFirestoreSyncing) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Sync Local Database with Firestore")
+                        }
+                    }
+                }
+
+                // Section: Firebase Remote Config Status
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Text("Firebase Remote Config", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Surface(
+                                color = if (isRemoteFetchSuccessful) Color(0xFF2E7D32).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = if (isRemoteFetchSuccessful) "FETCHED" else "DEFAULT",
+                                    color = if (isRemoteFetchSuccessful) Color(0xFF2E7D32) else Color.Gray,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text("Welcome Message: $remoteWelcomeMsg", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Configured Admin PIN: $remoteAdminPin", fontSize = 12.sp)
+                                Text("Sheet Webhook URL: $remoteWebhookUrl", fontSize = 12.sp)
+                                Text("Min Required Version: $remoteMinVersion", fontSize = 12.sp)
+                                Text("Feature Flag (enable_new_feature): ${if (isRemoteFeatureEnabled) "ENABLED" else "DISABLED"}", fontSize = 12.sp)
+                                if (remoteBannerMsg.isNotBlank()) {
+                                    Text("Banner Message: $remoteBannerMsg", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        var isFetchingConfig by remember { mutableStateOf(false) }
+                        OutlinedButton(
+                            onClick = {
+                                isFetchingConfig = true
+                                RemoteConfigManager.fetchAndActivate { success ->
+                                    isFetchingConfig = false
+                                    if (success) {
+                                        Toast.makeText(context, "Remote Config updated!", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, "Using default or cached Remote Config", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (isFetchingConfig) {
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Fetch & Refresh Remote Config")
+                        }
+                    }
+                }
+
+                // Section 3: Default Shelf-Life Rules Configuration (ServSafe Standard)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text("Default Expiration & Retention Rules", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Text(
+                            "Configure ServSafe default retention days per food category (+3 to +14 days).",
+                            fontSize = 12.sp,
+                            color = Color.Gray
+                        )
+
+                        if (expirationRules.isEmpty()) {
+                            Text("No custom rules found. Default ServSafe rules apply.", fontSize = 12.sp, color = Color.Gray)
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                expirationRules.forEach { rule ->
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(rule.category, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                                Text(rule.description.ifBlank { "ServSafe default retention" }, fontSize = 11.sp, color = Color.Gray)
+                                            }
+
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                SuggestionChip(
+                                                    onClick = {},
+                                                    label = { Text("+${rule.daysOffset} days", fontWeight = FontWeight.Bold) }
+                                                )
+                                                IconButton(onClick = { editingRule = rule }) {
+                                                    Icon(Icons.Default.Edit, contentDescription = "Edit Rule", tint = MaterialTheme.colorScheme.primary)
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1002,7 +1013,6 @@ fun SettingsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Select quick preset or enter custom ServSafe retention days offset:", fontSize = 12.sp, color = Color.Gray)
 
-                    // Quick Shelf Life Chips in Settings Rule Edit Dialog
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
