@@ -47,10 +47,13 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("century_villa_release.jks")
-            storePassword = releaseStorePassword
-            keyAlias = releaseKeyAlias
-            keyPassword = releaseKeyPassword
+            val ksFile = file("century_villa_release.jks")
+            if (ksFile.exists()) {
+                storeFile = ksFile
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
         }
     }
 
@@ -58,7 +61,9 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            if (file("century_villa_release.jks").exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             ndk {
                 debugSymbolLevel = "FULL"
