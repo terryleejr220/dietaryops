@@ -218,4 +218,45 @@ object ZplGenerator {
             barcodeType = barcodeType
         )
     }
+
+    /**
+     * Generates a 2.25" x 1.25" ZPL staff access badge thermal sticker (203 dpi Zebra QLn420).
+     */
+    fun generateStaffBadgeZpl(
+        displayName: String,
+        employeeId: String,
+        role: String = "STAFF",
+        companyName: String = "DIETARY OPS"
+    ): String {
+        val cleanName = displayName.trim().uppercase()
+        val cleanId = employeeId.trim().uppercase()
+        val cleanRole = role.trim().uppercase()
+        val cleanCompany = companyName.trim().uppercase()
+        val barcodePayload = "CV-$cleanId-$cleanRole"
+
+        return """
+^XA
+^PW456
+^LL254
+^MD15
+^LH0,0
+
+; 1. COMPANY HEADER
+^FO15,12^A0N,22,22^FB426,1,0,C,0^FD$cleanCompany ACCESS BADGE^FS
+^FO15,38^GB426,2,2^FS
+
+; 2. STAFF NAME & ROLE
+^FO15,50^A0N,28,28^FB426,1,0,C,0^FD$cleanName^FS
+^FO15,82^A0N,22,20^FB426,1,0,C,0^FDROLE: $cleanRole  •  ID: $cleanId^FS
+
+; 3. CODE 128 BARCODE
+^FO55,115^BY2,2.5,50^BCN,50,Y,N,N^FD$barcodePayload^FS
+
+; 4. FOOTER
+^FO15,208^GB426,1,1^FS
+^FO15,220^A0N,16,16^FB426,1,0,C,0^FDScan Badge to Sign-In / Audit^FS
+
+^XZ
+        """.trimIndent()
+    }
 }

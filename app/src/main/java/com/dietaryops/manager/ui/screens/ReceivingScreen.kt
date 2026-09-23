@@ -97,9 +97,9 @@ fun ReceivingScreen(
     var currentScanRecord by remember { mutableStateOf<ScanRecord?>(null) }
     var labelQuantity by remember { mutableStateOf(1) }
     var isScanningEnabled by remember { mutableStateOf(true) }
-    var isCameraActive by remember { mutableStateOf(false) } // Default camera OFF for battery savings
+    var isCameraActive by remember { mutableStateOf(true) } // Active camera for instant scanning
     var autoPrint by remember { mutableStateOf(settingsManager.autoPrint) }
-    var statusMessage by remember { mutableStateOf("Camera off to save battery. Tap 'Start Scanner' or 'Manual UPC'") }
+    var statusMessage by remember { mutableStateOf("Ready to scan Sysco UPC, Case Barcode, or EVS Item") }
     var isSyncing by remember { mutableStateOf(false) }
 
     var showEditDialog by remember { mutableStateOf(false) }
@@ -113,25 +113,6 @@ fun ReceivingScreen(
         scannedState?.let { state ->
             val defaultQty = if (state.onHandAmount > 0.0) state.onHandAmount.toInt() else settingsManager.defaultLabelQuantity
             labelQuantity = defaultQty.coerceAtLeast(1)
-        }
-    }
-
-    // Auto-turn off camera while manual typing or editing to save battery
-    LaunchedEffect(showManualInputCard, showEditDialog) {
-        if (showManualInputCard || showEditDialog) {
-            isCameraActive = false
-        }
-    }
-
-    // Auto-pause camera after inactivity (20s) or post-scan (8s) to save battery life
-    LaunchedEffect(isCameraActive, isScanningEnabled) {
-        if (isCameraActive && isScanningEnabled) {
-            delay(20000)
-            isCameraActive = false
-            statusMessage = "Camera paused to save battery. Tap 'Resume Scanner' or 'Scan Next'."
-        } else if (isCameraActive && !isScanningEnabled) {
-            delay(8000)
-            isCameraActive = false
         }
     }
 
