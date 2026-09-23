@@ -23,7 +23,7 @@ jobs:
       - name: Check for Git Merge Conflict Markers
         run: |
           echo "Scanning for unresolved conflict markers across all files..."
-          if grep -rnw . -e '<<<<<<<' -e '=======' -e '>>>>>>>' \
+          if grep -rnE '^(<<<<<<<|=======|>>>>>>>)' . \
             --exclude-dir={.git,.gradle,build,build_backups,node_modules,dist}; then
             echo "ERROR: Unresolved merge conflict markers detected in repository!"
             exit 1

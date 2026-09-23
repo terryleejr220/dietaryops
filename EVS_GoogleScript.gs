@@ -1,6 +1,6 @@
-// ==========================================
+// ------------------------------------------
 // ENVIRONMENTAL SERVICES INVENTORY TRACKER
-// ==========================================
+// ------------------------------------------
 // Instructions:
 // 1. In Google Sheets, go to Extensions -> Apps Script
 // 2. Paste this code, overwriting everything
