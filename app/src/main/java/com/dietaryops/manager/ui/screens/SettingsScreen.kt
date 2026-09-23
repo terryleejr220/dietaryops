@@ -2,6 +2,9 @@ package com.dietaryops.manager.ui.screens
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -27,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -42,6 +46,7 @@ import com.dietaryops.manager.data.remote.FirebaseAuthManager
 import com.dietaryops.manager.data.repository.DeliveryRepository
 import com.dietaryops.manager.ui.theme.*
 import com.dietaryops.manager.util.DateCalculator
+import com.dietaryops.manager.util.ErrorLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -432,6 +437,83 @@ fun SettingsScreen(
                     }
                 }
             }
+        }
+
+        // --- STAFF SECTION 3: System Diagnostics & Error Logs ---
+        var showErrorLogsDialog by remember { mutableStateOf(false) }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.BugReport, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Text("App Error & Diagnostic Logs", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = { showErrorLogsDialog = true },
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Text("View Logs", fontSize = 11.sp)
+                    }
+                }
+                Text("App automatically records runtime errors & sync failures, uploading reports to Cloud Firestore & Google Sheets.", fontSize = 11.sp, color = Color.Gray)
+            }
+        }
+
+        if (showErrorLogsDialog) {
+            val logs = remember { ErrorLogger.getRecentErrorLogs(context) }
+            AlertDialog(
+                onDismissRequest = { showErrorLogsDialog = false },
+                title = { Text("Recent Diagnostic Logs") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = logs,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 240.dp)
+                                .verticalScroll(rememberScrollState())
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("Error Logs", logs)
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, "Error logs copied to clipboard!", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Text("Copy Logs")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        ErrorLogger.clearErrorLogs(context)
+                        showErrorLogsDialog = false
+                        Toast.makeText(context, "Logs cleared", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Text("Clear Logs")
+                    }
+                }
+            )
         }
 
         // --- ADMIN / SYSTEM INTEGRATION TOGGLE BANNER ---

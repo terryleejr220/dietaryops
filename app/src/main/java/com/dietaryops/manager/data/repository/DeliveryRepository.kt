@@ -12,6 +12,7 @@ import com.dietaryops.manager.data.remote.FirestoreRepository
 import com.dietaryops.manager.data.remote.GoogleSheetsApiService
 import com.dietaryops.manager.data.remote.SheetScanRecordDto
 import com.dietaryops.manager.util.DateCalculator
+import com.dietaryops.manager.util.ErrorLogger
 import com.dietaryops.manager.util.SyscoUpcNormalizer
 import com.dietaryops.manager.util.toTitleCase
 import com.google.gson.Gson
@@ -31,8 +32,9 @@ import kotlin.math.abs
 
 class DeliveryRepository(context: Context) {
 
-    private val settingsManager = SettingsManager(context)
-    private val db = AppDatabase.getDatabase(context)
+    private val appContext = context.applicationContext
+    private val settingsManager = SettingsManager(appContext)
+    private val db = AppDatabase.getDatabase(appContext)
     private val catalogDao = db.catalogItemDao()
     private val scanRecordDao = db.scanRecordDao()
     private val expirationRuleDao = db.expirationRuleDao()
@@ -1182,9 +1184,12 @@ class DeliveryRepository(context: Context) {
                 unsynced.forEach { scanRecordDao.markSynced(it.id) }
                 Result.success(unsynced.size)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "HTTP ${response.code()} sync error"))
+                val err = Exception(response.body()?.message ?: "HTTP ${response.code()} sync error")
+                ErrorLogger.logError(appContext, settingsManager, "SHEETS_SYNC", err)
+                Result.failure(err)
             }
         } catch (e: Exception) {
+            ErrorLogger.logError(appContext, settingsManager, "SHEETS_SYNC", e)
             Result.failure(e)
         }
     }

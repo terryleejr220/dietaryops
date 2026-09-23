@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.dietaryops.manager.ConnectionState
 import com.dietaryops.manager.ProductManager
 import com.dietaryops.manager.ZebraPrinterManager
+import com.dietaryops.manager.ZplGenerator
 import com.dietaryops.manager.data.SettingsManager
 import com.dietaryops.manager.ui.components.BadgeLoginDialog
 import com.dietaryops.manager.ui.screens.InventoryLogsScreen
@@ -159,10 +160,80 @@ fun AdaptiveMainLayout(
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Facility: ${settingsManager.companyCode} (${settingsManager.companyName})", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     Text("Department: ${settingsManager.department}", fontSize = 13.sp)
-                    Text("Operator: ${settingsManager.staffName} (${settingsManager.employeeId})", fontSize = 13.sp)
+                    Text("Operator: ${settingsManager.staffName} (${settingsManager.employeeId})", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                     Text("Role: ${settingsManager.staffRole}", fontSize = 13.sp)
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                    Text("Staff identity is stored locally and synchronized with the company backend. No email or phone is required.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+                    Text("1-Tap Quick Switch Operator:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        FilterChip(
+                            selected = settingsManager.employeeId == "TL01",
+                            onClick = {
+                                settingsManager.employeeId = "TL01"
+                                settingsManager.staffName = "Terry Little Jr."
+                                settingsManager.staffInitials = "TL"
+                                settingsManager.staffRole = "ADMIN"
+                                settingsManager.department = "Dietary"
+                                Toast.makeText(context, "Switched operator to Terry Little Jr. (TL01)", Toast.LENGTH_SHORT).show()
+                            },
+                            label = { Text("Terry (TL01)", fontSize = 10.sp) }
+                        )
+                        FilterChip(
+                            selected = settingsManager.employeeId == "AT01",
+                            onClick = {
+                                settingsManager.employeeId = "AT01"
+                                settingsManager.staffName = "Andy Tygart"
+                                settingsManager.staffInitials = "AT"
+                                settingsManager.staffRole = "ADMIN"
+                                settingsManager.department = "Dietary"
+                                Toast.makeText(context, "Switched operator to Andy Tygart (AT01)", Toast.LENGTH_SHORT).show()
+                            },
+                            label = { Text("Andy (AT01)", fontSize = 10.sp) }
+                        )
+                        FilterChip(
+                            selected = settingsManager.employeeId == "LS01",
+                            onClick = {
+                                settingsManager.employeeId = "LS01"
+                                settingsManager.staffName = "Lorraine S."
+                                settingsManager.staffInitials = "LS"
+                                settingsManager.staffRole = "EVS MANAGER"
+                                settingsManager.department = "EVS"
+                                Toast.makeText(context, "Switched operator to Lorraine S. (LS01)", Toast.LENGTH_SHORT).show()
+                            },
+                            label = { Text("Lorraine (LS01)", fontSize = 10.sp) }
+                        )
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+
+                    Button(
+                        onClick = {
+                            val targetDevice = printerManager.getPreferredPrinter()
+                            if (targetDevice != null) {
+                                val zpl = ZplGenerator.generateStaffBadgeZpl(
+                                    displayName = settingsManager.staffName,
+                                    employeeId = settingsManager.employeeId,
+                                    role = settingsManager.staffRole,
+                                    companyName = settingsManager.companyCode
+                                )
+                                printerManager.printDirect(targetDevice, zpl) { success, msg ->
+                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                Toast.makeText(context, "Pair Zebra printer first in Settings", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Print Badge Sticker (Zebra)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             confirmButton = {
@@ -175,18 +246,15 @@ fun AdaptiveMainLayout(
                 ) {
                     Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Scan Badge / Switch")
+                    Text("Scan Lanyard Badge")
                 }
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = {
-                        showOperatorSheet = false
-                        showProfileDialog = true
-                    },
+                    onClick = { showOperatorSheet = false },
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Text("Manual Signature")
+                    Text("Close")
                 }
             }
         )
