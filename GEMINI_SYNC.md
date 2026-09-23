@@ -22,27 +22,36 @@ Any AI assistant (Gemini / Claude / Cursor) working on this repository must stri
 The current monolithic `MainActivity.kt` (~1,000 lines) and `ProductManager.kt` are being refactored into the following clean package structure:
 
 ```
-com.centuryvilla.deliveryscanner/
+com.dietaryops.manager/
 ├── data/
 │   ├── model/
-│   │   ├── SyscoProduct.kt          // Product metadata, shelf life days, pack size
-│   │   └── InventoryItem.kt         // Inventory on-hand counts, categories, sync flags
+│   │   ├── CatalogItem.kt           // Product metadata, shelf life days, pack size
+│   │   ├── ScanRecord.kt            // Delivery scan records & staff initials
+│   │   ├── StaffUser.kt             // Multi-facility staff profile & badge tokens
+│   │   └── CompanyProfile.kt        // Facility routing & sheet tab maps
 │   ├── local/
-│   │   └── ProductPreferences.kt    // SharedPreferences & catalog caching
+│   │   ├── AppDatabase.kt           // Room local offline database
+│   │   └── ScanRecordDao.kt         // Offline scan records DAO
 │   └── remote/
-│       └── SheetsSyncService.kt     // HttpURLConnection / OkHttp webhook payload dispatcher
+│       ├── GoogleSheetsApiService.kt// Retrofit Google Apps Script Webhook API
+│       ├── CloudRepository.kt       // Unified Firestore & Sheets Cloud Repository
+│       └── FirestoreRepository.kt   // Firebase Firestore cloud persistence
 ├── util/
-│   ├── ZplPrinter.kt                // Zebra ZPL string builder & Coroutine Bluetooth SPP printer
-│   └── BarcodeAnalyzer.kt           // CameraX ML Kit Vision analyzer
+│   ├── DateCalculator.kt            // ServSafe retention calculator
+│   ├── SyscoUpcNormalizer.kt        // GTIN-14 / ITF-14 barcode normalizer
+│   └── ErrorLogger.kt               // Automatic error logging pipeline
 ├── ui/
+│   ├── AdaptiveMainLayout.kt        // Responsive multi-pane & phone layout
 │   ├── screens/
-│   │   ├── LabelScannerScreen.kt    // CameraX preview, auto-print toggles, scanned product card
-│   │   ├── KitchenInventoryScreen.kt// Category tabs, live on-hand counter, webhook sync button
-│   │   └── AdminDialogs.kt          // PIN authentication, webhook URL config, badge printing
-│   ├── viewmodel/
-│   │   └── MainViewModel.kt         // StateFlow holders for scanner, inventory, and printer status
-│   └── theme/
-└── MainActivity.kt                  // Lightweight host activity with bottom navigation
+│   │   ├── ReceivingScreen.kt       // Live camera scanner, manual search, Zebra printing
+│   │   ├── InventoryLogsScreen.kt   // Live inventory logs & Google Sheets sync
+│   │   ├── SettingsScreen.kt        // Role-aware settings & printer manager
+│   │   └── AdminDrawerContent.kt    // Facility switcher & staff roster drawer
+│   ├── components/
+│   │   ├── BadgeLoginDialog.kt      // Lanyard badge scanner & 1-tap operator switcher
+│   │   └── ScannerOverlay.kt        // High-tech reticle & scanline HUD
+│   └── theme/                       // Material 3 Color, Type, and Theme
+└── MainActivity.kt                  // Lightweight host activity
 ```
 
 ---
