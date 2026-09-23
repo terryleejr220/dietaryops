@@ -154,18 +154,21 @@ object ZplGenerator {
 ^MD15
 ^LH0,0
 
-; 1. PRODUCT NAME (Bold & Prominent)
-^FO15,12^A0N,32,32^FB426,1,0,L,0^FD$cleanItemName^FS
+; 1. BARCODE AT TOP (Centered, 65 dots tall with human-readable numbers underneath)
+^FO50,14^BY2,2.5,65^BCN,65,Y,N,N^FD$cleanUpc^FS
 
-; 2. UPC / BARCODE (Centered, 60 dots tall with human-readable numbers below)
-^FO55,55^BY2,2.5,60^BCN,60,Y,N,N^FD$cleanUpc^FS
+; Divider Line
+^FO15,110^GB426,2,2^FS
 
-; Divider
-^FO15,145^GB426,2,2^FS
+; 2. PRODUCT NAME BELOW BARCODE (Bold & Prominent 30pt font, up to 2 lines auto-wrapped)
+^FO15,122^A0N,30,28^FB426,2,0,L,0^FD$cleanItemName^FS
 
-; 3. PAR LEVEL & SHELF/SECTION (Side-by-Side on bottom)
-^FO15,165^A0N,28,26^FB210,2,0,L,0^FDPar: $resolvedPar $cleanUnit^FS
-^FO230,165^A0N,26,20^FB211,2,0,R,0^FDSec: $cleanStorage^FS
+; Divider Line
+^FO15,188^GB426,1,1^FS
+
+; 3. PAR LEVEL & STORAGE SECTION (Side-by-Side on bottom line)
+^FO15,198^A0N,24,22^FB210,1,0,L,0^FDPar: $resolvedPar $cleanUnit^FS
+^FO230,198^A0N,24,22^FB211,1,0,R,0^FDSec: $cleanStorage^FS
 
 ^XZ
         """.trimIndent()

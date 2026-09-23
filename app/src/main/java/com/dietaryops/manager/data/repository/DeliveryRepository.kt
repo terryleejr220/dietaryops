@@ -93,12 +93,12 @@ class DeliveryRepository(context: Context) {
         CatalogItem("074861000037", "Bread Crumbs", "Dry Storage", 365, "CS"),
 
         // Housekeeping / EVS
-        CatalogItem("074863000001", "Vinyl Gloves Large", "Gloves & PPE", 365, "CS"),
-        CatalogItem("074863000002", "Depends Adult Briefs L", "Incontinence (Depends)", 365, "CS"),
-        CatalogItem("074863000003", "Toilet Bowl Cleaner", "Chemicals & Cleaners", 365, "CS"),
-        CatalogItem("074863000004", "Clorox Bleach", "Chemicals & Cleaners", 365, "EA"),
-        CatalogItem("074863000005", "Paper Towels Roll", "Paper Goods", 365, "CS"),
-        CatalogItem("074863000006", "Trash Bags 33 Gal", "Liners & Trash Bags", 365, "CS"),
+        CatalogItem("074863000001", "Vinyl Gloves Large", "General", 365, "CS"),
+        CatalogItem("074863000002", "Depends Adult Briefs L", "General", 365, "CS"),
+        CatalogItem("074863000003", "Toilet Bowl Cleaner", "General", 365, "CS"),
+        CatalogItem("074863000004", "Clorox Bleach", "General", 365, "EA"),
+        CatalogItem("074863000005", "Paper Towels Roll", "General", 365, "CS"),
+        CatalogItem("074863000006", "Trash Bags 33 Gal", "General", 365, "CS"),
 
         // Proteins & Frozen
         CatalogItem("074862000001", "Pork Loin CC BL", "Proteins & Frozen", 14, "CS"),
