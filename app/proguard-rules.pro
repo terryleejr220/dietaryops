@@ -1,7 +1,5 @@
-# ProGuard / R8 rules for DietaryOpsManager
-
 # Keep attributes required for reflection, annotations, serialization, and stack traces
--keepattributes Signature, InnerClasses, EnclosingMethod, *Annotation*, SourceFile, LineNumberTable
+-keepattributes Signature, InnerClasses, EnclosingMethod, *Annotation*, SourceFile, LineNumberTable, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations, RuntimeVisibleTypeAnnotations
 
 # Allow R8 to optimize source file names while preserving line numbers for Play Console de-obfuscation
 -renamesourcefileattribute SourceFile
@@ -13,17 +11,16 @@
 -keep class androidx.compose.animation.core.KeyframesSpec$KeyframeEntity { *; }
 -dontwarn androidx.compose.**
 
-# Retrofit & OkHttp
--keepclassmembers,allowobfuscation interface * {
-    @retrofit2.http.* <methods>;
-}
--dontwarn retrofit2.**
+# Retrofit & OkHttp (Preserve Retrofit interfaces, method signatures, and annotations without obfuscation)
+-keep interface retrofit2.** { *; }
 -keep class retrofit2.** { *; }
--keepclasseswithmembers class * {
-    @retrofit2.http.* <fields>;
-}
--keepclasseswithmembers class * {
+-keepclassmembers class retrofit2.** { *; }
+-keep interface com.dietaryops.manager.data.remote.GoogleSheetsApiService { *; }
+-keep class com.dietaryops.manager.data.remote.** { *; }
+-keepclassmembers class com.dietaryops.manager.data.remote.** { *; }
+-keepclassmembers class * {
     @retrofit2.http.* <methods>;
+    @retrofit2.http.* <fields>;
 }
 
 # Gson

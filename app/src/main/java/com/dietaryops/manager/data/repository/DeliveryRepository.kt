@@ -15,6 +15,7 @@ import com.dietaryops.manager.util.DateCalculator
 import com.dietaryops.manager.util.SyscoUpcNormalizer
 import com.dietaryops.manager.util.toTitleCase
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
@@ -37,9 +38,13 @@ class DeliveryRepository(context: Context) {
     private val expirationRuleDao = db.expirationRuleDao()
     val firestoreRepository = FirestoreRepository()
 
+    private val gson = GsonBuilder()
+        .setLenient()
+        .create()
+
     private val retrofit = Retrofit.Builder()
         .baseUrl("https://script.google.com/")
-        .addConverterFactory(GsonConverterFactory.create())
+        .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
 
     private val sheetsApiService = retrofit.create(GoogleSheetsApiService::class.java)
