@@ -57,14 +57,14 @@ jobs:
           java-version: '21'
           cache: gradle
 
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x ./gradlew
+
       - name: Verify Java and Gradle
         run: |
           java -version
           echo "JAVA_HOME=$JAVA_HOME"
           ./gradlew --version
-
-      - name: Grant Execute Permission for Gradlew
-        run: chmod +x ./gradlew
 
       - name: Run Android Unit Tests
         timeout-minutes: 15
