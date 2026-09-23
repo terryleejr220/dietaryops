@@ -1,5 +1,6 @@
 package com.dietaryops.manager.data.remote
 
+import androidx.annotation.Keep
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -8,6 +9,7 @@ import retrofit2.http.Url
 
 import com.google.gson.annotations.SerializedName
 
+@Keep
 data class SheetScanRecordDto(
     @SerializedName("id")
     val id: String,
@@ -83,12 +85,14 @@ data class SheetScanRecordDto(
     )
 }
 
+@Keep
 data class SheetSyncResponse(
     val success: Boolean,
     val message: String? = null,
     val syncedCount: Int = 0
 )
 
+@Keep
 data class CatalogSyncDto(
     @SerializedName("syscoUpc", alternate = ["upc", "syscoUPC", "UPC", "barcode", "Barcode", "itemUpc", "sysco_upc", "code", "Code", "Sysco UPC"])
     val syscoUpc: String? = null,
@@ -124,6 +128,7 @@ data class CatalogSyncDto(
     val alternateBarcodes: String? = null
 )
 
+@Keep
 data class SheetSyncPayload(
     @SerializedName("spreadsheetId")
     val spreadsheetId: String? = null,
@@ -138,6 +143,7 @@ data class SheetSyncPayload(
     val records: List<SheetScanRecordDto>
 )
 
+@Keep
 interface GoogleSheetsApiService {
     companion object {
         const val DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx0heDYU0f1XyDELM_DFuKdlKmFW_ZJD6cEGegpLHva19PLv-_2CBE_U2EmAuJt1_FxDg/exec"

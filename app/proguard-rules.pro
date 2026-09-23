@@ -64,9 +64,11 @@
     @com.google.firebase.firestore.IgnoreExtraProperties <methods>;
 }
 
-# Preserve model and local data classes used for JSON serialization, Firestore, and Room
+# Preserve model, remote DTOs, and local data classes used for JSON serialization, Firestore, and Room
 -keep class com.dietaryops.manager.data.model.** { *; }
 -keepclassmembers class com.dietaryops.manager.data.model.** { *; }
+-keep class com.dietaryops.manager.data.remote.** { *; }
+-keepclassmembers class com.dietaryops.manager.data.remote.** { *; }
 -keep class com.dietaryops.manager.data.local.** { *; }
 -keepclassmembers class com.dietaryops.manager.data.local.** { *; }
 -keep class com.centuryvilla.deliveryscanner.data.model.** { *; }
