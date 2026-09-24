@@ -1,7 +1,7 @@
 # DietaryOps Manager & EVS Enterprise — Bug Log, Feature Status & Error Reporting Reference
 
 **Project Name:** DietaryOps Manager (`com.dietaryops.manager`)  
-**Current Version:** v22.0 (Build 22)  
+**Current Version:** v23.0 (Build 23)  
 **Lead:** Terry Little Jr. (Dietary Operations / Certified ServSafe Proctor)  
 **Facilities:** Century Villa Healthcare (`CVILLA`), Environmental Services (`EVS`)
 
