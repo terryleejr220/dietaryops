@@ -27,22 +27,8 @@ class BarcodeAnalyzer(
     private val scanner: com.google.mlkit.vision.barcode.BarcodeScanner
 
     init {
-        // Compute the format list first so the spread operator can be applied correctly.
-        val formats = when (scanMode) {
-            ScanMode.DELIVERY -> intArrayOf(
-                Barcode.FORMAT_UPC_A,
-                Barcode.FORMAT_UPC_E,
-                Barcode.FORMAT_EAN_13,
-                Barcode.FORMAT_EAN_8,
-                Barcode.FORMAT_CODE_128,
-                Barcode.FORMAT_CODE_39,
-                Barcode.FORMAT_ITF
-            )
-            ScanMode.BADGE -> intArrayOf(Barcode.FORMAT_QR_CODE)
-        }
-        // setBarcodeFormats(Int, vararg Int) — first element required, rest spread
         val options = BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(formats[0], *formats.drop(1).toIntArray())
+            .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
             .build()
         scanner = BarcodeScanning.getClient(options)
     }

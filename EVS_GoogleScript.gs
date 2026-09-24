@@ -43,9 +43,26 @@ function doPost(e) {
     }
 
     const ss = SpreadsheetApp.openById(targetSheetId);
+
+    // 2. A. Populates / Updates "Inventory Raw" Sheet directly for Count Sheet Sync
+    let rawInventorySheet = ss.getSheetByName("Inventory Raw") || ss.getSheetByName("CV inventory 226") || ss.getSheetByName("Master Catalog");
+    if (!rawInventorySheet) {
+      rawInventorySheet = ss.insertSheet("Inventory Raw");
+      rawInventorySheet.appendRow(["UPC", "Item Name", "Category", "On Hand Quantity", "Unit", "Last Count Date", "Counted By"]);
+      rawInventorySheet.getRange("A1:G1").setFontWeight("bold").setBackground("#c9daf8");
+      rawInventorySheet.setFrozenRows(1);
+    }
+
+    // Map existing UPCs in Inventory Raw for live row updates
+    const invData = rawInventorySheet.getDataRange().getValues();
+    const upcToRowMap = {};
+    for (let i = 1; i < invData.length; i++) {
+      const upcKey = String(invData[i][0]).trim();
+      if (upcKey) upcToRowMap[upcKey] = i + 1;
+    }
+
+    // Get or Create Audit Log Sheet (Delivery Scan Log)
     let logSheet = ss.getSheetByName(tabName);
-    
-    // Create Log tab if missing
     if (!logSheet) {
       logSheet = ss.insertSheet(tabName);
       logSheet.appendRow([
@@ -56,23 +73,6 @@ function doPost(e) {
       logSheet.setFrozenRows(1);
     }
 
-    // Get or Create Master Catalog Sheet
-    let catalogSheet = ss.getSheetByName("Master Catalog") || ss.getSheetByName("Inventory Raw") || ss.getSheetByName("CV inventory 226");
-    if (!catalogSheet) {
-      catalogSheet = ss.insertSheet("Master Catalog");
-      catalogSheet.appendRow(["UPC", "Item Name", "Category", "Shelf Life Days", "Unit"]);
-      catalogSheet.getRange("A1:E1").setFontWeight("bold").setBackground("#c9daf8");
-      catalogSheet.setFrozenRows(1);
-    }
-
-    // Load existing catalog UPCs to avoid duplicate master entries
-    const catalogData = catalogSheet.getDataRange().getValues();
-    const existingUpcs = new Set();
-    for (let i = 1; i < catalogData.length; i++) {
-      const upcVal = String(catalogData[i][0]).trim();
-      if (upcVal) existingUpcs.add(upcVal);
-    }
-
     let syncedCount = 0;
 
     // Process each record
@@ -80,23 +80,30 @@ function doPost(e) {
       const upc = String(rec.upc || rec.syscoUpc || rec.barcode || "").trim();
       const itemName = String(rec.name || rec.itemName || rec.title || "Scanned Item").trim();
       const category = String(rec.category || rec.storageArea || "General").trim();
-      const qty = rec.onHandQty !== undefined ? rec.onHandQty : (rec.onHandAmount !== undefined ? rec.onHandAmount : 1.0);
+      const qty = rec.onHandQty !== undefined ? rec.onHandQty : (rec.onHandAmount !== undefined ? rec.onHandAmount : (rec.lastOnHandAmount !== undefined ? rec.lastOnHandAmount : 1.0));
       const unit = String(rec.unit || "EA").trim();
       const receivedBy = String(rec.receivedBy || rec.staff || "Staff").trim();
       const useByDate = String(rec.useByDate || rec.expirationDate || "").trim();
       const storageArea = String(rec.storageArea || rec.storageLocation || "").trim();
       const ts = rec.scanTimestamp ? new Date(rec.scanTimestamp) : new Date();
+      const dateStr = ts.toLocaleDateString();
 
-      // A. Append to Log Tab
+      // 1. Append to Delivery Scan Log
       logSheet.appendRow([
         ts, receivedBy, itemName, upc, category, qty, unit, useByDate, storageArea
       ]);
 
-      // B. If UPC is not in Master Catalog, auto-add to Master Catalog tab!
-      if (upc && !existingUpcs.has(upc)) {
-        const shelfLife = rec.shelfLifeDays || 365;
-        catalogSheet.appendRow([upc, itemName, category, shelfLife, unit]);
-        existingUpcs.add(upc);
+      // 2. Populate / Update "Inventory Raw" Count Sheet (Zero Handwriting Needed)
+      if (upc && upcToRowMap[upc]) {
+        // Update existing item row
+        const rowIdx = upcToRowMap[upc];
+        rawInventorySheet.getRange(rowIdx, 4).setValue(qty); // On Hand Quantity
+        rawInventorySheet.getRange(rowIdx, 6).setValue(dateStr); // Last Count Date
+        rawInventorySheet.getRange(rowIdx, 7).setValue(receivedBy); // Counted By
+      } else if (upc) {
+        // Append new item to Inventory Raw
+        rawInventorySheet.appendRow([upc, itemName, category, qty, unit, dateStr, receivedBy]);
+        upcToRowMap[upc] = rawInventorySheet.getLastRow();
       }
 
       syncedCount++;
@@ -105,7 +112,7 @@ function doPost(e) {
     return responseJson({
       status: "success",
       success: true,
-      message: `Successfully synced ${syncedCount} scan record(s) to ${tabName} & Master Catalog`,
+      message: `Successfully updated Inventory Raw count sheet & Delivery Scan Log (${syncedCount} items)`,
       syncedCount: syncedCount
     });
 
