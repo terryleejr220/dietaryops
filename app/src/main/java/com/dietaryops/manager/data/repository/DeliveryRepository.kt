@@ -11,6 +11,7 @@ import com.dietaryops.manager.data.remote.CatalogSyncDto
 import com.dietaryops.manager.data.remote.FirestoreRepository
 import com.dietaryops.manager.data.remote.GoogleSheetsApiService
 import com.dietaryops.manager.data.remote.SheetScanRecordDto
+import com.dietaryops.manager.data.remote.SheetSyncPayload
 import com.dietaryops.manager.util.DateCalculator
 import com.dietaryops.manager.util.ErrorLogger
 import com.dietaryops.manager.util.SyscoUpcNormalizer
@@ -1176,7 +1177,14 @@ class DeliveryRepository(context: Context) {
                 )
             }
 
-            val response = sheetsApiService.syncScanRecords(targetUrl, dtos)
+            val payload = SheetSyncPayload(
+                spreadsheetId = settingsManager.sheetId.ifBlank { SettingsManager.DEFAULT_SHEET_ID },
+                sheetTab = settingsManager.departmentSheetTab.ifBlank { "Delivery Scan Log" },
+                companyCode = settingsManager.companyCode.ifBlank { "CVILLA" },
+                records = dtos
+            )
+
+            val response = sheetsApiService.syncWithPayload(targetUrl, payload)
             if (response.isSuccessful && response.body()?.success == true) {
                 unsynced.forEach { scanRecordDao.markSynced(it.id) }
                 Result.success(unsynced.size)
