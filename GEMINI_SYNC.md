@@ -1,6 +1,6 @@
 # DietaryHelper (Century Villa Delivery Scanner) — Architecture & Sync Blueprint
 
-**Current Version:** v20.0 (Build 20)
+**Current Version:** v21.0 (Build 21)
 
 This document defines the production requirements, data contracts, and refactoring guidelines for Century Villa Dietary Operations. 
 Any AI assistant (Gemini / Claude / Cursor) working on this repository must strictly adhere to these rules.

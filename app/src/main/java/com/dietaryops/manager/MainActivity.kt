@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -27,13 +28,23 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Initialize Firebase Remote Config on startup
-        RemoteConfigManager.initialize()
-        RemoteConfigManager.fetchAndActivate()
+        try {
+            // Safely initialize Firebase Remote Config on startup
+            RemoteConfigManager.initialize()
+            RemoteConfigManager.fetchAndActivate()
+        } catch (e: Exception) {
+            Log.e("MainActivity", "RemoteConfig init skipped: ${e.message}")
+        }
 
-        productManager = ProductManager(this)
-        printerManager = ZebraPrinterManager(this)
-        settingsManager = SettingsManager(this)
+        try {
+            productManager = ProductManager(this)
+            printerManager = ZebraPrinterManager(this)
+            settingsManager = SettingsManager(this)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Core managers init exception: ${e.message}")
+            finish()
+            return
+        }
 
         setContent {
             DeliveryScannerTheme {

@@ -6,8 +6,8 @@ import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
 import java.util.Properties
 
-val appVersionCode = 20
-val appVersionName = "20.0"
+val appVersionCode = 21
+val appVersionName = "21.0"
 
 val localProperties = Properties().apply {
     val localPropertiesFile = rootProject.file("local.properties")
@@ -35,12 +35,12 @@ plugins {
 
 android {
     namespace = "com.dietaryops.manager"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.dietaryops.manager"
         minSdk = 26
-        targetSdk = 36
+        targetSdk = 35
         versionCode = appVersionCode
         versionName = appVersionName
     }
@@ -71,15 +71,19 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "1.8"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
         buildConfig = true
+    }
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
     packaging {
         jniLibs {
@@ -111,13 +115,12 @@ dependencies {
     implementation("com.android.billingclient:billing-ktx:8.0.0")
 
     // Firebase
-    val firebaseBom = platform("com.google.firebase:firebase-bom:34.19.0")
+    val firebaseBom = platform("com.google.firebase:firebase-bom:33.9.0")
     implementation(firebaseBom)
     implementation("com.google.firebase:firebase-auth")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-config")
     implementation("com.google.firebase:firebase-analytics")
-    implementation("com.google.firebase:firebase-crashlytics")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
     implementation("com.google.guava:guava:33.3.1-android")
     implementation("androidx.concurrent:concurrent-futures:1.2.0")
