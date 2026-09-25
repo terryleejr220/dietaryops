@@ -1202,6 +1202,23 @@ class DeliveryRepository(context: Context) {
         }
     }
 
+    suspend fun syncCatalogWithPayload(
+        webAppUrl: String,
+        payload: SheetSyncPayload
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val targetUrl = webAppUrl.ifBlank { SettingsManager.DEFAULT_WEB_APP_URL }
+            val response = sheetsApiService.syncWithPayload(targetUrl, payload)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "HTTP ${response.code()} sync error"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun syncFromFirestore(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val catRes = firestoreRepository.fetchCatalog()

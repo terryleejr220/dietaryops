@@ -45,7 +45,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import com.dietaryops.manager.data.remote.SheetScanRecordDto
+import com.dietaryops.manager.data.remote.SheetSyncPayload
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -78,6 +81,7 @@ fun InventoryLogsScreen(
     var syncStatusText by remember { mutableStateOf<String?>(null) }
     var showClearAllConfirm by remember { mutableStateOf(false) }
     var showAddCatalogDialog by remember { mutableStateOf(false) }
+    var showMassPrintDialog by remember { mutableStateOf(false) }
 
     // Auto-sync catalog from published Google Sheet if empty or default
     LaunchedEffect(Unit) {
@@ -331,7 +335,7 @@ fun InventoryLogsScreen(
             }
         }
 
-        // Tab Navigation Bar (Scan Logs vs Master Catalog) - Rounded container
+        // Tab Navigation Bar (Scan Logs vs Master Catalog vs Count Sheet Walk)
         Surface(
             shape = RoundedCornerShape(14.dp),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
@@ -344,12 +348,17 @@ fun InventoryLogsScreen(
                 Tab(
                     selected = activeTab == 0,
                     onClick = { activeTab = 0 },
-                    text = { Text("Scan Logs (${scanRecords.size})", fontWeight = if (activeTab == 0) FontWeight.Bold else FontWeight.Medium) }
+                    text = { Text("Scan Logs (${scanRecords.size})", fontSize = 11.sp, fontWeight = if (activeTab == 0) FontWeight.Bold else FontWeight.Medium) }
                 )
                 Tab(
                     selected = activeTab == 1,
                     onClick = { activeTab = 1 },
-                    text = { Text("Master Catalog (${catalogItems.size})", fontWeight = if (activeTab == 1) FontWeight.Bold else FontWeight.Medium) }
+                    text = { Text("Master Catalog (${catalogItems.size})", fontSize = 11.sp, fontWeight = if (activeTab == 1) FontWeight.Bold else FontWeight.Medium) }
+                )
+                Tab(
+                    selected = activeTab == 2,
+                    onClick = { activeTab = 2 },
+                    text = { Text("Count Sheet Walk", fontSize = 11.sp, fontWeight = if (activeTab == 2) FontWeight.Bold else FontWeight.Medium) }
                 )
             }
         }
@@ -451,7 +460,16 @@ fun InventoryLogsScreen(
             ) {
                 Text("Catalog Items (${filteredCatalogItems.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        onClick = { showMassPrintDialog = true },
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Mass Print", fontSize = 11.sp)
+                    }
+
                     OutlinedButton(
                         onClick = {
                             val pubUrl = settingsManager.publishedWebUrl
@@ -780,6 +798,317 @@ fun InventoryLogsScreen(
                 }
             }
         }
+
+        if (activeTab == 2) {
+            // Count Sheet Top Action Banner
+            var isSyncingCountSheet by remember { mutableStateOf(false) }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("📋 Floor Count Walk (Zero Handwriting)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Tap + / - to adjust on-hand counts. Sync populates Inventory Raw on Google Sheets.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+
+                    Button(
+                        onClick = {
+                            val webAppUrl = settingsManager.webAppUrl
+                            if (webAppUrl.isBlank()) {
+                                Toast.makeText(context, "Configure Google Sheets Web App URL in Settings!", Toast.LENGTH_LONG).show()
+                            } else {
+                                isSyncingCountSheet = true
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    val countDtos = catalogItems.map {
+                                        SheetScanRecordDto(
+                                            id = "COUNT-${it.syscoUpc}",
+                                            upc = it.syscoUpc,
+                                            itemNumber = it.syscoItemNumber,
+                                            name = it.name,
+                                            deliveryDate = LocalDate.now().toString(),
+                                            useByDate = LocalDate.now().plusDays(it.defaultShelfLifeDays.toLong()).toString(),
+                                            storageArea = ZplGenerator.getStorageLocationForCategory(it.category),
+                                            receivedBy = settingsManager.staffName,
+                                            onHandQty = it.lastOnHandAmount,
+                                            category = it.category,
+                                            shelfLifeDays = it.defaultShelfLifeDays,
+                                            unit = it.unit,
+                                            scanTimestamp = System.currentTimeMillis()
+                                        )
+                                    }
+                                    val payload = SheetSyncPayload(
+                                        spreadsheetId = settingsManager.sheetId,
+                                        sheetTab = "Inventory Raw",
+                                        companyCode = settingsManager.companyCode,
+                                        records = countDtos
+                                    )
+                                    val res = repository.syncCatalogWithPayload(webAppUrl, payload)
+                                    withContext(Dispatchers.Main) {
+                                        isSyncingCountSheet = false
+                                        res.onSuccess {
+                                            Toast.makeText(context, "Populated Inventory Raw count sheet on Google Sheets!", Toast.LENGTH_LONG).show()
+                                        }.onFailure { err ->
+                                            Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isSyncingCountSheet,
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        if (isSyncingCountSheet) {
+                            CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.White, strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                        }
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Sync to Sheets", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+
+            // Category Filter Row for Count Walk
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                item {
+                    FilterChip(
+                        selected = selectedCategoryFilter == "All",
+                        onClick = { selectedCategoryFilter = "All" },
+                        label = { Text("All (${filteredCatalogItems.size})", fontSize = 11.sp) }
+                    )
+                }
+                items(DEFAULT_CATEGORIES) { cat ->
+                    val catCount = catalogItems.count { it.category.equals(cat, ignoreCase = true) }
+                    FilterChip(
+                        selected = selectedCategoryFilter == cat,
+                        onClick = { selectedCategoryFilter = cat },
+                        label = { Text("$cat ($catCount)", fontSize = 11.sp) }
+                    )
+                }
+            }
+
+            // Inventory Count Cards List
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val walkItems = filteredCatalogItems.filter {
+                    selectedCategoryFilter == "All" || it.category.equals(selectedCategoryFilter, ignoreCase = true)
+                }
+
+                items(walkItems, key = { it.syscoUpc }) { item ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(item.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("${item.category} • UPC: ${item.syscoUpc}", fontSize = 11.sp, color = Color.Gray)
+                                Text("Storage: ${ZplGenerator.getStorageLocationForCategory(item.category)} • Unit: ${item.unit}", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                OutlinedIconButton(
+                                    onClick = {
+                                        val newQty = (item.lastOnHandAmount - 1.0).coerceAtLeast(0.0)
+                                        val updated = item.copy(lastOnHandAmount = newQty)
+                                        coroutineScope.launch(Dispatchers.IO) { repository.saveCatalogItem(updated) }
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Text("-", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 4.dp)
+                                ) {
+                                    Text(
+                                        text = if (item.lastOnHandAmount % 1.0 == 0.0) "${item.lastOnHandAmount.toInt()}" else "${item.lastOnHandAmount}",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 15.sp,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+
+                                OutlinedIconButton(
+                                    onClick = {
+                                        val newQty = item.lastOnHandAmount + 1.0
+                                        val updated = item.copy(lastOnHandAmount = newQty)
+                                        coroutineScope.launch(Dispatchers.IO) { repository.saveCatalogItem(updated) }
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Text("+", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Mass Shelf Label Print Dialog
+    if (showMassPrintDialog) {
+        var selectedCategory by remember { mutableStateOf("All") }
+        var selectedUpcs by remember { mutableStateOf(catalogItems.map { it.syscoUpc }.toSet()) }
+
+        val dialogItems = remember(catalogItems, selectedCategory) {
+            if (selectedCategory == "All") catalogItems else catalogItems.filter { it.category.equals(selectedCategory, ignoreCase = true) }
+        }
+
+        AlertDialog(
+            onDismissRequest = { showMassPrintDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Print, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Mass Print Shelf Labels", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Select category or items to stream ZPL shelf labels to Zebra printer:", fontSize = 12.sp, color = Color.Gray)
+
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        item {
+                            FilterChip(
+                                selected = selectedCategory == "All",
+                                onClick = {
+                                    selectedCategory = "All"
+                                    selectedUpcs = catalogItems.map { it.syscoUpc }.toSet()
+                                },
+                                label = { Text("All (${catalogItems.size})", fontSize = 10.sp) }
+                            )
+                        }
+                        items(DEFAULT_CATEGORIES) { cat ->
+                            val count = catalogItems.count { it.category.equals(cat, ignoreCase = true) }
+                            FilterChip(
+                                selected = selectedCategory == cat,
+                                onClick = {
+                                    selectedCategory = cat
+                                    selectedUpcs = catalogItems.filter { it.category.equals(cat, ignoreCase = true) }.map { it.syscoUpc }.toSet()
+                                },
+                                label = { Text("$cat ($count)", fontSize = 10.sp) }
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Selected: ${selectedUpcs.size} item(s)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        TextButton(onClick = {
+                            if (selectedUpcs.size == dialogItems.size) {
+                                selectedUpcs = emptySet()
+                            } else {
+                                selectedUpcs = dialogItems.map { it.syscoUpc }.toSet()
+                            }
+                        }) {
+                            Text(if (selectedUpcs.size == dialogItems.size) "Deselect All" else "Select All", fontSize = 11.sp)
+                        }
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(dialogItems) { item ->
+                            val isChecked = selectedUpcs.contains(item.syscoUpc)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        selectedUpcs = if (isChecked) selectedUpcs - item.syscoUpc else selectedUpcs + item.syscoUpc
+                                    }
+                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Checkbox(
+                                    checked = isChecked,
+                                    onCheckedChange = { checked ->
+                                        selectedUpcs = if (checked == true) selectedUpcs + item.syscoUpc else selectedUpcs - item.syscoUpc
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Column {
+                                    Text(item.name, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                    Text("${item.category} • ${item.syscoUpc}", fontSize = 10.sp, color = Color.Gray)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val targetPrinter = printerManager.getPreferredPrinter()
+                        if (targetPrinter == null) {
+                            Toast.makeText(context, "Pair or connect a Zebra printer first!", Toast.LENGTH_LONG).show()
+                        } else if (selectedUpcs.isEmpty()) {
+                            Toast.makeText(context, "Select at least one item to print", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val itemsToPrint = catalogItems.filter { selectedUpcs.contains(it.syscoUpc) }
+                            showMassPrintDialog = false
+                            Toast.makeText(context, "Streaming ${itemsToPrint.size} shelf label(s) to Zebra...", Toast.LENGTH_SHORT).show()
+                            coroutineScope.launch(Dispatchers.IO) {
+                                itemsToPrint.forEach { catItem ->
+                                    val zpl = ZplGenerator.generateShelfLabelZpl(catItem)
+                                    printerManager.printDirect(targetPrinter, zpl) { _, _ -> }
+                                    delay(400)
+                                }
+                                withContext(Dispatchers.Main) {
+                                    Toast.makeText(context, "Printed ${itemsToPrint.size} shelf label(s)!", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Print ${selectedUpcs.size} Labels", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showMassPrintDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     // Clear All Logs Confirmation Dialog
