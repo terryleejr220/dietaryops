@@ -4,7 +4,9 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -167,20 +169,34 @@ fun AdaptiveMainLayout(
                     Text("1-Tap Quick Switch Operator:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
+                        FilterChip(
+                            selected = settingsManager.employeeId == SettingsManager.ADMIN_EMPLOYEE_ID,
+                            onClick = {
+                                settingsManager.employeeId = SettingsManager.ADMIN_EMPLOYEE_ID
+                                settingsManager.staffName = SettingsManager.ADMIN_NAME
+                                settingsManager.staffInitials = "AD"
+                                settingsManager.staffRole = "SUPER_ADMIN"
+                                settingsManager.department = "Dietary"
+                                Toast.makeText(context, "Switched operator to System Administrator (AD99)", Toast.LENGTH_SHORT).show()
+                            },
+                            label = { Text("Admin (AD99)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        )
                         FilterChip(
                             selected = settingsManager.employeeId == "TL01",
                             onClick = {
                                 settingsManager.employeeId = "TL01"
                                 settingsManager.staffName = "Terry Little Jr."
                                 settingsManager.staffInitials = "TL"
-                                settingsManager.staffRole = "ADMIN"
+                                settingsManager.staffRole = "SUPERVISOR"
                                 settingsManager.department = "Dietary"
                                 Toast.makeText(context, "Switched operator to Terry Little Jr. (TL01)", Toast.LENGTH_SHORT).show()
                             },
-                            label = { Text("Terry (TL01)", fontSize = 10.sp) }
+                            label = { Text("Terry (TL01)", fontSize = 11.sp) }
                         )
                         FilterChip(
                             selected = settingsManager.employeeId == "AT01",
@@ -188,11 +204,11 @@ fun AdaptiveMainLayout(
                                 settingsManager.employeeId = "AT01"
                                 settingsManager.staffName = "Andy Tygart"
                                 settingsManager.staffInitials = "AT"
-                                settingsManager.staffRole = "ADMIN"
+                                settingsManager.staffRole = "SUPERVISOR"
                                 settingsManager.department = "Dietary"
                                 Toast.makeText(context, "Switched operator to Andy Tygart (AT01)", Toast.LENGTH_SHORT).show()
                             },
-                            label = { Text("Andy (AT01)", fontSize = 10.sp) }
+                            label = { Text("Andy (AT01)", fontSize = 11.sp) }
                         )
                         FilterChip(
                             selected = settingsManager.employeeId == "LS01",
@@ -204,35 +220,53 @@ fun AdaptiveMainLayout(
                                 settingsManager.department = "EVS"
                                 Toast.makeText(context, "Switched operator to Lorraine S. (LS01)", Toast.LENGTH_SHORT).show()
                             },
-                            label = { Text("Lorraine (LS01)", fontSize = 10.sp) }
+                            label = { Text("Lorraine (LS01)", fontSize = 11.sp) }
                         )
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
 
-                    Button(
-                        onClick = {
-                            val targetDevice = printerManager.getPreferredPrinter()
-                            if (targetDevice != null) {
-                                val zpl = ZplGenerator.generateStaffBadgeZpl(
-                                    displayName = settingsManager.staffName,
-                                    employeeId = settingsManager.employeeId,
-                                    role = settingsManager.staffRole,
-                                    companyName = settingsManager.companyCode
-                                )
-                                printerManager.printDirect(targetDevice, zpl) { success, msg ->
-                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-                                }
-                            } else {
-                                Toast.makeText(context, "Pair Zebra printer first in Settings", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Print Badge Sticker (Zebra)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        OutlinedButton(
+                            onClick = {
+                                showOperatorSheet = false
+                                showProfileDialog = true
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Edit Profile", fontSize = 11.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                val targetDevice = printerManager.getPreferredPrinter()
+                                if (targetDevice != null) {
+                                    val zpl = ZplGenerator.generateStaffBadgeZpl(
+                                        displayName = settingsManager.staffName,
+                                        employeeId = settingsManager.employeeId,
+                                        role = settingsManager.staffRole,
+                                        companyName = settingsManager.companyCode
+                                    )
+                                    printerManager.printDirect(targetDevice, zpl) { success, msg ->
+                                        Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Pair Zebra printer first in Settings", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1.3f)
+                        ) {
+                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Print Badge", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             },

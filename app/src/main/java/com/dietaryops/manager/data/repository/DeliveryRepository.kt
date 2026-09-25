@@ -7,6 +7,7 @@ import com.dietaryops.manager.data.local.AppDatabase
 import com.dietaryops.manager.data.model.CatalogItem
 import com.dietaryops.manager.data.model.ExpirationRule
 import com.dietaryops.manager.data.model.ScanRecord
+import com.dietaryops.manager.data.remote.CatalogFetchRequest
 import com.dietaryops.manager.data.remote.CatalogSyncDto
 import com.dietaryops.manager.data.remote.FirestoreRepository
 import com.dietaryops.manager.data.remote.GoogleSheetsApiService
@@ -24,8 +25,10 @@ import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.Locale
@@ -33,7 +36,7 @@ import kotlin.math.abs
 
 class DeliveryRepository(context: Context) {
 
-    private val appContext = context.applicationContext
+    val appContext: Context = context.applicationContext
     private val settingsManager = SettingsManager(appContext)
     private val db = AppDatabase.getDatabase(appContext)
     private val catalogDao = db.catalogItemDao()
@@ -41,12 +44,21 @@ class DeliveryRepository(context: Context) {
     private val expirationRuleDao = db.expirationRuleDao()
     val firestoreRepository = FirestoreRepository()
 
+    private val okHttpClient = OkHttpClient.Builder()
+        .followRedirects(true)
+        .followSslRedirects(true)
+        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
+
     private val gson = GsonBuilder()
         .setLenient()
         .create()
 
     private val retrofit = Retrofit.Builder()
         .baseUrl("https://script.google.com/")
+        .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create(gson))
         .build()
 
@@ -160,45 +172,45 @@ class DeliveryRepository(context: Context) {
         CatalogItem("074862000056", "5 Way Blend Veg", "Proteins & Frozen", 14, "CS"),
 
         // Condiments & Sauces
-        CatalogItem("074863000001", "Mayonnaise", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000002", "Tartar Sauce", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000003", "Mustard", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000004", "Ketchup", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000005", "Malt Vinegar", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000006", "Soy Sauce", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000007", "Franks Hot Sauce", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000008", "Sugar", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000009", "Yellow Sucralose", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000010", "Pink Sugar Sweetener", "Condiments & Sauces", 14, "CS"),
+        CatalogItem("074863000001", "Mayonnaise", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000002", "Tartar Sauce", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000003", "Mustard", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000004", "Ketchup", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000005", "Malt Vinegar", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000006", "Soy Sauce", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000007", "Franks Hot Sauce", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000008", "Sugar", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000009", "Yellow Sucralose", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000010", "Pink Sugar Sweetener", "Condiments & Sauces", 365, "CS"),
         CatalogItem("074863000011", "Coffee Creamer", "Dairy & Fresh", 7, "CS"),
-        CatalogItem("074863000012", "Pepper", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000013", "Assorted Jelly", "Condiments & Sauces", 14, "CS"),
+        CatalogItem("074863000012", "Pepper", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000013", "Assorted Jelly", "Condiments & Sauces", 365, "CS"),
         CatalogItem("074863000014", "Gallon Tea", "Supplement", 365, "CS"),
-        CatalogItem("074863000015", "Hot Bags", "General", 14, "BOX"),
-        CatalogItem("074863000016", "Coffee", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000017", "No Sugar Hot Cocoa", "Condiments & Sauces", 14, "BOX"),
-        CatalogItem("074863000018", "Instant Coffee", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000019", "Creamy Hot Chocolate", "Condiments & Sauces", 14, "BOX"),
-        CatalogItem("074863000020", "Chicken Bouillon", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000021", "Ranch Dips", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000022", "Ranch Mix", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000023", "Golden Italian Dressing", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000024", "French Dressing Pack", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000025", "Ranch Dressing Pack", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000026", "Vanilla Pudding", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000027", "Chocolate Pudding", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000028", "BBQ Sauce", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000029", "Worcestershire Sauce", "Condiments & Sauces", 14, "CS"),
-        CatalogItem("074863000030", "Salsa", "Condiments & Sauces", 14, "CTN"),
-        CatalogItem("074863000031", "Sweet & Sour Sauce", "Condiments & Sauces", 14, "CTN"),
-        CatalogItem("074863000032", "Mayonnaise Gallon", "Condiments & Sauces", 14, "CS"),
+        CatalogItem("074863000015", "Hot Bags", "General", 365, "BOX"),
+        CatalogItem("074863000016", "Coffee", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000017", "No Sugar Hot Cocoa", "Condiments & Sauces", 365, "BOX"),
+        CatalogItem("074863000018", "Instant Coffee", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000019", "Creamy Hot Chocolate", "Condiments & Sauces", 365, "BOX"),
+        CatalogItem("074863000020", "Chicken Bouillon", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000021", "Ranch Dips", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000022", "Ranch Mix", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000023", "Golden Italian Dressing", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000024", "French Dressing Pack", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000025", "Ranch Dressing Pack", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000026", "Vanilla Pudding", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000027", "Chocolate Pudding", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000028", "BBQ Sauce", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000029", "Worcestershire Sauce", "Condiments & Sauces", 365, "CS"),
+        CatalogItem("074863000030", "Salsa", "Condiments & Sauces", 365, "CTN"),
+        CatalogItem("074863000031", "Sweet & Sour Sauce", "Condiments & Sauces", 365, "CTN"),
+        CatalogItem("074863000032", "Mayonnaise Gallon", "Condiments & Sauces", 365, "CS"),
         CatalogItem("074863000033", "Chicken Soup Can", "Canned Goods", 365, "CS"),
         CatalogItem("074863000034", "Tomato Soup Can", "Canned Goods", 365, "CS"),
         CatalogItem("074863000035", "Vegetable Soup Can", "Canned Goods", 365, "CS"),
         CatalogItem("074863000036", "Green Chilis", "Canned Goods", 365, "CS"),
         CatalogItem("074863000037", "Red Pepper Can", "Canned Goods", 365, "CS"),
-        CatalogItem("074863000038", "Oatmeal", "Misc Dry & Cereal", 14, "CS"),
-        CatalogItem("074863000039", "Pistachio Pudding", "Condiments & Sauces", 14, "CS"),
+        CatalogItem("074863000038", "Oatmeal", "Misc Dry & Cereal", 365, "CS"),
+        CatalogItem("074863000039", "Pistachio Pudding", "Condiments & Sauces", 365, "CS"),
 
         // Dairy & Fresh
         CatalogItem("074864000001", "Cheddar Jack Cheese", "Dairy & Fresh", 7, "CS"),
@@ -316,8 +328,6 @@ class DeliveryRepository(context: Context) {
         ExpirationRule("Supplement", 365, "Commercial Shelf-Stable / Unopened dietary supplements & beverages"),
         ExpirationRule("General", 365, "Commercial Shelf-Stable / Unopened stock standard")
     )
-
-    private val okHttpClient = OkHttpClient.Builder().build()
 
     private fun getPublishedCsvUrl(rawUrl: String): String {
         val clean = rawUrl.trim()
@@ -869,8 +879,15 @@ class DeliveryRepository(context: Context) {
 
             var dtoList: List<CatalogSyncDto>? = null
 
+            val fetchRequest = CatalogFetchRequest(
+                action = "fetch_catalog",
+                spreadsheetId = settingsManager.sheetId.ifBlank { SettingsManager.DEFAULT_SHEET_ID },
+                sheetTab = if (settingsManager.isEvsDepartment()) "EVS Inventory" else "Inventory Raw",
+                department = settingsManager.department
+            )
+
             try {
-                val response = sheetsApiService.fetchCatalog(cleanUrl)
+                val response = sheetsApiService.fetchCatalog(cleanUrl, fetchRequest)
                 if (response.isSuccessful && response.body() != null) {
                     dtoList = response.body()
                 }
@@ -878,7 +895,9 @@ class DeliveryRepository(context: Context) {
             }
 
             if (dtoList.isNullOrEmpty()) {
-                val request = Request.Builder().url(cleanUrl).build()
+                val mediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+                val requestBody = gson.toJson(fetchRequest).toRequestBody(mediaType)
+                val request = Request.Builder().url(cleanUrl).post(requestBody).build()
                 val response = okHttpClient.newCall(request).execute()
                 if (!response.isSuccessful) {
                     return@withContext Result.failure(Exception("HTTP ${response.code} fetching catalog"))
@@ -1180,7 +1199,8 @@ class DeliveryRepository(context: Context) {
             val payload = SheetSyncPayload(
                 spreadsheetId = settingsManager.sheetId.ifBlank { SettingsManager.DEFAULT_SHEET_ID },
                 sheetTab = settingsManager.departmentSheetTab.ifBlank { "Delivery Scan Log" },
-                companyCode = settingsManager.companyCode.ifBlank { "CVILLA" },
+                companyCode = settingsManager.companyCode.ifBlank { SettingsManager.DEFAULT_COMPANY_CODE },
+                department = settingsManager.department,
                 records = dtos
             )
 

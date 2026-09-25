@@ -9,6 +9,7 @@ import com.dietaryops.manager.util.DateCalculator
 import com.dietaryops.manager.util.DateCalculationResult
 import com.dietaryops.manager.util.Gs1BarcodeParser
 import com.dietaryops.manager.util.SyscoUpcNormalizer
+import com.dietaryops.manager.work.SyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -274,6 +275,7 @@ class ProductManager(context: Context) {
 
     suspend fun logScanToSheets(scanRecord: ScanRecord) {
         repository.addScanRecord(scanRecord)
+        SyncWorker.enqueue(repository.appContext)
         val url = webAppUrl
         if (url.isNotBlank()) {
             try {
@@ -293,6 +295,7 @@ class ProductManager(context: Context) {
         scope: CoroutineScope,
         onSyncResult: ((Result<Int>) -> Unit)? = null
     ) {
+        SyncWorker.enqueue(repository.appContext)
         scope.launch(Dispatchers.IO) {
             repository.addScanRecord(scanRecord)
             val url = webAppUrl

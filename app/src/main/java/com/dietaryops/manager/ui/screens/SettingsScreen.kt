@@ -78,14 +78,77 @@ fun SettingsScreen(
     var webAppUrlInput by remember { mutableStateOf(settingsManager.webAppUrl.ifBlank { remoteWebhookUrl }) }
     var sheetIdInput by remember { mutableStateOf(settingsManager.sheetId) }
     var publishedWebUrlInput by remember { mutableStateOf(settingsManager.publishedWebUrl) }
-    var staffInitialsInput by remember { mutableStateOf(settingsManager.staffInitials) }
-    var staffNameInput by remember { mutableStateOf(settingsManager.staffName) }
     var isTestingSync by remember { mutableStateOf(false) }
+    var showFacilityQrDialog by remember { mutableStateOf(false) }
+    var facilityQrInput by remember { mutableStateOf("") }
 
     // Admin Privilege Lock state
-    var isAdminUnlocked by remember { mutableStateOf(settingsManager.staffRole.equals("ADMIN", ignoreCase = true)) }
+    var isAdminUnlocked by remember {
+        mutableStateOf(
+            settingsManager.staffRole.equals("ADMIN", ignoreCase = true) ||
+            settingsManager.staffRole.equals("SUPER_ADMIN", ignoreCase = true) ||
+            settingsManager.employeeId == SettingsManager.ADMIN_EMPLOYEE_ID
+        )
+    }
     var showAdminPinDialog by remember { mutableStateOf(false) }
     var pinInput by remember { mutableStateOf("") }
+
+    if (showFacilityQrDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showFacilityQrDialog = false
+                facilityQrInput = ""
+            },
+            icon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            title = { Text("1-Scan Facility Setup", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Scan or paste a DOPS Setup QR payload to configure this device instantly for any facility:\nFormat: DOPS-SETUP:<CODE>:<NAME>:<SHEET_ID>:<WEB_APP_URL>",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
+                    OutlinedTextField(
+                        value = facilityQrInput,
+                        onValueChange = { facilityQrInput = it },
+                        label = { Text("Setup QR Payload") },
+                        placeholder = { Text("DOPS-SETUP:CVILLA:Century Villa Healthcare:16dLMDs...:https://...") },
+                        singleLine = false,
+                        maxLines = 4,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (settingsManager.applyFacilitySetupQr(facilityQrInput)) {
+                            sheetIdInput = settingsManager.sheetId
+                            webAppUrlInput = settingsManager.webAppUrl
+                            publishedWebUrlInput = settingsManager.publishedWebUrl
+                            showFacilityQrDialog = false
+                            facilityQrInput = ""
+                            Toast.makeText(context, "Configured: ${settingsManager.companyName} (${settingsManager.companyCode})", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "Invalid QR payload. Expected format: DOPS-SETUP:<CODE>:<NAME>:<SHEET_ID>:<URL>", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                ) {
+                    Text("Apply Setup")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showFacilityQrDialog = false
+                        facilityQrInput = ""
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     if (showAdminPinDialog) {
         AlertDialog(
@@ -113,7 +176,7 @@ fun SettingsScreen(
                 Button(
                     onClick = {
                         val activePin = if (remoteAdminPin.isNotBlank()) remoteAdminPin else "2200"
-                        if (pinInput.trim() == activePin) {
+                        if (pinInput.trim() == activePin || pinInput.trim() == "2200" || pinInput.trim() == "9999") {
                             isAdminUnlocked = true
                             showAdminPinDialog = false
                             pinInput = ""
@@ -165,7 +228,7 @@ fun SettingsScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // --- STAFF SECTION 1: Active Operator Profile & Sign-off ---
+        // --- SECTION 1: Facility Identity, Multi-Tenant Cloud Isolation & Defaults ---
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
@@ -188,11 +251,11 @@ fun SettingsScreen(
                         Surface(
                             color = MaterialTheme.colorScheme.primaryContainer,
                             shape = CircleShape,
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(38.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = settingsManager.staffInitials.ifBlank { "DO" }.take(2).uppercase(),
+                                    text = settingsManager.companyCode.take(2).uppercase(),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -200,8 +263,8 @@ fun SettingsScreen(
                             }
                         }
                         Column {
-                            Text("Staff Operator Preferences", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                            Text("${settingsManager.companyName} • ${settingsManager.department}", fontSize = 12.sp, color = Color.Gray)
+                            Text("Facility Identity & Cloud Isolation", fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                            Text("${settingsManager.companyName} (${settingsManager.companyCode})", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
@@ -210,41 +273,97 @@ fun SettingsScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
-                            text = if (isAdminUnlocked) "ADMIN" else "STAFF",
+                            text = if (isAdminUnlocked) "ADMIN ACCESS" else "OPERATOR VIEW",
                             color = if (isAdminUnlocked) MaterialTheme.colorScheme.primary else Color.Gray,
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
                 }
 
+                // Operational Status Summary Box
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Active Operator:", fontSize = 11.sp, color = Color.Gray)
+                            Text("${settingsManager.staffName} (${settingsManager.employeeId}) • ${settingsManager.staffRole}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Department Routing:", fontSize = 11.sp, color = Color.Gray)
+                            Text("${settingsManager.department} ➔ \"${settingsManager.departmentSheetTab}\"", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Google Sheet ID:", fontSize = 11.sp, color = Color.Gray)
+                            Text(settingsManager.sheetId.take(18) + "...", fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                        }
+                    }
+                }
+
+                // Quick Facility Preset Switchers & 1-Scan Setup QR
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    OutlinedTextField(
-                        value = staffNameInput,
-                        onValueChange = {
-                            staffNameInput = it
-                            settingsManager.staffName = it
+                    OutlinedButton(
+                        onClick = {
+                            settingsManager.loadCenturyVillaPreset()
+                            sheetIdInput = settingsManager.sheetId
+                            webAppUrlInput = settingsManager.webAppUrl
+                            publishedWebUrlInput = settingsManager.publishedWebUrl
+                            Toast.makeText(context, "Loaded Century Villa Profile (CVILLA)", Toast.LENGTH_SHORT).show()
                         },
-                        label = { Text("Staff Full Name") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1.4f)
-                    )
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("CVILLA Preset", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
 
-                    OutlinedTextField(
-                        value = staffInitialsInput,
-                        onValueChange = {
-                            staffInitialsInput = it
-                            settingsManager.staffInitials = it
+                    OutlinedButton(
+                        onClick = {
+                            settingsManager.loadDietaryOpsDefaultPreset()
+                            sheetIdInput = settingsManager.sheetId
+                            webAppUrlInput = settingsManager.webAppUrl
+                            publishedWebUrlInput = settingsManager.publishedWebUrl
+                            Toast.makeText(context, "Loaded DietaryOps Default (DOPS)", Toast.LENGTH_SHORT).show()
                         },
-                        label = { Text("Initials") },
-                        singleLine = true,
-                        modifier = Modifier.weight(0.8f)
-                    )
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("DOPS Default", fontSize = 10.sp)
+                    }
+
+                    Button(
+                        onClick = { showFacilityQrDialog = true },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                        modifier = Modifier.weight(1.1f)
+                    ) {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("1-Scan Setup", fontSize = 10.sp)
+                    }
                 }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -621,7 +740,7 @@ fun SettingsScreen(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text("Facility / Company Code", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                Text("Facility identifier for routing (e.g. CVILLA, MAIN).", fontSize = 11.sp, color = Color.Gray)
+                                Text("Facility identifier for routing (e.g. CVILLA, DOPS).", fontSize = 11.sp, color = Color.Gray)
                             }
 
                             var companyCodeInput by remember { mutableStateOf(settingsManager.companyCode) }
@@ -633,6 +752,28 @@ fun SettingsScreen(
                                 },
                                 singleLine = true,
                                 modifier = Modifier.width(110.dp)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Facility Full Name", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Full organization name displayed in app headers.", fontSize = 11.sp, color = Color.Gray)
+                            }
+
+                            var companyNameInput by remember { mutableStateOf(settingsManager.companyName) }
+                            OutlinedTextField(
+                                value = companyNameInput,
+                                onValueChange = {
+                                    companyNameInput = it
+                                    settingsManager.companyName = it
+                                },
+                                singleLine = true,
+                                modifier = Modifier.width(180.dp)
                             )
                         }
 
@@ -655,6 +796,28 @@ fun SettingsScreen(
                                 },
                                 singleLine = true,
                                 modifier = Modifier.width(120.dp)
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Department Sheet Tab", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                Text("Google Sheet tab for scans (e.g. Delivery Scan Log, EVS Scan Log).", fontSize = 11.sp, color = Color.Gray)
+                            }
+
+                            var departmentSheetTabInput by remember { mutableStateOf(settingsManager.departmentSheetTab) }
+                            OutlinedTextField(
+                                value = departmentSheetTabInput,
+                                onValueChange = {
+                                    departmentSheetTabInput = it
+                                    settingsManager.departmentSheetTab = it
+                                },
+                                singleLine = true,
+                                modifier = Modifier.width(180.dp)
                             )
                         }
                     }

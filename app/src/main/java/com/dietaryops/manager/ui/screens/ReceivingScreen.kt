@@ -108,6 +108,18 @@ fun ReceivingScreen(
     var showCustomDaysDialog by remember { mutableStateOf(false) }
     var customDaysInput by remember { mutableStateOf("") }
 
+    var lastSyncedRecordId by remember { mutableStateOf<String?>(null) }
+    var recordHasUnsyncedChanges by remember { mutableStateOf(false) }
+    var isPackageOpened by remember { mutableStateOf(false) }
+
+    val currentStaffAttribution = remember(settingsManager.staffName, settingsManager.employeeId) {
+        if (settingsManager.employeeId.isNotBlank()) {
+            "${settingsManager.staffName} (${settingsManager.employeeId})"
+        } else {
+            settingsManager.staffName
+        }
+    }
+
     // Initialize/update label quantity when scannedState changes
     LaunchedEffect(scannedState) {
         scannedState?.let { state ->
@@ -122,8 +134,10 @@ fun ReceivingScreen(
             val state = productManager.processScan(rawUpc)
             scannedState = state
             isScanningEnabled = false
+            isPackageOpened = false
+            recordHasUnsyncedChanges = false
 
-            // Create local scan record & save to master catalog
+            // Create local scan record & save to master catalog with staff attribution
             val effectiveOnHand = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
             val scanRecord = ScanRecord(
                 syscoUpc = state.normalizedUpc,
@@ -134,7 +148,8 @@ fun ReceivingScreen(
                 shelfLifeDays = state.product.shelfLifeDays,
                 unit = state.product.unit,
                 onHandAmount = effectiveOnHand,
-                isAudit = settingsManager.isAuditMode
+                isAudit = settingsManager.isAuditMode,
+                receivedBy = currentStaffAttribution
             )
             productManager.saveProduct(state.product)
             currentScanRecord = scanRecord
@@ -145,6 +160,8 @@ fun ReceivingScreen(
             productManager.logScanAsync(scanRecord, coroutineScope) { result ->
                 isSyncing = false
                 result.onSuccess { count ->
+                    lastSyncedRecordId = scanRecord.id
+                    recordHasUnsyncedChanges = false
                     statusMessage = if (count > 0) "Scanned & synced to Google Sheets!" else "Scanned: ${state.product.name}"
                 }.onFailure { err ->
                     statusMessage = "Scanned locally. Sheets sync offline: ${err.localizedMessage}"
@@ -702,6 +719,79 @@ fun ReceivingScreen(
                         }
                     }
 
+                    // Package Condition: Unopened vs Opened / In-Use (ServSafe standard: 365d unopened vs 14d opened)
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Package Condition:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = !isPackageOpened,
+                                onClick = {
+                                    if (isPackageOpened) {
+                                        isPackageOpened = false
+                                        recordHasUnsyncedChanges = true
+                                        val unopenedDays = DateCalculator.getShelfLifeDaysForCategory(prod.category)
+                                        val newCalc = DateCalculator.calculate(
+                                            scanDate = dateCalc.deliveryDate,
+                                            shelfLifeDays = unopenedDays,
+                                            category = prod.category
+                                        )
+                                        val updatedState = state.copy(
+                                            product = prod.copy(shelfLifeDays = unopenedDays),
+                                            dateCalculation = newCalc
+                                        )
+                                        scannedState = updatedState
+                                        currentScanRecord = currentScanRecord?.copy(
+                                            shelfLifeDays = unopenedDays,
+                                            useByDate = newCalc.useByDateIso
+                                        )
+                                        coroutineScope.launch {
+                                            currentScanRecord?.let { rec ->
+                                                productManager.addScanRecord(rec.copy(shelfLifeDays = unopenedDays, useByDate = newCalc.useByDateIso))
+                                            }
+                                        }
+                                    }
+                                },
+                                label = { Text("📦 Unopened Commercial (+365d)", fontSize = 11.sp, fontWeight = if (!isPackageOpened) FontWeight.Bold else FontWeight.Normal) },
+                                modifier = Modifier.height(32.dp)
+                            )
+
+                            FilterChip(
+                                selected = isPackageOpened,
+                                onClick = {
+                                    if (!isPackageOpened) {
+                                        isPackageOpened = true
+                                        recordHasUnsyncedChanges = true
+                                        val openedDays = 14
+                                        val newCalc = DateCalculator.calculate(
+                                            scanDate = dateCalc.deliveryDate,
+                                            shelfLifeDays = openedDays,
+                                            category = prod.category
+                                        )
+                                        val updatedState = state.copy(
+                                            product = prod.copy(shelfLifeDays = openedDays),
+                                            dateCalculation = newCalc
+                                        )
+                                        scannedState = updatedState
+                                        currentScanRecord = currentScanRecord?.copy(
+                                            shelfLifeDays = openedDays,
+                                            useByDate = newCalc.useByDateIso
+                                        )
+                                        coroutineScope.launch {
+                                            currentScanRecord?.let { rec ->
+                                                productManager.addScanRecord(rec.copy(shelfLifeDays = openedDays, useByDate = newCalc.useByDateIso))
+                                            }
+                                        }
+                                    }
+                                },
+                                label = { Text("🔓 Opened / In-Use (+14d)", fontSize = 11.sp, fontWeight = if (isPackageOpened) FontWeight.Bold else FontWeight.Normal) },
+                                modifier = Modifier.height(32.dp)
+                            )
+                        }
+                    }
+
                     // Quick Shelf Life Chips Selector
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Quick Shelf Life Preset:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -850,6 +940,12 @@ fun ReceivingScreen(
 
                         Button(
                             onClick = {
+                                val current = currentScanRecord
+                                if (!recordHasUnsyncedChanges && current != null && current.id == lastSyncedRecordId && current.syncedToSheets) {
+                                    Toast.makeText(context, "Scan record is already synced to Google Sheets!", Toast.LENGTH_SHORT).show()
+                                    statusMessage = "Already synced to Google Sheets."
+                                    return@Button
+                                }
                                 coroutineScope.launch {
                                     val recordToSave = (currentScanRecord ?: ScanRecord(
                                         syscoUpc = state.normalizedUpc,
@@ -860,7 +956,8 @@ fun ReceivingScreen(
                                         shelfLifeDays = state.product.shelfLifeDays,
                                         unit = state.product.unit,
                                         onHandAmount = state.onHandAmount,
-                                        isAudit = settingsManager.isAuditMode
+                                        isAudit = settingsManager.isAuditMode,
+                                        receivedBy = currentStaffAttribution
                                     )).copy(
                                         itemName = state.product.name,
                                         deliveryDate = state.dateCalculation.deliveryDateIso,
@@ -869,7 +966,8 @@ fun ReceivingScreen(
                                         shelfLifeDays = state.product.shelfLifeDays,
                                         unit = state.product.unit,
                                         onHandAmount = state.onHandAmount,
-                                        isAudit = settingsManager.isAuditMode
+                                        isAudit = settingsManager.isAuditMode,
+                                        receivedBy = currentStaffAttribution
                                     )
                                     productManager.addScanRecord(recordToSave)
                                     currentScanRecord = recordToSave
@@ -879,6 +977,8 @@ fun ReceivingScreen(
                                     productManager.logScanAsync(recordToSave, coroutineScope) { res ->
                                         isSyncing = false
                                         res.onSuccess {
+                                            lastSyncedRecordId = recordToSave.id
+                                            recordHasUnsyncedChanges = false
                                             statusMessage = "Saved & Synced to Google Sheets!"
                                             Toast.makeText(context, "Saved & Synced to Google Sheets!", Toast.LENGTH_SHORT).show()
                                         }.onFailure { err ->
@@ -1168,7 +1268,8 @@ fun ReceivingScreen(
                             onHandAmount = editOnHand,
                             printed = currentScanRecord?.printed ?: false,
                             syncedToSheets = false,
-                            isAudit = settingsManager.isAuditMode
+                            isAudit = settingsManager.isAuditMode,
+                            receivedBy = currentStaffAttribution
                         )
                         productManager.addScanRecord(updatedScanRecord)
                         currentScanRecord = updatedScanRecord
@@ -1181,6 +1282,8 @@ fun ReceivingScreen(
                         productManager.logScanAsync(updatedScanRecord, coroutineScope) { res ->
                             isSyncing = false
                             res.onSuccess {
+                                lastSyncedRecordId = updatedScanRecord.id
+                                recordHasUnsyncedChanges = false
                                 statusMessage = "Saved & Synced to Google Sheets!"
                             }.onFailure { err ->
                                 statusMessage = "Saved locally. Sync error: ${err.localizedMessage}"

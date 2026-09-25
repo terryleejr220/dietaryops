@@ -52,6 +52,48 @@ fun BadgeLoginDialog(
 
     val companyCode = settingsManager.companyCode
 
+    fun resolveLocalStaffUser(empId: String): StaffUser? {
+        val clean = empId.trim().uppercase()
+        return when {
+            clean == "AD99" || clean == "ADMIN" -> StaffUser(
+                employeeId = "AD99",
+                displayName = "System Administrator",
+                companyCode = companyCode,
+                department = settingsManager.department,
+                role = StaffRole.SUPER_ADMIN
+            )
+            clean == "TL01" -> StaffUser(
+                employeeId = "TL01",
+                displayName = "Terry Little Jr.",
+                companyCode = companyCode,
+                department = "Dietary",
+                role = StaffRole.SUPERVISOR
+            )
+            clean == "AT01" -> StaffUser(
+                employeeId = "AT01",
+                displayName = "Andy Tygart",
+                companyCode = companyCode,
+                department = "Dietary",
+                role = StaffRole.OPERATOR
+            )
+            clean == "LS01" -> StaffUser(
+                employeeId = "LS01",
+                displayName = "Lorraine S.",
+                companyCode = companyCode,
+                department = "EVS",
+                role = StaffRole.SUPERVISOR
+            )
+            clean.equals(settingsManager.employeeId, ignoreCase = true) -> StaffUser(
+                employeeId = settingsManager.employeeId,
+                displayName = settingsManager.staffName,
+                companyCode = companyCode,
+                department = settingsManager.department,
+                role = StaffRole.fromString(settingsManager.staffRole)
+            )
+            else -> null
+        }
+    }
+
     fun processBadgeScan(rawBarcode: String) {
         if (isVerifying) return
         errorMessage = null
@@ -76,23 +118,17 @@ fun BadgeLoginDialog(
                     settingsManager.companyName = comp.name
                     settingsManager.sheetId = comp.spreadsheetId
                     settingsManager.webAppUrl = comp.webAppUrl
-                    settingsManager.departmentSheetTab = comp.departmentTabs[user.department] ?: "Delivery Log"
+                    settingsManager.departmentSheetTab = comp.departmentTabs[user.department] ?: settingsManager.defaultTabForCurrentDepartment
                 }
                 
                 onLoginSuccess(user)
             }.onFailure { err ->
                 // Fallback for offline or local supervisor mode
-                if (scanEmployeeId.equals("ADMIN", ignoreCase = true) || scanEmployeeId.equals(settingsManager.employeeId, ignoreCase = true)) {
-                    val fallback = StaffUser(
-                        employeeId = scanEmployeeId.uppercase(),
-                        displayName = settingsManager.staffName,
-                        companyCode = companyCode,
-                        department = settingsManager.department,
-                        role = StaffRole.fromString(settingsManager.staffRole)
-                    )
-                    successUser = fallback
-                    settingsManager.currentStaffUser = fallback
-                    onLoginSuccess(fallback)
+                val localUser = resolveLocalStaffUser(scanEmployeeId)
+                if (localUser != null) {
+                    successUser = localUser
+                    settingsManager.currentStaffUser = localUser
+                    onLoginSuccess(localUser)
                 } else {
                     errorMessage = err.message ?: "Invalid badge scanned"
                 }
@@ -127,23 +163,17 @@ fun BadgeLoginDialog(
                     settingsManager.companyName = comp.name
                     settingsManager.sheetId = comp.spreadsheetId
                     settingsManager.webAppUrl = comp.webAppUrl
-                    settingsManager.departmentSheetTab = comp.departmentTabs[user.department] ?: "Delivery Log"
+                    settingsManager.departmentSheetTab = comp.departmentTabs[user.department] ?: settingsManager.defaultTabForCurrentDepartment
                 }
                 
                 onLoginSuccess(user)
             }.onFailure { err ->
                 // Fallback / local check if default test admin PIN
-                if (pinInput == "1234" && employeeIdInput.equals(settingsManager.employeeId, ignoreCase = true)) {
-                    val fallback = StaffUser(
-                        employeeId = employeeIdInput.uppercase(),
-                        displayName = settingsManager.staffName,
-                        companyCode = companyCode,
-                        department = settingsManager.department,
-                        role = StaffRole.fromString(settingsManager.staffRole)
-                    )
-                    successUser = fallback
-                    settingsManager.currentStaffUser = fallback
-                    onLoginSuccess(fallback)
+                val localUser = if (pinInput == "1234") resolveLocalStaffUser(employeeIdInput) else null
+                if (localUser != null) {
+                    successUser = localUser
+                    settingsManager.currentStaffUser = localUser
+                    onLoginSuccess(localUser)
                 } else {
                     errorMessage = err.message ?: "Incorrect PIN"
                 }

@@ -608,4 +608,109 @@ class DeliveryScannerTest {
         assertEquals("Dairy & Fresh", dtos[0].category)
         assertEquals(7.0, dtos[0].lastOnHandAmount!!, 0.001)
     }
+
+    @Test
+    fun testCatalogFetchRequestPayload() {
+        val request = com.dietaryops.manager.data.remote.CatalogFetchRequest(
+            action = "fetch_catalog",
+            spreadsheetId = "test-sheet-id",
+            sheetTab = "Inventory Raw"
+        )
+        val gson = com.google.gson.Gson()
+        val json = gson.toJson(request)
+
+        assertTrue(json.contains("\"action\":\"fetch_catalog\""))
+        assertTrue(json.contains("\"spreadsheetId\":\"test-sheet-id\""))
+        assertTrue(json.contains("\"sheetTab\":\"Inventory Raw\""))
+    }
+
+    @Test
+    fun testStaffAttributionInScanRecordAndDto() {
+        val staff = "Terry (TL01)"
+        val scanRecord = ScanRecord(
+            syscoUpc = "074861000001",
+            itemName = "Mayonnaise",
+            deliveryDate = "2026-09-24",
+            useByDate = "2027-09-24",
+            category = "Condiments & Sauces",
+            shelfLifeDays = 365,
+            receivedBy = staff
+        )
+
+        assertEquals("Terry (TL01)", scanRecord.receivedBy)
+
+        val dto = SheetScanRecordDto(
+            id = scanRecord.id,
+            syscoUpc = scanRecord.syscoUpc,
+            itemName = scanRecord.itemName,
+            deliveryDate = scanRecord.deliveryDate,
+            useByDate = scanRecord.useByDate,
+            category = scanRecord.category,
+            shelfLifeDays = scanRecord.shelfLifeDays,
+            receivedBy = scanRecord.receivedBy
+        )
+
+        assertEquals("Terry (TL01)", dto.receivedBy)
+    }
+
+    @Test
+    fun testCondimentOpenedVsUnopenedDateCalculation() {
+        val scanDate = LocalDate.of(2026, 9, 24)
+        val category = "Condiments & Sauces"
+
+        // Unopened commercial standard: 365 days
+        val unopenedDays = DateCalculator.getShelfLifeDaysForCategory(category)
+        assertEquals(365, unopenedDays)
+        val unopenedCalc = DateCalculator.calculate(scanDate = scanDate, shelfLifeDays = unopenedDays, category = category)
+        assertEquals("2027-09-24", unopenedCalc.useByDateIso)
+
+        // Opened in-use standard: 14 days
+        val openedDays = 14
+        val openedCalc = DateCalculator.calculate(scanDate = scanDate, shelfLifeDays = openedDays, category = category)
+        assertEquals("2026-10-08", openedCalc.useByDateIso)
+    }
+
+    @Test
+    fun testStaffBadgePayloadParsing() {
+        // Direct employee ID
+        val adminParsed = com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("AD99")
+        assertNotNull(adminParsed)
+        assertEquals("AD99", adminParsed!!.second)
+
+        val terryParsed = com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("TL01")
+        assertNotNull(terryParsed)
+        assertEquals("TL01", terryParsed!!.second)
+
+        // Zebra printed format: COMPANY-EMPID-ROLE
+        val zebraTerry = com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("CV-TL01-ADMIN")
+        assertNotNull(zebraTerry)
+        assertEquals("CV", zebraTerry!!.first)
+        assertEquals("TL01", zebraTerry.second)
+
+        val zebraAdmin = com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("DOPS-AD99-SUPER_ADMIN")
+        assertNotNull(zebraAdmin)
+        assertEquals("DOPS", zebraAdmin!!.first)
+        assertEquals("AD99", zebraAdmin.second)
+
+        // DOPS-AUTH:COMPANY:EMPID:TOKEN
+        val authQr = com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("DOPS-AUTH:CVILLA:TL01:secretToken123")
+        assertNotNull(authQr)
+        assertEquals("CVILLA", authQr!!.first)
+        assertEquals("TL01", authQr.second)
+        assertEquals("secretToken123", authQr.third)
+    }
+
+    @Test
+    fun testMultiTenantPresetsAndAdminIdentity() {
+        assertEquals("AD99", SettingsManager.ADMIN_EMPLOYEE_ID)
+        assertEquals("System Administrator", SettingsManager.ADMIN_NAME)
+
+        assertEquals("DOPS", SettingsManager.DEFAULT_COMPANY_CODE)
+        assertEquals("DietaryOps Enterprise", SettingsManager.DEFAULT_COMPANY_NAME)
+
+        assertEquals("CVILLA", SettingsManager.CVILLA_COMPANY_CODE)
+        assertEquals("Century Villa Healthcare", SettingsManager.CVILLA_COMPANY_NAME)
+        assertEquals("16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY", SettingsManager.CVILLA_SHEET_ID)
+    }
 }
+

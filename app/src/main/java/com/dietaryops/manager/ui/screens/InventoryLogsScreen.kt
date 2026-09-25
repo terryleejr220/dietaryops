@@ -821,59 +821,76 @@ fun InventoryLogsScreen(
                         Text("Tap + / - to adjust on-hand counts. Sync populates Inventory Raw on Google Sheets.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
 
-                    Button(
-                        onClick = {
-                            val webAppUrl = settingsManager.webAppUrl
-                            if (webAppUrl.isBlank()) {
-                                Toast.makeText(context, "Configure Google Sheets Web App URL in Settings!", Toast.LENGTH_LONG).show()
-                            } else {
-                                isSyncingCountSheet = true
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    val countDtos = catalogItems.map {
-                                        SheetScanRecordDto(
-                                            id = "COUNT-${it.syscoUpc}",
-                                            upc = it.syscoUpc,
-                                            itemNumber = it.syscoItemNumber,
-                                            name = it.name,
-                                            deliveryDate = LocalDate.now().toString(),
-                                            useByDate = LocalDate.now().plusDays(it.defaultShelfLifeDays.toLong()).toString(),
-                                            storageArea = ZplGenerator.getStorageLocationForCategory(it.category),
-                                            receivedBy = settingsManager.staffName,
-                                            onHandQty = it.lastOnHandAmount,
-                                            category = it.category,
-                                            shelfLifeDays = it.defaultShelfLifeDays,
-                                            unit = it.unit,
-                                            scanTimestamp = System.currentTimeMillis()
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = { showMassPrintDialog = true },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Shelf Labels", fontSize = 11.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                val webAppUrl = settingsManager.webAppUrl
+                                if (webAppUrl.isBlank()) {
+                                    Toast.makeText(context, "Configure Google Sheets Web App URL in Settings!", Toast.LENGTH_LONG).show()
+                                } else {
+                                    isSyncingCountSheet = true
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        val countDtos = catalogItems.map {
+                                            SheetScanRecordDto(
+                                                id = "COUNT-${it.syscoUpc}",
+                                                upc = it.syscoUpc,
+                                                itemNumber = it.syscoItemNumber,
+                                                name = it.name,
+                                                deliveryDate = LocalDate.now().toString(),
+                                                useByDate = LocalDate.now().plusDays(it.defaultShelfLifeDays.toLong()).toString(),
+                                                storageArea = ZplGenerator.getStorageLocationForCategory(it.category),
+                                                receivedBy = settingsManager.staffName,
+                                                onHandQty = it.lastOnHandAmount,
+                                                category = it.category,
+                                                shelfLifeDays = it.defaultShelfLifeDays,
+                                                unit = it.unit,
+                                                scanTimestamp = System.currentTimeMillis()
+                                            )
+                                        }
+                                        val targetTab = if (settingsManager.isEvsDepartment()) "EVS Inventory" else "Inventory Raw"
+                                        val payload = SheetSyncPayload(
+                                            spreadsheetId = settingsManager.sheetId,
+                                            sheetTab = targetTab,
+                                            companyCode = settingsManager.companyCode,
+                                            department = settingsManager.department,
+                                            records = countDtos
                                         )
-                                    }
-                                    val payload = SheetSyncPayload(
-                                        spreadsheetId = settingsManager.sheetId,
-                                        sheetTab = "Inventory Raw",
-                                        companyCode = settingsManager.companyCode,
-                                        records = countDtos
-                                    )
-                                    val res = repository.syncCatalogWithPayload(webAppUrl, payload)
-                                    withContext(Dispatchers.Main) {
-                                        isSyncingCountSheet = false
-                                        res.onSuccess {
-                                            Toast.makeText(context, "Populated Inventory Raw count sheet on Google Sheets!", Toast.LENGTH_LONG).show()
-                                        }.onFailure { err ->
-                                            Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                        val res = repository.syncCatalogWithPayload(webAppUrl, payload)
+                                        withContext(Dispatchers.Main) {
+                                            isSyncingCountSheet = false
+                                            res.onSuccess {
+                                                Toast.makeText(context, "Populated $targetTab count sheet on Google Sheets!", Toast.LENGTH_LONG).show()
+                                            }.onFailure { err ->
+                                                Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                            }
                                         }
                                     }
                                 }
+                            },
+                            enabled = !isSyncingCountSheet,
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            if (isSyncingCountSheet) {
+                                CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.White, strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
                             }
-                        },
-                        enabled = !isSyncingCountSheet,
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        if (isSyncingCountSheet) {
-                            CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.White, strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Sync", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Sync to Sheets", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -964,6 +981,23 @@ fun InventoryLogsScreen(
                                     modifier = Modifier.size(32.dp)
                                 ) {
                                     Text("+", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                }
+
+                                OutlinedIconButton(
+                                    onClick = {
+                                        val printer = printerManager.connectedDevice.value ?: printerManager.getPreferredPrinter()
+                                        if (printer != null) {
+                                            val zpl = ZplGenerator.generateShelfLabelZpl(item)
+                                            printerManager.printDirect(printer, zpl, quantity = 1) { success, msg ->
+                                                Toast.makeText(context, if (success) "Printed shelf label: ${item.name}" else "Print failed: $msg", Toast.LENGTH_SHORT).show()
+                                            }
+                                        } else {
+                                            Toast.makeText(context, "Pair Zebra printer first in Settings", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.Default.Print, contentDescription = "Print Shelf Label", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }

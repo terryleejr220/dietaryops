@@ -70,6 +70,9 @@ class MainActivity : ComponentActivity() {
 
                         // Seed default catalog & expiration rules
                         productManager.seedDefaultsIfEmpty()
+
+                        // Drain any unsynced scan records left from previous sessions
+                        com.dietaryops.manager.work.SyncWorker.enqueue(context)
                     }
 
                     AdaptiveMainLayout(

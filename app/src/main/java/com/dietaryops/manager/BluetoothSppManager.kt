@@ -14,6 +14,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,6 +51,7 @@ class BluetoothSppManager(private val context: Context) {
 
     private val _connectedDevice = MutableStateFlow<BluetoothDevice?>(null)
     val connectedDevice: StateFlow<BluetoothDevice?> = _connectedDevice.asStateFlow()
+    private var lastConnectedDevice: BluetoothDevice? = null
 
     private var socket: BluetoothSocket? = null
     private var outputStream: OutputStream? = null
@@ -155,6 +157,7 @@ class BluetoothSppManager(private val context: Context) {
             socket = newSocket
             outputStream = newSocket.outputStream
             _connectedDevice.value = device
+            lastConnectedDevice = device
             _connectionState.value = ConnectionState.CONNECTED
             true
         } catch (e: Exception) {
@@ -166,23 +169,45 @@ class BluetoothSppManager(private val context: Context) {
         }
     }
 
-    suspend fun sendData(data: ByteArray): Boolean = withContext(Dispatchers.IO) {
-        val stream = outputStream
-        if (stream == null || _connectionState.value != ConnectionState.CONNECTED) {
-            _lastError.value = "Not connected to printer"
-            return@withContext false
+    suspend fun sendData(data: ByteArray, maxRetries: Int = 2): Boolean = withContext(Dispatchers.IO) {
+        repeat(maxRetries) { attempt ->
+            var stream = outputStream
+            if (stream == null || _connectionState.value != ConnectionState.CONNECTED) {
+                val targetDevice = _connectedDevice.value ?: lastConnectedDevice
+                if (targetDevice != null) {
+                    val reconnected = connect(targetDevice)
+                    if (reconnected) {
+                        stream = outputStream
+                    }
+                }
+            }
+
+            if (stream != null && _connectionState.value == ConnectionState.CONNECTED) {
+                try {
+                    stream.write(data)
+                    stream.flush()
+                    return@withContext true
+                } catch (e: Exception) {
+                    disconnectInternal()
+                    if (attempt < maxRetries - 1) {
+                        delay(500L * (attempt + 1))
+                        val targetDevice = lastConnectedDevice
+                        if (targetDevice != null) {
+                            connect(targetDevice)
+                        }
+                    } else {
+                        _connectionState.value = ConnectionState.ERROR
+                        _lastError.value = "Error sending data: ${e.localizedMessage}"
+                    }
+                }
+            }
         }
 
-        try {
-            stream.write(data)
-            stream.flush()
-            true
-        } catch (e: Exception) {
+        if (_connectionState.value != ConnectionState.ERROR) {
             _connectionState.value = ConnectionState.ERROR
-            _lastError.value = "Error sending data: ${e.localizedMessage}"
-            disconnectInternal()
-            false
+            _lastError.value = "Not connected to printer after retries"
         }
+        return@withContext false
     }
 
     suspend fun printZpl(zpl: String): Boolean {

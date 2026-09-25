@@ -139,8 +139,26 @@ data class SheetSyncPayload(
     @SerializedName("companyCode")
     val companyCode: String? = null,
 
+    @SerializedName("department")
+    val department: String? = null,
+
     @SerializedName("records")
     val records: List<SheetScanRecordDto>
+)
+
+@Keep
+data class CatalogFetchRequest(
+    @SerializedName("action")
+    val action: String = "fetch_catalog",
+
+    @SerializedName("spreadsheetId")
+    val spreadsheetId: String? = null,
+
+    @SerializedName("sheetTab")
+    val sheetTab: String? = null,
+
+    @SerializedName("department")
+    val department: String? = null
 )
 
 @Keep
@@ -161,8 +179,9 @@ interface GoogleSheetsApiService {
         @Body payload: SheetSyncPayload
     ): Response<SheetSyncResponse>
 
-    @GET
+    @POST
     suspend fun fetchCatalog(
-        @Url endpointUrl: String = DEFAULT_WEB_APP_URL
+        @Url endpointUrl: String = DEFAULT_WEB_APP_URL,
+        @Body request: CatalogFetchRequest = CatalogFetchRequest()
     ): Response<List<CatalogSyncDto>>
 }
