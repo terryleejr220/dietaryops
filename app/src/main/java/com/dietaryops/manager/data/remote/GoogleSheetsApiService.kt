@@ -8,6 +8,7 @@ import retrofit2.http.POST
 import retrofit2.http.Url
 
 import com.google.gson.annotations.SerializedName
+import okhttp3.RequestBody
 
 @Keep
 data class SheetScanRecordDto(
@@ -177,6 +178,12 @@ interface GoogleSheetsApiService {
     suspend fun syncWithPayload(
         @Url endpointUrl: String = DEFAULT_WEB_APP_URL,
         @Body payload: SheetSyncPayload
+    ): Response<SheetSyncResponse>
+
+    @POST
+    suspend fun syncRawJson(
+        @Url endpointUrl: String = DEFAULT_WEB_APP_URL,
+        @Body body: RequestBody
     ): Response<SheetSyncResponse>
 
     @POST

@@ -46,6 +46,7 @@ material = "1.4.+"
 barcodeScanning = "17.3.0"
 converterGson = "2.12.0"
 gson = "2.11.0"
+leakcanary = "1.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -100,6 +101,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 google-mlkit-barcode-scanning = { group = "com.google.mlkit", name = "barcode-scanning", version.ref = "barcodeScanning" }
 converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "converterGson" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+leakcanary = { group = "com.android.tools.studio.leakcanary", name = "leakcanary", version.ref = "leakcanary" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

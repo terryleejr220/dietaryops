@@ -25,9 +25,11 @@ import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -1204,7 +1206,10 @@ class DeliveryRepository(context: Context) {
                 records = dtos
             )
 
-            val response = sheetsApiService.syncWithPayload(targetUrl, payload)
+            val jsonString = gson.toJson(payload)
+            val requestBody = jsonString.toRequestBody("application/json; charset=utf-8".toMediaType())
+
+            val response = sheetsApiService.syncRawJson(targetUrl, requestBody)
             if (response.isSuccessful && response.body()?.success == true) {
                 unsynced.forEach { scanRecordDao.markSynced(it.id) }
                 Result.success(unsynced.size)
@@ -1228,7 +1233,9 @@ class DeliveryRepository(context: Context) {
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val targetUrl = webAppUrl.ifBlank { SettingsManager.DEFAULT_WEB_APP_URL }
-            val response = sheetsApiService.syncWithPayload(targetUrl, payload)
+            val jsonString = gson.toJson(payload)
+            val requestBody = jsonString.toRequestBody("application/json; charset=utf-8".toMediaType())
+            val response = sheetsApiService.syncRawJson(targetUrl, requestBody)
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {

@@ -113,6 +113,7 @@ dependencies {
 
     // Google Play Billing Library
     implementation("com.android.billingclient:billing-ktx:8.0.0")
+    debugImplementation(libs.leakcanary)
 
     // Firebase
     val firebaseBom = platform("com.google.firebase:firebase-bom:33.9.0")
