@@ -1,0 +1,67 @@
+[
+  {
+    "eventType": "VIEW_CLICKED",
+    "timestamp": 2000,
+    "actionCode": -1,
+    "delayTime": 0,
+    "canTriggerImplicit": true,
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "Inventory Logs"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "timestamp": 4000,
+    "actionCode": -1,
+    "delayTime": 0,
+    "canTriggerImplicit": true,
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "Count Sheet Walk"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "timestamp": 6000,
+    "actionCode": -1,
+    "delayTime": 0,
+    "canTriggerImplicit": true,
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "Master Catalog"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "timestamp": 8000,
+    "actionCode": -1,
+    "delayTime": 0,
+    "canTriggerImplicit": true,
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "Settings"
+      }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "timestamp": 10000,
+    "actionCode": -1,
+    "delayTime": 0,
+    "canTriggerImplicit": true,
+    "elementDescriptors": [
+      {
+        "className": "android.widget.TextView",
+        "text": "Receiving"
+      }
+    ]
+  }
+]

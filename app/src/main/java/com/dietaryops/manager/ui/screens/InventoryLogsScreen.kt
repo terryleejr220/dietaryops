@@ -194,156 +194,109 @@ fun InventoryLogsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Executive KPI Summary Dashboard Cards
+        // 1. Sleek Compact Status Strip (Replaces bulky 90dp cards)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Metric 1: Total Scans
-            Surface(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Column(modifier = Modifier.padding(10.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.size(20.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.ReceiptLong,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(12.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                        Text(
-                            "SCANS",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                ) {
                     Text(
-                        text = "${scanRecords.size}",
-                        style = MonospaceQuantityStyle,
-                        fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.primary
+                        text = "${scanRecords.size} Scans • ${catalogItems.size} Items",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
+                }
+
+                if (unsyncedCount > 0) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = ExpiringSoonAmber.copy(alpha = 0.15f),
+                        modifier = Modifier.clickable { triggerManualSync() }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CloudSync,
+                                contentDescription = null,
+                                modifier = Modifier.size(12.dp),
+                                tint = ExpiringSoonAmber
+                            )
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text(
+                                "$unsyncedCount Pending",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ExpiringSoonAmber
+                            )
+                        }
+                    }
                 }
             }
 
-            // Metric 2: Pending Sync
-            Surface(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(10.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (unsyncedCount > 0) ExpiringSoonAmber.copy(alpha = 0.2f) else FreshGreen.copy(alpha = 0.2f),
-                            modifier = Modifier.size(20.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = if (unsyncedCount > 0) Icons.Default.CloudSync else Icons.Default.CloudDone,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(12.dp),
-                                    tint = if (unsyncedCount > 0) ExpiringSoonAmber else FreshGreen
-                                )
-                            }
-                        }
-                        Text(
-                            "PENDING",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 0.5.sp
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = triggerManualSync,
+                    enabled = !isSyncing,
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    if (isSyncing) {
+                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                    } else {
+                        Icon(
+                            Icons.Default.Sync,
+                            contentDescription = "Sync",
+                            modifier = Modifier.size(16.dp),
+                            tint = if (unsyncedCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "$unsyncedCount",
-                        style = MonospaceQuantityStyle,
-                        fontSize = 18.sp,
-                        color = if (unsyncedCount > 0) ExpiringSoonAmber else FreshGreen
-                    )
                 }
-            }
 
-            // Metric 3: Master Catalog
-            Surface(
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp),
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            ) {
-                Column(modifier = Modifier.padding(10.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            modifier = Modifier.size(20.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    Icons.Default.Inventory,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(12.dp),
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
+                IconButton(
+                    onClick = {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(settingsManager.publishedWebUrl))
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Error opening web sheet: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
                         }
-                        Text(
-                            "CATALOG",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "${catalogItems.size}",
-                        style = MonospaceQuantityStyle,
-                        fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.secondary
+                    },
+                    modifier = Modifier.size(28.dp)
+                ) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.OpenInNew,
+                        contentDescription = "View Web Sheet",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             }
         }
 
-        // Tab Navigation Bar (Scan Logs vs Master Catalog vs Count Sheet Walk)
+        // 2. Compact Tab Row
         Surface(
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            shape = RoundedCornerShape(8.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
             color = MaterialTheme.colorScheme.surface
         ) {
             PrimaryTabRow(
                 selectedTabIndex = activeTab,
-                containerColor = Color.Transparent
+                containerColor = Color.Transparent,
+                divider = {}
             ) {
                 Tab(
                     selected = activeTab == 0,
@@ -353,443 +306,149 @@ fun InventoryLogsScreen(
                 Tab(
                     selected = activeTab == 1,
                     onClick = { activeTab = 1 },
-                    text = { Text("Master Catalog (${catalogItems.size})", fontSize = 11.sp, fontWeight = if (activeTab == 1) FontWeight.Bold else FontWeight.Medium) }
+                    text = { Text("Catalog (${catalogItems.size})", fontSize = 11.sp, fontWeight = if (activeTab == 1) FontWeight.Bold else FontWeight.Medium) }
                 )
                 Tab(
                     selected = activeTab == 2,
                     onClick = { activeTab = 2 },
-                    text = { Text("Count Sheet Walk", fontSize = 11.sp, fontWeight = if (activeTab == 2) FontWeight.Bold else FontWeight.Medium) }
+                    text = { Text("Count Walk", fontSize = 11.sp, fontWeight = if (activeTab == 2) FontWeight.Bold else FontWeight.Medium) }
                 )
             }
         }
 
-        // Search Bar (Full Width Rounded Pill)
+        // 3. Compact Search Bar
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text(if (activeTab == 0) "Search log item or barcode..." else "Search catalog item or barcode...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            placeholder = {
+                Text(
+                    text = when (activeTab) {
+                        0 -> "Search scan logs..."
+                        1 -> "Search catalog..."
+                        else -> "Search items for count walk..."
+                    },
+                    fontSize = 12.sp
+                )
+            },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary) },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { searchQuery = "" }) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                    IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(14.dp))
                     }
                 }
             },
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(8.dp),
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Action & Header Control Row
-        if (activeTab == 0) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text("Delivery Scans (${filteredScanRecords.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    Text("$unsyncedCount pending sync", fontSize = 11.sp, color = if (unsyncedCount > 0) SyncPendingColor else SyncSuccessColor)
-                }
+        // 4. Content Area: Mutually Exclusive Tabs (when activeTab)
+        when (activeTab) {
+            0 -> {
+                // ==================== TAB 0: DELIVERY SCAN LOGS ====================
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Delivery Scans (${filteredScanRecords.size})",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Button(
-                        onClick = triggerManualSync,
-                        enabled = !isSyncing,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (unsyncedCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
-                        ),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        if (isSyncing) {
-                            CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.White, strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        listOf("All", "Synced", "Pending").forEach { filter ->
+                            FilterChip(
+                                selected = selectedSyncFilter == filter,
+                                onClick = { selectedSyncFilter = filter },
+                                label = { Text(filter, fontSize = 10.sp) }
+                            )
                         }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Sync", fontSize = 12.sp)
-                    }
 
-                    IconButton(
-                        onClick = {
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(settingsManager.publishedWebUrl))
-                                context.startActivity(intent)
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Error opening web sheet: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                        if (scanRecords.isNotEmpty()) {
+                            IconButton(onClick = { showClearAllConfirm = true }, modifier = Modifier.size(28.dp)) {
+                                Icon(Icons.Default.DeleteSweep, contentDescription = "Clear All", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                             }
                         }
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "View Published Web Sheet", tint = MaterialTheme.colorScheme.primary)
-                    }
-
-                    if (scanRecords.isNotEmpty()) {
-                        IconButton(onClick = { showClearAllConfirm = true }) {
-                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear All", tint = MaterialTheme.colorScheme.error)
-                        }
                     }
                 }
-            }
 
-            // Category Filter Chips for Scan Logs only
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                item {
-                    FilterChip(
-                        selected = selectedCategoryFilter == "All",
-                        onClick = { selectedCategoryFilter = "All" },
-                        label = { Text("All") }
-                    )
-                }
-                items(DEFAULT_CATEGORIES) { cat ->
-                    FilterChip(
-                        selected = selectedCategoryFilter == cat,
-                        onClick = { selectedCategoryFilter = cat },
-                        label = { Text(cat) }
-                    )
-                }
-            }
-        } else {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Catalog Items (${filteredCatalogItems.size})", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedButton(
-                        onClick = { showMassPrintDialog = true },
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Mass Print", fontSize = 11.sp)
-                    }
-
-                    OutlinedButton(
-                        onClick = {
-                            val pubUrl = settingsManager.publishedWebUrl
-                            if (pubUrl.isBlank()) {
-                                Toast.makeText(context, "Configure Published Web Sheet URL in Settings first!", Toast.LENGTH_LONG).show()
-                            } else {
-                                isImportingCatalog = true
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    val res = repository.importCatalogFromPublishedCsv(pubUrl)
-                                    withContext(Dispatchers.Main) {
-                                        isImportingCatalog = false
-                                        res.onSuccess { count ->
-                                            Toast.makeText(context, "Synced $count catalog items!", Toast.LENGTH_SHORT).show()
-                                        }.onFailure { err ->
-                                            Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        enabled = !isImportingCatalog,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        if (isImportingCatalog) {
-                            CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(14.dp))
-                        }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Sync Sheet", fontSize = 12.sp)
-                    }
-
-                    Button(
-                        onClick = { showAddCatalogDialog = true },
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add", fontSize = 12.sp)
-                    }
-                }
-            }
-
-            // Compact Sort Row for Master Catalog (Streamlined single clean row)
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                item { Text("Sort:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray) }
-                items(listOf("Shelf Layout", "Alphabetical", "Category")) { mode ->
-                    FilterChip(
-                        selected = sortMode == mode,
-                        onClick = { sortMode = mode },
-                        label = { Text(mode, fontSize = 11.sp) }
-                    )
-                }
-                item {
-                    VerticalDivider(modifier = Modifier.height(20.dp).padding(horizontal = 4.dp))
-                }
-                item { Text("Filter:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray) }
-                items(listOf("All", "Low Stock", "Recently Scanned")) { filter ->
-                    FilterChip(
-                        selected = selectedCatalogFilter == filter,
-                        onClick = { selectedCatalogFilter = filter },
-                        label = { Text(filter, fontSize = 11.sp) },
-                        colors = if (filter == "Low Stock" && selectedCatalogFilter == filter) {
-                            FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.errorContainer, labelColor = MaterialTheme.colorScheme.onErrorContainer)
-                        } else {
-                            FilterChipDefaults.filterChipColors()
-                        }
-                    )
-                }
-            }
-        }
-
-        if (activeTab == 0) {
-            // Sync Filter Chips for Scan Logs
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Sync Status:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
-                listOf("All", "Synced", "Pending").forEach { filter ->
-                    FilterChip(
-                        selected = selectedSyncFilter == filter,
-                        onClick = { selectedSyncFilter = filter },
-                        label = { Text(filter) }
-                    )
-                }
-            }
-
-            // Sync Status Banner
-            syncStatusText?.let { msg ->
-                Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = RoundedCornerShape(8.dp),
+                // Category Filter Chips
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(msg, fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                        IconButton(onClick = { syncStatusText = null }, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(14.dp))
-                        }
+                    item {
+                        FilterChip(
+                            selected = selectedCategoryFilter == "All",
+                            onClick = { selectedCategoryFilter = "All" },
+                            label = { Text("All", fontSize = 10.sp) }
+                        )
                     }
-                }
-            }
-
-            // Record Count Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Logged Delivery Scans (${filteredScanRecords.size})",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
-                    )
-                    Text(
-                        text = "$unsyncedCount pending sync",
-                        fontSize = 12.sp,
-                        color = if (unsyncedCount > 0) SyncPendingColor else SyncSuccessColor,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                if (scanRecords.isNotEmpty()) {
-                    TextButton(onClick = { showClearAllConfirm = true }) {
-                        Icon(Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.error)
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Clear All", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
-                    }
-                }
-            }
-
-            // Scan Records List
-            if (filteredScanRecords.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Inbox, contentDescription = null, modifier = Modifier.size(48.dp), tint = Color.Gray)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("No scan log entries found", color = Color.Gray)
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(filteredScanRecords, key = { it.id }) { record ->
-                        ScanRecordCard(
-                            record = record,
-                            printerManager = printerManager,
-                            onUpdate = { updatedRecord ->
-                                coroutineScope.launch {
-                                    repository.addScanRecord(updatedRecord)
-                                }
-                            },
-                            onDelete = {
-                                coroutineScope.launch {
-                                    repository.deleteScanRecord(record.id)
-                                }
-                            }
+                    items(DEFAULT_CATEGORIES) { cat ->
+                        FilterChip(
+                            selected = selectedCategoryFilter == cat,
+                            onClick = { selectedCategoryFilter = cat },
+                            label = { Text(cat, fontSize = 10.sp) }
                         )
                     }
                 }
-            }
-        } else {
-            // Master Catalog Tab Content
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "All Dietary Catalog Items (${filteredCatalogItems.size})",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
-                Text(
-                    text = "Master Database",
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.Medium
-                )
-            }
 
-            if (filteredCatalogItems.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = null, modifier = Modifier.size(48.dp), tint = Color.Gray)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("No catalog items match search", color = Color.Gray)
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (sortMode == "Shelf Layout") {
-                        val grouped = filteredCatalogItems.groupBy { ZplGenerator.getStorageLocationForCategory(it.category) }
-                        val orderedLocations = listOf("COOLER", "FREEZER", "DRY STORAGE")
-                        val allLocs = orderedLocations + grouped.keys.filter { it !in orderedLocations }
-
-                        for (loc in allLocs) {
-                            val itemsInLoc = grouped[loc] ?: emptyList()
-                            if (itemsInLoc.isNotEmpty()) {
-                                item(key = "header_$loc") {
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.secondaryContainer,
-                                        shape = RoundedCornerShape(6.dp),
-                                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp)
-                                    ) {
-                                        Text(
-                                            text = "📦 $loc (${itemsInLoc.size} items)",
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                                        )
-                                    }
-                                }
-                                items(itemsInLoc, key = { it.syscoUpc }) { catalogItem ->
-                                    CatalogItemCard(
-                                        item = catalogItem,
-                                        printerManager = printerManager,
-                                        onLogDelivery = { itemToLog ->
-                                            coroutineScope.launch {
-                                                val calc = DateCalculator.calculate(
-                                                    scanDate = LocalDate.now(),
-                                                    shelfLifeDays = itemToLog.defaultShelfLifeDays
-                                                )
-                                                val effectiveOnHand = if (itemToLog.lastOnHandAmount > 0.0) itemToLog.lastOnHandAmount else 1.0
-                                                val record = ScanRecord(
-                                                    syscoUpc = itemToLog.syscoUpc,
-                                                    itemName = itemToLog.name,
-                                                    deliveryDate = calc.deliveryDateIso,
-                                                    useByDate = calc.useByDateIso,
-                                                    category = itemToLog.category,
-                                                    shelfLifeDays = itemToLog.defaultShelfLifeDays,
-                                                    unit = itemToLog.unit,
-                                                    onHandAmount = effectiveOnHand
-                                                )
-                                                repository.addScanRecord(record)
-                                                Toast.makeText(context, "Logged delivery scan for '${itemToLog.name}'!", Toast.LENGTH_SHORT).show()
-                                            }
-                                        },
-                                        onUpdate = { updatedItem ->
-                                            coroutineScope.launch {
-                                                repository.saveCatalogItem(updatedItem)
-                                                Toast.makeText(context, "Catalog item saved!", Toast.LENGTH_SHORT).show()
-                                            }
-                                        },
-                                        onDelete = {
-                                            coroutineScope.launch {
-                                                repository.deleteCatalogItem(catalogItem.syscoUpc)
-                                                Toast.makeText(context, "Deleted from catalog", Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                    )
-                                }
+                // Sync Status Banner
+                syncStatusText?.let { msg ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(msg, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                            IconButton(onClick = { syncStatusText = null }, modifier = Modifier.size(20.dp)) {
+                                Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(12.dp))
                             }
                         }
-                    } else {
-                        items(filteredCatalogItems, key = { it.syscoUpc }) { catalogItem ->
-                            CatalogItemCard(
-                                item = catalogItem,
+                    }
+                }
+
+                // Scan Records List
+                if (filteredScanRecords.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Inbox, contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Gray)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("No scan log entries found", fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(filteredScanRecords, key = { it.id }) { record ->
+                            ScanRecordCard(
+                                record = record,
                                 printerManager = printerManager,
-                                onLogDelivery = { itemToLog ->
+                                onUpdate = { updatedRecord ->
                                     coroutineScope.launch {
-                                        val calc = DateCalculator.calculate(
-                                            scanDate = LocalDate.now(),
-                                            shelfLifeDays = itemToLog.defaultShelfLifeDays
-                                        )
-                                        val effectiveOnHand = if (itemToLog.lastOnHandAmount > 0.0) itemToLog.lastOnHandAmount else 1.0
-                                        val record = ScanRecord(
-                                            syscoUpc = itemToLog.syscoUpc,
-                                            itemName = itemToLog.name,
-                                            deliveryDate = calc.deliveryDateIso,
-                                            useByDate = calc.useByDateIso,
-                                            category = itemToLog.category,
-                                            shelfLifeDays = itemToLog.defaultShelfLifeDays,
-                                            unit = itemToLog.unit,
-                                            onHandAmount = effectiveOnHand
-                                        )
-                                        repository.addScanRecord(record)
-                                        Toast.makeText(context, "Logged delivery scan for '${itemToLog.name}'!", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                onUpdate = { updatedItem ->
-                                    coroutineScope.launch {
-                                        repository.saveCatalogItem(updatedItem)
-                                        Toast.makeText(context, "Catalog item saved!", Toast.LENGTH_SHORT).show()
+                                        repository.addScanRecord(updatedRecord)
                                     }
                                 },
                                 onDelete = {
                                     coroutineScope.launch {
-                                        repository.deleteCatalogItem(catalogItem.syscoUpc)
-                                        Toast.makeText(context, "Deleted from catalog", Toast.LENGTH_SHORT).show()
+                                        repository.deleteScanRecord(record.id)
                                     }
                                 }
                             )
@@ -797,42 +456,257 @@ fun InventoryLogsScreen(
                     }
                 }
             }
-        }
 
-        if (activeTab == 2) {
-            // Count Sheet Top Action Banner
-            var isSyncingCountSheet by remember { mutableStateOf(false) }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-            ) {
+            1 -> {
+                // ==================== TAB 1: MASTER CATALOG ====================
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("📋 Floor Count Walk (Zero Handwriting)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text("Tap + / - to adjust on-hand counts. Sync populates Inventory Raw on Google Sheets.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    }
+                    Text("Catalog (${filteredCatalogItems.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp)
 
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                         OutlinedButton(
                             onClick = { showMassPrintDialog = true },
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                            shape = RoundedCornerShape(10.dp)
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Shelf Labels", fontSize = 11.sp)
+                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Labels", fontSize = 11.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                val pubUrl = settingsManager.publishedWebUrl
+                                if (pubUrl.isBlank()) {
+                                    Toast.makeText(context, "Configure Published Web Sheet URL in Settings first!", Toast.LENGTH_LONG).show()
+                                } else {
+                                    isImportingCatalog = true
+                                    coroutineScope.launch(Dispatchers.IO) {
+                                        val res = repository.importCatalogFromPublishedCsv(pubUrl)
+                                        withContext(Dispatchers.Main) {
+                                            isImportingCatalog = false
+                                            res.onSuccess { count ->
+                                                Toast.makeText(context, "Synced $count catalog items!", Toast.LENGTH_SHORT).show()
+                                            }.onFailure { err ->
+                                                Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            enabled = !isImportingCatalog,
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            if (isImportingCatalog) {
+                                CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(13.dp))
+                            }
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Sync", fontSize = 11.sp)
+                        }
+
+                        Button(
+                            onClick = { showAddCatalogDialog = true },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Add", fontSize = 11.sp)
+                        }
+                    }
+                }
+
+                // Compact Sort Row
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    listOf("Shelf Layout", "Alphabetical", "Category").forEach { mode ->
+                        item {
+                            FilterChip(
+                                selected = sortMode == mode,
+                                onClick = { sortMode = mode },
+                                label = { Text(mode, fontSize = 10.sp) }
+                            )
+                        }
+                    }
+                    item {
+                        FilterChip(
+                            selected = selectedCatalogFilter == "Low Stock",
+                            onClick = { selectedCatalogFilter = if (selectedCatalogFilter == "Low Stock") "All" else "Low Stock" },
+                            label = { Text("âš ï¸ Low Stock", fontSize = 10.sp) }
+                        )
+                    }
+                }
+
+                if (filteredCatalogItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Gray)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("No catalog items match search", fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (sortMode == "Shelf Layout") {
+                            val grouped = filteredCatalogItems.groupBy { ZplGenerator.getStorageLocationForCategory(it.category) }
+                            val orderedLocations = listOf("COOLER", "FREEZER", "DRY STORAGE")
+                            val allLocs = orderedLocations + grouped.keys.filter { it !in orderedLocations }
+
+                            for (loc in allLocs) {
+                                val itemsInLoc = grouped[loc] ?: emptyList()
+                                if (itemsInLoc.isNotEmpty()) {
+                                    item(key = "header_$loc") {
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.secondaryContainer,
+                                            shape = RoundedCornerShape(6.dp),
+                                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = "ðŸ“¦ $loc (${itemsInLoc.size})",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp,
+                                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                                            )
+                                        }
+                                    }
+                                    items(itemsInLoc, key = { it.syscoUpc.ifBlank { "${it.name}_${it.syscoItemNumber}" } }) { catalogItem ->
+                                        CatalogItemCard(
+                                            item = catalogItem,
+                                            printerManager = printerManager,
+                                            onLogDelivery = { itemToLog ->
+                                                coroutineScope.launch {
+                                                    val calc = DateCalculator.calculate(
+                                                        scanDate = LocalDate.now(),
+                                                        shelfLifeDays = itemToLog.defaultShelfLifeDays
+                                                    )
+                                                    val effectiveOnHand = if (itemToLog.lastOnHandAmount > 0.0) itemToLog.lastOnHandAmount else 1.0
+                                                    val record = ScanRecord(
+                                                        syscoUpc = itemToLog.syscoUpc,
+                                                        itemName = itemToLog.name,
+                                                        deliveryDate = calc.deliveryDateIso,
+                                                        useByDate = calc.useByDateIso,
+                                                        category = itemToLog.category,
+                                                        shelfLifeDays = itemToLog.defaultShelfLifeDays,
+                                                        unit = itemToLog.unit,
+                                                        onHandAmount = effectiveOnHand
+                                                    )
+                                                    repository.addScanRecord(record)
+                                                    Toast.makeText(context, "Logged: ${itemToLog.name}", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            onUpdate = { updated ->
+                                                coroutineScope.launch { repository.saveCatalogItem(updated) }
+                                            },
+                                            onDelete = {
+                                                coroutineScope.launch {
+                                                    repository.deleteCatalogItem(catalogItem.syscoUpc)
+                                                    Toast.makeText(context, "Deleted from catalog", Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            items(filteredCatalogItems, key = { it.syscoUpc.ifBlank { "${it.name}_${it.syscoItemNumber}" } }) { catalogItem ->
+                                CatalogItemCard(
+                                    item = catalogItem,
+                                    printerManager = printerManager,
+                                    onLogDelivery = { itemToLog ->
+                                        coroutineScope.launch {
+                                            val calc = DateCalculator.calculate(
+                                                scanDate = LocalDate.now(),
+                                                shelfLifeDays = itemToLog.defaultShelfLifeDays
+                                            )
+                                            val effectiveOnHand = if (itemToLog.lastOnHandAmount > 0.0) itemToLog.lastOnHandAmount else 1.0
+                                            val record = ScanRecord(
+                                                syscoUpc = itemToLog.syscoUpc,
+                                                itemName = itemToLog.name,
+                                                deliveryDate = calc.deliveryDateIso,
+                                                useByDate = calc.useByDateIso,
+                                                category = itemToLog.category,
+                                                shelfLifeDays = itemToLog.defaultShelfLifeDays,
+                                                unit = itemToLog.unit,
+                                                onHandAmount = effectiveOnHand
+                                            )
+                                            repository.addScanRecord(record)
+                                            Toast.makeText(context, "Logged: ${itemToLog.name}", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    onUpdate = { updated ->
+                                        coroutineScope.launch { repository.saveCatalogItem(updated) }
+                                    },
+                                    onDelete = {
+                                        coroutineScope.launch {
+                                            repository.deleteCatalogItem(catalogItem.syscoUpc)
+                                            Toast.makeText(context, "Deleted from catalog", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            2 -> {
+                // ==================== TAB 2: COUNT SHEET WALK ====================
+                var isSyncingCountSheet by remember { mutableStateOf(false) }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = if (settingsManager.isEvsDepartment()) "EVS Count Sheet" else "Dietary Count Sheet",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        ) {
+                            Text(
+                                "${filteredCatalogItems.size} items",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedButton(
+                            onClick = { showMassPrintDialog = true },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Labels", fontSize = 11.sp)
                         }
 
                         Button(
@@ -872,7 +746,7 @@ fun InventoryLogsScreen(
                                         withContext(Dispatchers.Main) {
                                             isSyncingCountSheet = false
                                             res.onSuccess {
-                                                Toast.makeText(context, "Populated $targetTab count sheet on Google Sheets!", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(context, "Populated $targetTab on Google Sheets!", Toast.LENGTH_LONG).show()
                                             }.onFailure { err ->
                                                 Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
                                             }
@@ -881,123 +755,172 @@ fun InventoryLogsScreen(
                                 }
                             },
                             enabled = !isSyncingCountSheet,
-                            shape = RoundedCornerShape(10.dp)
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            shape = RoundedCornerShape(8.dp)
                         ) {
                             if (isSyncingCountSheet) {
-                                CircularProgressIndicator(modifier = Modifier.size(14.dp), color = Color.White, strokeWidth = 2.dp)
+                                CircularProgressIndicator(modifier = Modifier.size(12.dp), color = Color.White, strokeWidth = 2.dp)
                             } else {
-                                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(13.dp))
                             }
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text("Sync", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(3.dp))
+                            Text("Sync", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
-            }
 
-            // Category Filter Row for Count Walk
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                item {
-                    FilterChip(
-                        selected = selectedCategoryFilter == "All",
-                        onClick = { selectedCategoryFilter = "All" },
-                        label = { Text("All (${filteredCatalogItems.size})", fontSize = 11.sp) }
-                    )
+                // Category Filter Chips
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    item {
+                        FilterChip(
+                            selected = selectedCategoryFilter == "All",
+                            onClick = { selectedCategoryFilter = "All" },
+                            label = { Text("All", fontSize = 10.sp) }
+                        )
+                    }
+                    items(DEFAULT_CATEGORIES) { cat ->
+                        val catCount = catalogItems.count { it.category.equals(cat, ignoreCase = true) }
+                        if (catCount > 0) {
+                            FilterChip(
+                                selected = selectedCategoryFilter == cat,
+                                onClick = { selectedCategoryFilter = cat },
+                                label = { Text("$cat ($catCount)", fontSize = 10.sp) }
+                            )
+                        }
+                    }
                 }
-                items(DEFAULT_CATEGORIES) { cat ->
-                    val catCount = catalogItems.count { it.category.equals(cat, ignoreCase = true) }
-                    FilterChip(
-                        selected = selectedCategoryFilter == cat,
-                        onClick = { selectedCategoryFilter = cat },
-                        label = { Text("$cat ($catCount)", fontSize = 11.sp) }
-                    )
-                }
-            }
 
-            // Inventory Count Cards List
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
                 val walkItems = filteredCatalogItems.filter {
                     selectedCategoryFilter == "All" || it.category.equals(selectedCategoryFilter, ignoreCase = true)
                 }
 
-                items(walkItems, key = { it.syscoUpc }) { item ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                if (walkItems.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(item.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("${item.category} • UPC: ${item.syscoUpc}", fontSize = 11.sp, color = Color.Gray)
-                                Text("Storage: ${ZplGenerator.getStorageLocationForCategory(item.category)} • Unit: ${item.unit}", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
-                            }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.Inventory2, contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Gray)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("No items for count sheet", fontSize = 12.sp, color = Color.Gray)
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        items(walkItems, key = { it.syscoUpc.ifBlank { "${it.name}_${it.syscoItemNumber}" } }) { item ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                             ) {
-                                OutlinedIconButton(
-                                    onClick = {
-                                        val newQty = (item.lastOnHandAmount - 1.0).coerceAtLeast(0.0)
-                                        val updated = item.copy(lastOnHandAmount = newQty)
-                                        coroutineScope.launch(Dispatchers.IO) { repository.saveCatalogItem(updated) }
-                                    },
-                                    modifier = Modifier.size(32.dp)
+                                Row(
+                                    modifier = Modifier.padding(10.dp).fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text("-", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                }
-
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    modifier = Modifier.padding(horizontal = 4.dp)
-                                ) {
-                                    Text(
-                                        text = if (item.lastOnHandAmount % 1.0 == 0.0) "${item.lastOnHandAmount.toInt()}" else "${item.lastOnHandAmount}",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 15.sp,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                    )
-                                }
-
-                                OutlinedIconButton(
-                                    onClick = {
-                                        val newQty = item.lastOnHandAmount + 1.0
-                                        val updated = item.copy(lastOnHandAmount = newQty)
-                                        coroutineScope.launch(Dispatchers.IO) { repository.saveCatalogItem(updated) }
-                                    },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Text("+", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                }
-
-                                OutlinedIconButton(
-                                    onClick = {
-                                        val printer = printerManager.connectedDevice.value ?: printerManager.getPreferredPrinter()
-                                        if (printer != null) {
-                                            val zpl = ZplGenerator.generateShelfLabelZpl(item)
-                                            printerManager.printDirect(printer, zpl, quantity = 1) { success, msg ->
-                                                Toast.makeText(context, if (success) "Printed shelf label: ${item.name}" else "Print failed: $msg", Toast.LENGTH_SHORT).show()
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(item.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 2)
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = when (ZplGenerator.getStorageLocationForCategory(item.category)) {
+                                                    "COOLER" -> Color(0xFF1E88E5).copy(alpha = 0.15f)
+                                                    "FREEZER" -> Color(0xFF00ACC1).copy(alpha = 0.15f)
+                                                    else -> Color(0xFFFB8C00).copy(alpha = 0.15f)
+                                                }
+                                            ) {
+                                                Text(
+                                                    ZplGenerator.getStorageLocationForCategory(item.category),
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = when (ZplGenerator.getStorageLocationForCategory(item.category)) {
+                                                        "COOLER" -> Color(0xFF1E88E5)
+                                                        "FREEZER" -> Color(0xFF00ACC1)
+                                                        else -> Color(0xFFFB8C00)
+                                                    },
+                                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                                )
                                             }
-                                        } else {
-                                            Toast.makeText(context, "Pair Zebra printer first in Settings", Toast.LENGTH_SHORT).show()
+                                            Text(
+                                                "${item.category} â€¢ ${item.unit}",
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
                                         }
-                                    },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(Icons.Default.Print, contentDescription = "Print Shelf Label", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                    }
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        OutlinedIconButton(
+                                            onClick = {
+                                                val newQty = (item.lastOnHandAmount - 1.0).coerceAtLeast(0.0)
+                                                val updated = item.copy(lastOnHandAmount = newQty)
+                                                coroutineScope.launch(Dispatchers.IO) { repository.saveCatalogItem(updated) }
+                                            },
+                                            modifier = Modifier.size(34.dp)
+                                        ) {
+                                            Text("-", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = MaterialTheme.colorScheme.secondaryContainer,
+                                            modifier = Modifier.padding(horizontal = 2.dp)
+                                        ) {
+                                            Text(
+                                                text = if (item.lastOnHandAmount % 1.0 == 0.0) "${item.lastOnHandAmount.toInt()}" else "${item.lastOnHandAmount}",
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 15.sp,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+
+                                        OutlinedIconButton(
+                                            onClick = {
+                                                val newQty = item.lastOnHandAmount + 1.0
+                                                val updated = item.copy(lastOnHandAmount = newQty)
+                                                coroutineScope.launch(Dispatchers.IO) { repository.saveCatalogItem(updated) }
+                                            },
+                                            modifier = Modifier.size(34.dp)
+                                        ) {
+                                            Text("+", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                        }
+
+                                        IconButton(
+                                            onClick = {
+                                                val printer = printerManager.connectedDevice.value ?: printerManager.getPreferredPrinter()
+                                                if (printer != null) {
+                                                    val zpl = ZplGenerator.generateShelfLabelZpl(item)
+                                                    printerManager.printDirect(printer, zpl, quantity = 1) { success, msg ->
+                                                        Toast.makeText(context, if (success) "Printed shelf label: ${item.name}" else "Print failed: $msg", Toast.LENGTH_SHORT).show()
+                                                    }
+                                                } else {
+                                                    Toast.makeText(context, "Pair Zebra printer first in Settings", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Print, contentDescription = "Print Shelf Label", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1006,7 +929,6 @@ fun InventoryLogsScreen(
             }
         }
     }
-
     // Mass Shelf Label Print Dialog
     if (showMassPrintDialog) {
         var selectedCategory by remember { mutableStateOf("All") }
