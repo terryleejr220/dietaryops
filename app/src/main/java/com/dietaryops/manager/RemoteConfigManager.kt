@@ -109,34 +109,4 @@ object RemoteConfigManager {
         _minRequiredVersion.value = config.getString(KEY_MIN_REQUIRED_VERSION).ifBlank { DEFAULT_VALUES[KEY_MIN_REQUIRED_VERSION] as String }
         _bannerMessage.value = config.getString(KEY_BANNER_MESSAGE)
     }
-
-    // Helper Getter Methods
-    fun getWelcomeMessage(): String {
-        return remoteConfig?.getString(KEY_WELCOME_MESSAGE)?.ifBlank { DEFAULT_VALUES[KEY_WELCOME_MESSAGE] as String }
-            ?: (DEFAULT_VALUES[KEY_WELCOME_MESSAGE] as String)
-    }
-
-    fun isFeatureEnabled(featureKey: String = KEY_ENABLE_NEW_FEATURE): Boolean {
-        return remoteConfig?.getBoolean(featureKey) ?: (DEFAULT_VALUES[KEY_ENABLE_NEW_FEATURE] as Boolean)
-    }
-
-    fun getAdminPin(): String {
-        return remoteConfig?.getString(KEY_ADMIN_PIN)?.ifBlank { DEFAULT_VALUES[KEY_ADMIN_PIN] as String }
-            ?: (DEFAULT_VALUES[KEY_ADMIN_PIN] as String)
-    }
-
-    fun getBannerMessage(): String {
-        return remoteConfig?.getString(KEY_BANNER_MESSAGE)
-            ?: (DEFAULT_VALUES[KEY_BANNER_MESSAGE] as String)
-    }
-
-    fun getSheetWebhookUrl(): String {
-        return remoteConfig?.getString(KEY_SHEET_WEBHOOK_URL)?.ifBlank { DEFAULT_VALUES[KEY_SHEET_WEBHOOK_URL] as String }
-            ?: (DEFAULT_VALUES[KEY_SHEET_WEBHOOK_URL] as String)
-    }
-
-    fun getMinRequiredVersion(): String {
-        return remoteConfig?.getString(KEY_MIN_REQUIRED_VERSION)?.ifBlank { DEFAULT_VALUES[KEY_MIN_REQUIRED_VERSION] as String }
-            ?: (DEFAULT_VALUES[KEY_MIN_REQUIRED_VERSION] as String)
-    }
 }
