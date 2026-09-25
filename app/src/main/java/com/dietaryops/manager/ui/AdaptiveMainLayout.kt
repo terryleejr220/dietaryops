@@ -379,6 +379,7 @@ fun AdaptiveMainLayout(
         } else {
             // Standard Phone Single-Column Layout with High-Tech Header & Bottom Bar
             Scaffold(
+                contentWindowInsets = WindowInsets.safeDrawing,
                 topBar = {
                     Surface(
                         color = MaterialTheme.colorScheme.surface,

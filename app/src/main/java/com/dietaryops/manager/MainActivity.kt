@@ -2,6 +2,7 @@ package com.dietaryops.manager
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -15,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.dietaryops.manager.data.SettingsManager
+import androidx.activity.SystemBarStyle
 import com.dietaryops.manager.ui.AdaptiveMainLayout
 import com.dietaryops.manager.ui.theme.DeliveryScannerTheme
 
@@ -26,7 +28,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                Color.TRANSPARENT,
+                Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                Color.TRANSPARENT,
+                Color.TRANSPARENT
+            )
+        )
 
         try {
             // Safely initialize Firebase Remote Config on startup
