@@ -64,7 +64,7 @@ object ZplGenerator {
 ^XA
 ^PW456
 ^LL254
-^MD15
+^MD18
 ^LH10,10
 
 ; --- 1. ITEM NAME (Auto-wrapping up to 2 lines) ---
@@ -151,7 +151,7 @@ object ZplGenerator {
 ^XA
 ^PW456
 ^LL254
-^MD15
+^MD18
 ^LH0,0
 
 ; 1. BARCODE AT TOP (Centered, 65 dots tall with human-readable numbers underneath)
@@ -258,6 +258,48 @@ object ZplGenerator {
 ; 4. FOOTER
 ^FO15,208^GB426,1,1^FS
 ^FO15,220^A0N,16,16^FB426,1,0,C,0^FDScan Badge to Sign-In / Audit^FS
+
+^XZ
+        """.trimIndent()
+    }
+
+    /**
+     * Generates a 2.25" x 1.25" ZPL ServSafe "Pull to Thaw" label (203 dpi Zebra QLn420).
+     * Enforces strict ServSafe TCS 7-day expiration (<=41degF) when pulled from freezer to thaw in cooler.
+     */
+    fun generateThawLabelZpl(
+        itemName: String,
+        upc: String,
+        thawDate: LocalDate = LocalDate.now(),
+        staffInitials: String = "DO"
+    ): String {
+        val thawStr = thawDate.format(dateFormatter)
+        val useByStr = thawDate.plusDays(7).format(dateFormatter)
+        val cleanName = itemName.trim()
+        val cleanInitials = if (staffInitials.isBlank()) "DO" else staffInitials.trim()
+        val cleanUpc = if (upc.isNotBlank()) upc.trim() else "000000000000"
+
+        return """
+^XA
+^PW456
+^LL254
+^MD18
+^LH10,10
+
+; --- 1. THAW HEADER ---
+^FO0,10^A0N,22,22^FB436,1,0,C,0^FD[ PULLED TO THAW - SERVSAFE ]^FS
+^FO10,36^GB416,2,2^FS
+
+; --- 2. PRODUCT NAME ---
+^FO10,48^A0N,28,28^FB416,2,0,L,0^FD$cleanName^FS
+
+; --- 3. THAW DATES ---
+^FO10,110^A0N,20,20^FB416,1,0,L,0^FDPULLED: $thawStr • LOC: COOLER^FS
+^FO10,135^A0N,26,26^FB416,1,0,L,0^FDDISCBY: $useByStr (+7d)^FS
+
+; --- 4. BARCODE & SIGNATURE ---
+^FO40,168^BY2,2.5,45^BCN,45,Y,N,N^FD$cleanUpc^FS
+^FO320,220^A0N,18,18^FDBY: $cleanInitials^FS
 
 ^XZ
         """.trimIndent()

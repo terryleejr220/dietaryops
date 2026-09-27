@@ -290,6 +290,40 @@ class ProductManager(context: Context) {
      * Returns immediately — the sync result is delivered via the returned [Result] or
      * can be observed through [DeliveryRepository.syncWithGoogleSheets] if [onSyncResult] is provided.
      */
+    fun isEvsProduct(product: SyscoProduct): Boolean {
+        val cat = product.category.lowercase()
+        val name = product.name.lowercase()
+        return cat.contains("ppe") ||
+                cat.contains("gloves") ||
+                cat.contains("incontinence") ||
+                cat.contains("chemical") ||
+                cat.contains("cleaner") ||
+                cat.contains("paper") ||
+                cat.contains("liner") ||
+                cat.contains("trash") ||
+                cat.contains("evs") ||
+                cat.contains("housekeeping") ||
+                name.contains("gloves") ||
+                name.contains("briefs") ||
+                name.contains("cleaner") ||
+                name.contains("bleach") ||
+                name.contains("towels") ||
+                name.contains("trash bags")
+    }
+
+    fun getDepartmentMismatchWarning(product: SyscoProduct, currentDepartment: String): String? {
+        val isEvs = isEvsProduct(product)
+        val currentIsEvs = currentDepartment.equals("EVS", ignoreCase = true) || currentDepartment.equals("Environmental Services", ignoreCase = true)
+
+        return if (isEvs && !currentIsEvs) {
+            "⚠️ Housekeeping / EVS Item — Switch department to log janitorial/PPE supplies."
+        } else if (!isEvs && currentIsEvs) {
+            "⚠️ Dietary Food Item — Switch department profile to log kitchen inventory."
+        } else {
+            null
+        }
+    }
+
     fun logScanAsync(
         scanRecord: ScanRecord,
         scope: CoroutineScope,
