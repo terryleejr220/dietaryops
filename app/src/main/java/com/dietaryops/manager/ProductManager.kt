@@ -273,6 +273,8 @@ class ProductManager(context: Context) {
         }
     }
 
+    suspend fun searchCatalogItems(query: String): List<CatalogItem> = repository.searchCatalogItems(query)
+
     suspend fun logScanToSheets(scanRecord: ScanRecord) {
         repository.addScanRecord(scanRecord)
         SyncWorker.enqueue(repository.appContext)

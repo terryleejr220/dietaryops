@@ -357,6 +357,104 @@ fun ReceivingScreen(
             }
         }
 
+        // Manual UPC Search & Live Autocomplete Card
+        if (showManualInputCard) {
+            var searchResults by remember { mutableStateOf<List<CatalogItem>>(emptyList()) }
+
+            LaunchedEffect(manualUpcInput) {
+                if (manualUpcInput.isNotBlank()) {
+                    searchResults = productManager.searchCatalogItems(manualUpcInput)
+                } else {
+                    searchResults = emptyList()
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("🔍 Manual Barcode / Product Lookup", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+
+                    OutlinedTextField(
+                        value = manualUpcInput,
+                        onValueChange = { manualUpcInput = it },
+                        label = { Text("Type 12-digit UPC or Product Name") },
+                        placeholder = { Text("e.g. 074861000001 or Brown Sugar") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                        trailingIcon = {
+                            if (manualUpcInput.isNotEmpty()) {
+                                IconButton(onClick = { manualUpcInput = "" }) {
+                                    Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    if (searchResults.isNotEmpty()) {
+                        Text("Matching Catalog Items (${searchResults.size}):", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            searchResults.forEach { matchItem ->
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            processUpcScan(matchItem.syscoUpc)
+                                            showManualInputCard = false
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(matchItem.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Text("UPC: ${matchItem.syscoUpc} • ${matchItem.category}", fontSize = 10.sp, color = Color.Gray)
+                                        }
+                                        Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                            }
+                        }
+                    } else if (manualUpcInput.isNotBlank()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = {
+                                    processUpcScan(manualUpcInput)
+                                    showManualInputCard = false
+                                },
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Lookup '$manualUpcInput'", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Camera Preview Area with High-Tech Scanner HUD Reticle Overlay
         if (hasCameraPermission) {
             Card(

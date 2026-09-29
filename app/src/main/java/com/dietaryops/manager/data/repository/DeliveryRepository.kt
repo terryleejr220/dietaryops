@@ -1061,6 +1061,25 @@ class DeliveryRepository(context: Context) {
         catalogDao.getAllCatalogItemsList()
     }
 
+    suspend fun searchCatalogItems(query: String): List<CatalogItem> = withContext(Dispatchers.IO) {
+        val q = query.trim().lowercase()
+        if (q.isBlank()) return@withContext emptyList()
+
+        val allItems = catalogDao.getAllCatalogItemsList()
+        val filtered = allItems.filter { item ->
+            val nameLower = item.name.lowercase()
+            val isHeader = nameLower == "upc" || nameLower == "item name" || nameLower == "description" || nameLower == "category" || nameLower == "quantity" || nameLower == "printable count sheet"
+            if (isHeader) return@filter false
+
+            item.name.lowercase().contains(q) ||
+                    item.syscoUpc.lowercase().contains(q) ||
+                    item.syscoItemNumber.lowercase().contains(q) ||
+                    item.piazzaItemNumber.lowercase().contains(q) ||
+                    item.alternateBarcodes.lowercase().contains(q)
+        }
+        filtered.take(10)
+    }
+
     suspend fun saveCatalogItem(item: CatalogItem) = withContext(Dispatchers.IO) {
         val cleanName = item.name.removePrefix("Sysco ").removePrefix("SYSCO ").trim().toTitleCase()
         val normCategory = normalizeCategory(item.category).toTitleCase()

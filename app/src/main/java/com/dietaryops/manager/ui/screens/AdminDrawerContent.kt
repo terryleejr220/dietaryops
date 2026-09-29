@@ -114,17 +114,22 @@ fun AdminDrawerContent(
             
             Divider()
             
-            // Manual UPC
-            Text("Manual UPC Entry", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            // Manual UPC / Item Search Entry
+            Text("Manual Item Lookup", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             OutlinedTextField(
                 value = manualUpcInput,
                 onValueChange = onManualUpcInputChanged,
-                label = { Text("12-digit UPC") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                label = { Text("Type UPC or Product Name") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
             Button(
-                onClick = { onManualUpcSubmit(manualUpcInput) },
+                onClick = {
+                    if (manualUpcInput.isNotBlank()) {
+                        onManualUpcSubmit(manualUpcInput)
+                    }
+                },
                 modifier = Modifier.align(Alignment.End)
             ) {
                 Text("Lookup Item")
