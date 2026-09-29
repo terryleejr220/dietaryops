@@ -140,22 +140,13 @@ fun InventoryLogsScreen(
             matchesSearch && matchesCatalogFilter
         }
 
-        // Apply sorting: Always push zero'd items to the bottom unless specifically searching or filtering
+        // Apply sorting: "Shelf Layout" preserves exact row order from the Printable Count Sheet
         val sorted = when (sortMode) {
             "Alphabetical" -> filtered.sortedBy { it.name }
-            "Category" -> filtered.sortedWith(compareBy({ it.category }, { it.name }))
+            "Category" -> filtered.sortedWith(compareBy({ it.category }, { it.shelfOrderIndex }, { it.name }))
             else -> {
-                filtered.sortedWith(
-                    compareBy<CatalogItem> { item ->
-                        when (ZplGenerator.getStorageLocationForCategory(item.category)) {
-                            "COOLER" -> 0
-                            "FREEZER" -> 1
-                            "DRY STORAGE" -> 2
-                            else -> 3
-                        }
-                    }.thenBy { it.category }
-                     .thenBy { it.name }
-                )
+                // "Shelf Layout": Physical shelf order from Printable Count Sheet (new items at bottom)
+                filtered.sortedBy { it.shelfOrderIndex }
             }
         }
         

@@ -126,7 +126,10 @@ data class CatalogSyncDto(
     val vendorSku: String? = null,
 
     @SerializedName("alternateBarcodes", alternate = ["alternateBarcodes", "Alternate Barcodes", "Alternate UPC", "Alternate Barcode", "Alt UPC", "Barcodes", "Bar Code", "Alternate Bar Codes", "alternate_barcodes"])
-    val alternateBarcodes: String? = null
+    val alternateBarcodes: String? = null,
+
+    @SerializedName("shelfOrderIndex")
+    val shelfOrderIndex: Int = 99999
 )
 
 @Keep

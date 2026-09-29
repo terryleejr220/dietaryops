@@ -42,7 +42,10 @@ data class CatalogItem(
     val alternateBarcodes: String = "",
 
     @SerializedName("parLevel", alternate = ["par", "Par", "par_level", "Par Level", "PAR"])
-    val parLevel: Double = 0.0
+    val parLevel: Double = 0.0,
+
+    @SerializedName("shelfOrderIndex")
+    val shelfOrderIndex: Int = 99999
 ) {
     fun toSyscoProduct(): SyscoProduct {
         return SyscoProduct(
