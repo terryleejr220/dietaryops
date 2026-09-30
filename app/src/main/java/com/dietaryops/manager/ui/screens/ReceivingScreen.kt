@@ -424,7 +424,7 @@ fun ReceivingScreen(
                                     ) {
                                         Column {
                                             Text(matchItem.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                            Text("UPC: ${matchItem.syscoUpc} • ${matchItem.category}", fontSize = 10.sp, color = Color.Gray)
+                                            Text("UPC: ${matchItem.syscoUpc} \u2022 ${matchItem.category}", fontSize = 10.sp, color = Color.Gray)
                                         }
                                         Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                                     }

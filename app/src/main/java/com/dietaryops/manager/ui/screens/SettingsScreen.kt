@@ -297,7 +297,7 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Active Operator:", fontSize = 11.sp, color = Color.Gray)
-                            Text("${settingsManager.staffName} (${settingsManager.employeeId}) • ${settingsManager.staffRole}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text("${settingsManager.staffName} (${settingsManager.employeeId}) \u2022 ${settingsManager.staffRole}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),

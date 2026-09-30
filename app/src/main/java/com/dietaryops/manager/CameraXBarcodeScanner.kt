@@ -1,6 +1,7 @@
 package com.dietaryops.manager
 
 import android.util.Size
+import android.view.Surface
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
@@ -75,9 +76,15 @@ fun CameraXBarcodeScanner(
             val provider = providerFuture.get()
             cameraProvider = provider
             if (isCameraActive) {
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
+                val rotation = try { previewView.display?.rotation ?: Surface.ROTATION_0 } catch (_: Exception) { Surface.ROTATION_0 }
+
+                val preview = Preview.Builder()
+                    .setTargetRotation(rotation)
+                    .build()
+                    .also {
+                        it.setSurfaceProvider(previewView.surfaceProvider)
+                    }
+
                 val resolutionSelector = ResolutionSelector.Builder()
                     .setResolutionStrategy(
                         ResolutionStrategy(
@@ -88,6 +95,7 @@ fun CameraXBarcodeScanner(
                     .build()
 
                 val imageAnalysis = ImageAnalysis.Builder()
+                    .setTargetRotation(rotation)
                     .setResolutionSelector(resolutionSelector)
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()

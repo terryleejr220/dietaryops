@@ -67,8 +67,8 @@ fun ScannerOverlay(
                 val width = size.width
                 val height = size.height
 
-                // Active scanning reticle dimensions (centered)
-                val boxWidth = width * 0.82f
+                // Active scanning reticle dimensions (centered & clamped for tablets)
+                val boxWidth = minOf(width * 0.82f, 380.dp.toPx())
                 val boxHeight = height * 0.72f
                 val left = (width - boxWidth) / 2f
                 val top = (height - boxHeight) / 2f
@@ -121,7 +121,7 @@ fun ScannerOverlay(
                         moveTo(right - bracketLength, bottom)
                         lineTo(right - cornerRadius, bottom)
                         quadraticBezierTo(right, bottom, right, bottom - cornerRadius)
-                        lineTo(right, bottom + bracketLength)
+                        lineTo(right, bottom - bracketLength)
                     },
                     color = laserColor,
                     style = Stroke(width = strokeWidth, cap = StrokeCap.Round)

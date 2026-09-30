@@ -203,7 +203,7 @@ fun InventoryLogsScreen(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                 ) {
                     Text(
-                        text = "${scanRecords.size} Scans • ${catalogItems.size} Items",
+                        text = "${scanRecords.size} Scans \u2022 ${catalogItems.size} Items",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -849,7 +849,7 @@ fun InventoryLogsScreen(
                                                 )
                                             }
                                             Text(
-                                                "${item.category} â€¢ ${item.unit}",
+                                                "${item.category} \u2022 ${item.unit}",
                                                 fontSize = 11.sp,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -1012,7 +1012,7 @@ fun InventoryLogsScreen(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Column {
                                     Text(item.name, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                                    Text("${item.category} • ${item.syscoUpc}", fontSize = 10.sp, color = Color.Gray)
+                                    Text("${item.category} \u2022 ${item.syscoUpc}", fontSize = 10.sp, color = Color.Gray)
                                 }
                             }
                         }

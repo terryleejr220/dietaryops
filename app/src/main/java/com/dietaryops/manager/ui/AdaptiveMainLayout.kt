@@ -142,7 +142,7 @@ fun AdaptiveMainLayout(
             onDismiss = { showBadgeLoginDialog = false },
             onLoginSuccess = { user ->
                 showBadgeLoginDialog = false
-                Toast.makeText(context, "Operator Active: ${user.displayName} • ${user.department}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Operator Active: ${user.displayName} \u2022 ${user.department}", Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -424,7 +424,7 @@ fun AdaptiveMainLayout(
                                         fontWeight = FontWeight.Bold
                                     )
                                     Text(
-                                        text = "${settingsManager.companyName} • ${settingsManager.department}",
+                                        text = "${settingsManager.companyName} \u2022 ${settingsManager.department}",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

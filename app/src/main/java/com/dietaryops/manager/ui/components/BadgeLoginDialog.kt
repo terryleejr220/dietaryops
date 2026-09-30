@@ -227,7 +227,7 @@ fun BadgeLoginDialog(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "$companyCode • ${settingsManager.department}",
+                                text = "$companyCode \u2022 ${settingsManager.department}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

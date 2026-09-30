@@ -30,7 +30,7 @@ data class SheetScanRecordDto(
     @SerializedName("useByDate", alternate = ["use_by_date", "expirationDate"])
     val useByDate: String,
 
-    @SerializedName("storageArea", alternate = ["category", "storage_area", "storageLocation"])
+    @SerializedName("storageArea", alternate = ["storage_area", "storageLocation"])
     val storageArea: String,
 
     @SerializedName("receivedBy", alternate = ["staff", "staffInitials", "received_by", "by"])
