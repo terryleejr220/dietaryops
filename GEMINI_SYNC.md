@@ -1,6 +1,6 @@
 # DietaryOps Manager — Architecture, Integration & Sync Blueprint
 
-**Current Version:** v26.0 (Build 26) | **Target SDK:** 36 (Android 15+ / API 36 Google Play Compliant)  
+**Current Version:** v27.0 (Build 27) | **Target SDK:** 36 (Android 15+ / API 36 Google Play Compliant)  
 **Package Namespace:** `com.dietaryops.manager`
 
 This document defines the production requirements, data contracts, and refactoring guidelines for DietaryOps Enterprise. 
