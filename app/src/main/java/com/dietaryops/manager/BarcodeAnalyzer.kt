@@ -27,9 +27,23 @@ class BarcodeAnalyzer(
     private val scanner: com.google.mlkit.vision.barcode.BarcodeScanner
 
     init {
-        val options = BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_ALL_FORMATS)
-            .build()
+        val options = when (scanMode) {
+            ScanMode.BADGE -> BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                .build()
+            ScanMode.DELIVERY -> BarcodeScannerOptions.Builder()
+                .setBarcodeFormats(
+                    Barcode.FORMAT_CODE_128,
+                    Barcode.FORMAT_UPC_A,
+                    Barcode.FORMAT_UPC_E,
+                    Barcode.FORMAT_EAN_13,
+                    Barcode.FORMAT_EAN_8,
+                    Barcode.FORMAT_ITF,
+                    Barcode.FORMAT_CODE_39,
+                    Barcode.FORMAT_QR_CODE
+                )
+                .build()
+        }
         scanner = BarcodeScanning.getClient(options)
     }
 
@@ -37,13 +51,14 @@ class BarcodeAnalyzer(
     var isScanningEnabled: Boolean = true
         private set
 
-    /** 1.5-second atomic debounce to prevent duplicate reads of the same label. */
+    /** 300ms atomic debounce to prevent duplicate reads during a single frame sweep. */
     private val lastScanTimestamp = AtomicLong(0L)
-    private val debounceMillis = 1500L
+    private val debounceMillis = 300L
 
-    /** Re-arm the scanner for the next delivery box / next scan session. */
+    /** Re-arm the scanner for the next delivery box / next scan session (instant 0ms reset). */
     fun reset() {
         isScanningEnabled = true
+        lastScanTimestamp.set(0L)
     }
 
     @ExperimentalGetImage

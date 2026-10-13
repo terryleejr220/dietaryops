@@ -6,8 +6,8 @@ import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
 import java.util.Properties
 
-val appVersionCode = 27
-val appVersionName = "27.0"
+val appVersionCode = 33
+val appVersionName = "33.0"
 
 val localProperties = Properties().apply {
     val localPropertiesFile = rootProject.file("local.properties")
@@ -27,7 +27,6 @@ val releaseKeyAlias = localProperties.getProperty("KEYSTORE_KEY_ALIAS")
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
     id("com.google.gms.google-services")
@@ -43,6 +42,7 @@ android {
         targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -58,6 +58,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            isDebuggable = true
+            isMinifyEnabled = false
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -73,9 +77,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -111,8 +112,6 @@ dependencies {
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.8.7")
 
-    // Google Play Billing Library
-    implementation("com.android.billingclient:billing-ktx:8.0.0")
     debugImplementation(libs.leakcanary)
 
     // Firebase

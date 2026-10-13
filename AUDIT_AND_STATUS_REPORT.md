@@ -1,8 +1,8 @@
 # DietaryOps Manager — Full System Audit & Status Report
 
-**Target SDK:** 36 (Android 15+ / API 36 Google Play Compliant) | **Version Name:** `26.0` | **Version Code:** `26`  
+**Target SDK:** 36 (Android 15+ / API 36 Google Play Compliant) | **Version Name:** `27.0` | **Version Code:** `27`  
 **Application ID:** `com.dietaryops.manager` | **Default Tenant:** Century Villa Healthcare (`CVILLA`)  
-**Audit Date:** September 26, 2026
+**Audit Date:** September 29, 2026
 
 ---
 

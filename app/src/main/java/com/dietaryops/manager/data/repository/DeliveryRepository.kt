@@ -24,6 +24,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -65,6 +66,7 @@ class DeliveryRepository(context: Context) {
         .build()
 
     private val sheetsApiService = retrofit.create(GoogleSheetsApiService::class.java)
+    private val sheetsSyncMutex = Mutex()
 
     // Complete Pre-seeded Catalog List matching inventory Google Sheet linkable categories
     private val defaultCatalogItems = listOf(
@@ -761,7 +763,8 @@ class DeliveryRepository(context: Context) {
                         category = catVal.ifBlank { currentCategory },
                         defaultShelfLifeDays = daysVal,
                         unit = unitVal,
-                        lastOnHandAmount = qtyVal
+                        lastOnHandAmount = qtyVal,
+                        shelfOrderIndex = list.size
                     )
                 )
             }
@@ -776,9 +779,22 @@ class DeliveryRepository(context: Context) {
 
         val itemsToSave = mutableListOf<CatalogItem>()
 
-        for (dto in dtos) {
+        dtos.forEachIndexed { index, dto ->
             val rawName = dto.name ?: ""
             val cleanName = rawName.removePrefix("Sysco ").removePrefix("SYSCO ").removePrefix("sysco ").trim()
+
+            // Skip Category Header rows (e.g. "Canned Goods", "Dry Storage", etc.)
+            val categoryHeaders = setOf(
+                "canned goods", "dry storage", "condiments & sauces", "misc dry & cereal",
+                "dairy & fresh", "proteins & frozen", "supplement", "general",
+                "gloves & ppe", "incontinence (depends)", "incontinence", "chemicals & cleaners",
+                "paper goods", "liners & trash bags", "equipment"
+            )
+            val isHeader = categoryHeaders.contains(cleanName.lowercase()) ||
+                           dto.category?.equals("Y", ignoreCase = true) == true
+
+            if (isHeader) return@forEachIndexed
+
             val rawUpc = dto.syscoUpc?.trim() ?: ""
             val rawItemNum = dto.syscoItemNumber?.trim() ?: ""
             val rawPiazzaItemNum = dto.piazzaItemNumber?.trim() ?: ""
@@ -786,7 +802,7 @@ class DeliveryRepository(context: Context) {
             val rawVendorSku = dto.vendorSku?.trim() ?: ""
             val rawAltBarcodes = dto.alternateBarcodes?.trim() ?: ""
 
-            if (cleanName.isBlank() && rawUpc.isBlank() && rawItemNum.isBlank() && rawPiazzaItemNum.isBlank() && rawVendorItemNum.isBlank() && rawVendorSku.isBlank() && rawAltBarcodes.isBlank()) continue
+            if (cleanName.isBlank() && rawUpc.isBlank() && rawItemNum.isBlank() && rawPiazzaItemNum.isBlank() && rawVendorItemNum.isBlank() && rawVendorSku.isBlank() && rawAltBarcodes.isBlank()) return@forEachIndexed
 
             val effectiveUpc = if (rawUpc.isNotBlank()) {
                 rawUpc.split(",").map { 
@@ -838,6 +854,7 @@ class DeliveryRepository(context: Context) {
             val unit = dto.unit?.trim()?.uppercase()?.ifBlank { "EA" } ?: "EA"
             val rawOnHand = dto.lastOnHandAmount
             val onHand = if (rawOnHand != null && rawOnHand > 0.0) rawOnHand else 1.0
+            val effectiveOrderIndex = if (dto.shelfOrderIndex < 99999) dto.shelfOrderIndex else index
 
             val item = CatalogItem(
                 syscoUpc = effectiveUpc,
@@ -850,7 +867,8 @@ class DeliveryRepository(context: Context) {
                 category = category,
                 defaultShelfLifeDays = shelfLifeDays,
                 unit = unit,
-                lastOnHandAmount = onHand
+                lastOnHandAmount = onHand,
+                shelfOrderIndex = effectiveOrderIndex
             )
             itemsToSave.add(item)
         }
@@ -928,7 +946,13 @@ class DeliveryRepository(context: Context) {
         }
     }
 
+    suspend fun cleanUnrecognizedItemsFromCatalog() = withContext(Dispatchers.IO) {
+        catalogDao.deleteUnrecognizedItems()
+        catalogDao.deleteCategoryHeaderItems()
+    }
+
     suspend fun seedDefaultsIfEmpty(publishedUrl: String = settingsManager.publishedWebUrl) = withContext(Dispatchers.IO) {
+        cleanUnrecognizedItemsFromCatalog()
         catalogDao.insertAll(defaultCatalogItems)
         defaultExpirationRules.forEach { rule ->
             if (expirationRuleDao.getRuleByCategory(rule.category) == null) {
@@ -938,6 +962,7 @@ class DeliveryRepository(context: Context) {
         if (publishedUrl.isNotBlank()) {
             importCatalogFromPublishedCsv(publishedUrl)
         }
+        cleanUnrecognizedItemsFromCatalog()
     }
 
     suspend fun importCatalogFromPublishedCsv(publishedWebUrl: String = settingsManager.publishedWebUrl): Result<Int> = withContext(Dispatchers.IO) {
@@ -973,13 +998,10 @@ class DeliveryRepository(context: Context) {
             return@withContext checkAndReturn(foundByUpc)
         }
 
-        // 2. Iterate all catalog items to check dual-key indexing across all fields:
-        // - syscoUpc (comma separated, normalized, raw)
-        // - alternateBarcodes (comma separated, normalized, raw)
-        // - syscoItemNumber
-        // - piazzaItemNumber
-        // - vendorItemNumber
-        // - vendorSku
+        val queryDigits = cleanQuery.replace(Regex("[^0-9]"), "")
+        val queryCore = queryDigits.dropWhile { it == '0' }
+
+        // 2. Iterate all catalog items to check dual-key indexing across all fields
         val allItems = catalogDao.getAllCatalogItemsList()
         for (item in allItems) {
             // Check syscoUpc (could be comma-separated)
@@ -987,10 +1009,14 @@ class DeliveryRepository(context: Context) {
                 val upcParts = item.syscoUpc.split(",").map { it.trim() }
                 for (part in upcParts) {
                     val normPart = SyscoUpcNormalizer.normalize(part)
+                    val partDigits = part.replace(Regex("[^0-9]"), "")
+                    val partCore = partDigits.dropWhile { it == '0' }
+
                     if (normPart.equals(normalizedQuery, ignoreCase = true) ||
                         normPart.equals(cleanQuery, ignoreCase = true) ||
                         part.equals(cleanQuery, ignoreCase = true) ||
-                        part.equals(normalizedQuery, ignoreCase = true)) {
+                        part.equals(normalizedQuery, ignoreCase = true) ||
+                        (queryCore.isNotBlank() && partCore.isNotBlank() && (queryCore == partCore || (queryCore.length >= 10 && partCore.contains(queryCore)) || (partCore.length >= 10 && queryCore.contains(partCore))))) {
                         return@withContext checkAndReturn(item)
                     }
                 }
@@ -1001,10 +1027,14 @@ class DeliveryRepository(context: Context) {
                 val altParts = item.alternateBarcodes.split(",").map { it.trim() }
                 for (part in altParts) {
                     val normPart = SyscoUpcNormalizer.normalize(part)
+                    val partDigits = part.replace(Regex("[^0-9]"), "")
+                    val partCore = partDigits.dropWhile { it == '0' }
+
                     if (normPart.equals(normalizedQuery, ignoreCase = true) ||
                         normPart.equals(cleanQuery, ignoreCase = true) ||
                         part.equals(cleanQuery, ignoreCase = true) ||
-                        part.equals(normalizedQuery, ignoreCase = true)) {
+                        part.equals(normalizedQuery, ignoreCase = true) ||
+                        (queryCore.isNotBlank() && partCore.isNotBlank() && (queryCore == partCore || (queryCore.length >= 10 && partCore.contains(queryCore)) || (partCore.length >= 10 && queryCore.contains(partCore))))) {
                         return@withContext checkAndReturn(item)
                     }
                 }
@@ -1082,14 +1112,38 @@ class DeliveryRepository(context: Context) {
 
     suspend fun saveCatalogItem(item: CatalogItem) = withContext(Dispatchers.IO) {
         val cleanName = item.name.removePrefix("Sysco ").removePrefix("SYSCO ").trim().toTitleCase()
+
+        // Strict Guard: Never save unrecognized items, badge scans, or PIN codes to master catalog!
+        val isUnrecognized = cleanName.isBlank() ||
+                             cleanName.equals("Unrecognized Item", ignoreCase = true) ||
+                             cleanName.startsWith("Item (", ignoreCase = true) ||
+                             cleanName.startsWith("Unrecognized", ignoreCase = true) ||
+                             item.syscoUpc.startsWith("DOPS-AUTH", ignoreCase = true) ||
+                             item.syscoUpc.startsWith("CV-", ignoreCase = true)
+
+        if (isUnrecognized) return@withContext
+
         val normCategory = normalizeCategory(item.category).toTitleCase()
         val effectiveOnHand = if (item.lastOnHandAmount > 0.0) item.lastOnHandAmount else 1.0
+        
+        // Preserve exact Google Sheet / Count Walk row position (shelfOrderIndex)
+        val normUpc = SyscoUpcNormalizer.normalize(item.syscoUpc)
+        val existingItem = catalogDao.getByUpc(normUpc) ?: catalogDao.getByName(cleanName)
+        val targetOrderIndex = if (item.shelfOrderIndex < 99999) {
+            item.shelfOrderIndex
+        } else if (existingItem != null && existingItem.shelfOrderIndex < 99999) {
+            existingItem.shelfOrderIndex
+        } else {
+            item.shelfOrderIndex
+        }
+
         val normalizedItem = item.copy(
-            syscoUpc = SyscoUpcNormalizer.normalize(item.syscoUpc),
+            syscoUpc = normUpc,
             name = cleanName,
             category = normCategory,
             defaultShelfLifeDays = DateCalculator.clampShelfLifeDays(item.defaultShelfLifeDays, normCategory),
-            lastOnHandAmount = effectiveOnHand
+            lastOnHandAmount = effectiveOnHand,
+            shelfOrderIndex = targetOrderIndex
         )
         catalogDao.insertOrUpdate(normalizedItem)
         try { firestoreRepository.saveCatalogItem(normalizedItem) } catch (_: Exception) {}
@@ -1187,6 +1241,10 @@ class DeliveryRepository(context: Context) {
     }
 
     suspend fun syncWithGoogleSheets(webAppUrl: String = settingsManager.webAppUrl): Result<Int> = withContext(Dispatchers.IO) {
+        if (!sheetsSyncMutex.tryLock()) {
+            // Already syncing in another coroutine / worker — skip concurrent execution to prevent duplicates
+            return@withContext Result.success(0)
+        }
         try {
             val targetUrl = webAppUrl.ifBlank { SettingsManager.DEFAULT_WEB_APP_URL }
 
@@ -1243,6 +1301,8 @@ class DeliveryRepository(context: Context) {
         } catch (e: Exception) {
             ErrorLogger.logError(appContext, settingsManager, "SHEETS_SYNC", e)
             Result.failure(e)
+        } finally {
+            sheetsSyncMutex.unlock()
         }
     }
 
@@ -1259,6 +1319,30 @@ class DeliveryRepository(context: Context) {
                 Result.success(Unit)
             } else {
                 Result.failure(Exception(response.body()?.message ?: "HTTP ${response.code()} sync error"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun updateInventoryCountsOnSheets(
+        webAppUrl: String,
+        items: List<CatalogItem>
+    ): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val targetUrl = webAppUrl.ifBlank { SettingsManager.DEFAULT_WEB_APP_URL }
+            val itemDtos = items.map { mapOf("name" to it.name, "onHand" to it.lastOnHandAmount) }
+            val payloadMap = mapOf(
+                "action" to "update_inventory",
+                "items" to itemDtos
+            )
+            val jsonString = gson.toJson(payloadMap)
+            val requestBody = jsonString.toRequestBody("application/json; charset=utf-8".toMediaType())
+            val response = sheetsApiService.syncRawJson(targetUrl, requestBody)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "HTTP ${response.code()} inventory update error"))
             }
         } catch (e: Exception) {
             Result.failure(e)

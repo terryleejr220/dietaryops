@@ -44,9 +44,27 @@ data class CatalogItem(
     @SerializedName("parLevel", alternate = ["par", "Par", "par_level", "Par Level", "PAR"])
     val parLevel: Double = 0.0,
 
+    @SerializedName("casePackQty", alternate = ["packQty", "casePack", "pack", "unitsPerCase", "itemsPerCase", "packSize", "Case Pack"])
+    val casePackQty: Int = 1,
+
+    @SerializedName("labelNickname", alternate = ["nickname", "labelName", "shortName", "printName", "Nickname", "Label Name", "Short Name"])
+    val labelNickname: String = "",
+
+    @SerializedName("vendorName", alternate = ["vendor", "Vendor", "vendor_name", "Supplier", "Vendor Name"])
+    val vendorName: String = "Sysco",
+
+    @SerializedName("linkedInventoryItem", alternate = ["Linked Inventory Item", "linkedItem", "Linked Item", "Generic Item", "inventoryItem", "linked_inventory_item"])
+    val linkedInventoryItem: String = "",
+
     @SerializedName("shelfOrderIndex")
     val shelfOrderIndex: Int = 99999
 ) {
+    val resolvedItemName: String
+        get() = if (linkedInventoryItem.isNotBlank()) linkedInventoryItem.trim() else name.trim()
+
+    val displayNameForLabel: String
+        get() = if (labelNickname.isNotBlank()) labelNickname.trim() else resolvedItemName
+
     fun toSyscoProduct(): SyscoProduct {
         return SyscoProduct(
             upc = syscoUpc,
@@ -60,12 +78,16 @@ data class CatalogItem(
             category = category,
             unit = unit,
             lastOnHandAmount = lastOnHandAmount,
-            parLevel = parLevel
+            parLevel = parLevel,
+            casePackQty = casePackQty,
+            labelNickname = labelNickname,
+            vendorName = vendorName,
+            linkedInventoryItem = linkedInventoryItem
         )
     }
 
     companion object {
-        fun fromSyscoProduct(product: SyscoProduct, category: String = "General", unit: String = "EA", lastOnHandAmount: Double? = null): CatalogItem {
+        fun fromSyscoProduct(product: SyscoProduct, category: String = product.category, unit: String = product.unit, lastOnHandAmount: Double? = null): CatalogItem {
             val effectiveOnHand = lastOnHandAmount ?: product.lastOnHandAmount
             return CatalogItem(
                 syscoUpc = product.upc,
@@ -79,7 +101,11 @@ data class CatalogItem(
                 vendorItemNumber = product.vendorItemNumber,
                 vendorSku = product.vendorSku,
                 alternateBarcodes = product.alternateBarcodes,
-                parLevel = product.parLevel
+                parLevel = product.parLevel,
+                casePackQty = product.casePackQty,
+                labelNickname = product.labelNickname,
+                vendorName = product.vendorName,
+                linkedInventoryItem = product.linkedInventoryItem
             )
         }
     }

@@ -1,7 +1,10 @@
 package com.dietaryops.manager.data
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
+import android.widget.Toast
 
 class SettingsManager(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
@@ -17,6 +20,14 @@ class SettingsManager(context: Context) {
     var publishedWebUrl: String
         get() = prefs.getString(KEY_PUBLISHED_WEB_URL, DEFAULT_PUBLISHED_WEB_URL) ?: DEFAULT_PUBLISHED_WEB_URL
         set(value) = prefs.edit().putString(KEY_PUBLISHED_WEB_URL, value.trim()).apply()
+
+    var liveDashboardUrl: String
+        get() = prefs.getString(KEY_LIVE_DASHBOARD_URL, DEFAULT_LIVE_DASHBOARD_URL) ?: DEFAULT_LIVE_DASHBOARD_URL
+        set(value) = prefs.edit().putString(KEY_LIVE_DASHBOARD_URL, value.trim()).apply()
+
+    var kitchenDashboardUrl: String
+        get() = prefs.getString(KEY_KITCHEN_DASHBOARD_URL, DEFAULT_KITCHEN_DASHBOARD_URL) ?: DEFAULT_KITCHEN_DASHBOARD_URL
+        set(value) = prefs.edit().putString(KEY_KITCHEN_DASHBOARD_URL, value.trim()).apply()
 
     var autoPrint: Boolean
         get() = prefs.getBoolean(KEY_AUTO_PRINT, true)
@@ -59,7 +70,7 @@ class SettingsManager(context: Context) {
         set(value) = prefs.edit().putString(KEY_EMPLOYEE_ID, value.trim().uppercase()).apply()
 
     var staffRole: String
-        get() = prefs.getString(KEY_STAFF_ROLE, "SUPERVISOR") ?: "SUPERVISOR"
+        get() = prefs.getString(KEY_STAFF_ROLE, "RECEIVER") ?: "RECEIVER"
         set(value) = prefs.edit().putString(KEY_STAFF_ROLE, value.trim().uppercase()).apply()
 
     // Facility Identity & Sheet Routing
@@ -139,6 +150,18 @@ class SettingsManager(context: Context) {
         return false
     }
 
+    fun openUrl(context: Context, url: String) {
+        try {
+            val cleanUrl = url.ifBlank { "https://docs.google.com/spreadsheets/d/$sheetId" }
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(cleanUrl)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "Could not open link: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     companion object {
         private const val KEY_COMPANY_CODE = "company_code"
         private const val KEY_COMPANY_NAME = "company_name"
@@ -155,6 +178,8 @@ class SettingsManager(context: Context) {
         private const val KEY_DEFAULT_LABEL_QUANTITY = "default_label_quantity"
         private const val KEY_STAFF_NAME = "staff_name"
         private const val KEY_STAFF_INITIALS = "staff_initials"
+        private const val KEY_LIVE_DASHBOARD_URL = "live_dashboard_url"
+        private const val KEY_KITCHEN_DASHBOARD_URL = "kitchen_dashboard_url"
 
         const val DEFAULT_COMPANY_CODE = "DOPS"
         const val DEFAULT_COMPANY_NAME = "DietaryOps Enterprise"
@@ -166,9 +191,11 @@ class SettingsManager(context: Context) {
         const val ADMIN_EMPLOYEE_ID = "AD99"
         const val ADMIN_NAME = "System Administrator"
 
-        const val DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx_ed4V-1HYdWbnROc9mAVuRY8dbwgbXIgeLmCVm9mg0bCuQMs_ODqBchXIBZ50lz7Q_w/exec"
+        const val DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvHRDz_7_635MtPnq_ac4gRscE4F_G5N72prO4g4oKheo8kYVUM0XD76jEwoQYHm-H9w/exec"
         const val DEFAULT_SHEET_ID = "16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY"
         const val DEFAULT_PUBLISHED_WEB_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=1819479005&single=true"
+        const val DEFAULT_LIVE_DASHBOARD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=999999&single=true"
+        const val DEFAULT_KITCHEN_DASHBOARD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=777002&single=true"
 
         // Standard Operational Default Shelf Life Guidelines
         const val SHELF_LIFE_DAIRY_FRESH = 7                 // Cooler / TCS / Fresh (dairy, sliced meats, fresh produce)

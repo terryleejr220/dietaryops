@@ -1,9 +1,19 @@
 package com.dietaryops.manager
 
+import android.content.Context
+import android.media.AudioManager
+import android.media.ToneGenerator
+import android.os.Build
+import android.os.CombinedVibration
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Size
+import android.view.MotionEvent
 import android.view.Surface
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.core.resolutionselector.ResolutionSelector
@@ -35,6 +45,32 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+
+import android.annotation.SuppressLint
+
+@SuppressLint("MissingPermission")
+private fun triggerScanFeedback(context: Context) {
+    try {
+        // 1. Audible POS scanner Beep
+        val toneGen = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+        toneGen.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+
+        // 2. Tactile Haptic Vibration Click
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            vibratorManager?.vibrate(
+                CombinedVibration.createParallel(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            val v = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            v?.vibrate(VibrationEffect.createOneShot(75, VibrationEffect.DEFAULT_AMPLITUDE))
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
 
 @Composable
 fun CameraXBarcodeScanner(
@@ -51,9 +87,12 @@ fun CameraXBarcodeScanner(
     var cameraProvider by remember { mutableStateOf<ProcessCameraProvider?>(null) }
     var isFlashOn by remember { mutableStateOf(false) }
 
-    val barcodeAnalyzer = remember {
+    val barcodeAnalyzer = remember(context) {
         BarcodeAnalyzer(
-            onBarcodeFound = { raw, normalized -> onBarcodeFound(raw, normalized) },
+            onBarcodeFound = { raw, normalized ->
+                triggerScanFeedback(context)
+                onBarcodeFound(raw, normalized)
+            },
             scanMode = ScanMode.DELIVERY
         )
     }
@@ -89,7 +128,7 @@ fun CameraXBarcodeScanner(
                     .setResolutionStrategy(
                         ResolutionStrategy(
                             Size(1280, 720),
-                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+                            ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER
                         )
                     )
                     .build()
@@ -105,12 +144,34 @@ fun CameraXBarcodeScanner(
                 val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                 try {
                     provider.unbindAll()
-                    camera = provider.bindToLifecycle(
+                    val boundCamera = provider.bindToLifecycle(
                         lifecycleOwner,
                         cameraSelector,
                         preview,
                         imageAnalysis
                     )
+                    camera = boundCamera
+
+                    // Set default 15% digital zoom so camera lens is razor sharp from 10-12 inches away
+                    try {
+                        boundCamera.cameraControl.setLinearZoom(0.15f)
+                    } catch (_: Exception) {}
+
+                    // Enable Tap-to-Focus onPreviewView
+                    previewView.setOnTouchListener { view, event ->
+                        if (event.action == MotionEvent.ACTION_UP) {
+                            try {
+                                val factory = previewView.meteringPointFactory
+                                val point = factory.createPoint(event.x, event.y)
+                                val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
+                                    .setAutoCancelDuration(3, TimeUnit.SECONDS)
+                                    .build()
+                                boundCamera.cameraControl.startFocusAndMetering(action)
+                                view.performClick()
+                            } catch (_: Exception) {}
+                        }
+                        true
+                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }

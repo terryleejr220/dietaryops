@@ -68,10 +68,6 @@
 -keepclassmembers class com.dietaryops.manager.data.remote.** { *; }
 -keep class com.dietaryops.manager.data.local.** { *; }
 -keepclassmembers class com.dietaryops.manager.data.local.** { *; }
--keep class com.centuryvilla.deliveryscanner.data.model.** { *; }
--keepclassmembers class com.centuryvilla.deliveryscanner.data.model.** { *; }
--keep class com.inventoryscanner.dietarymanager.data.model.** { *; }
--keepclassmembers class com.inventoryscanner.dietarymanager.data.model.** { *; }
 
 # Keep default public constructors for data transfer objects
 -keepclassmembers class * {

@@ -83,26 +83,30 @@ object ErrorLogger {
                 if (webhook.isNotBlank()) {
                     val url = URL(webhook)
                     val conn = url.openConnection() as HttpURLConnection
-                    conn.requestMethod = "POST"
-                    conn.setRequestProperty("Content-Type", "application/json")
-                    conn.doOutput = true
-                    conn.connectTimeout = 5000
-                    conn.readTimeout = 5000
+                    try {
+                        conn.requestMethod = "POST"
+                        conn.setRequestProperty("Content-Type", "application/json")
+                        conn.doOutput = true
+                        conn.connectTimeout = 5000
+                        conn.readTimeout = 5000
 
-                    val json = JSONObject().apply {
-                        put("action", "log_error")
-                        put("tag", errorTag)
-                        put("staff", staff)
-                        put("device", deviceModel)
-                        put("message", errorMessage)
-                        put("timestamp", timestamp)
+                        val json = JSONObject().apply {
+                            put("action", "log_error")
+                            put("tag", errorTag)
+                            put("staff", staff)
+                            put("device", deviceModel)
+                            put("message", errorMessage)
+                            put("timestamp", timestamp)
+                        }
+
+                        val writer = OutputStreamWriter(conn.outputStream)
+                        writer.write(json.toString())
+                        writer.flush()
+                        writer.close()
+                        conn.responseCode
+                    } finally {
+                        conn.disconnect()
                     }
-
-                    val writer = OutputStreamWriter(conn.outputStream)
-                    writer.write(json.toString())
-                    writer.flush()
-                    writer.close()
-                    conn.responseCode
                 }
             } catch (_: Exception) {
                 // Ignore secondary logging failure
@@ -118,5 +122,93 @@ object ErrorLogger {
     fun clearErrorLogs(context: Context) {
         val prefs = context.getSharedPreferences("error_logs", Context.MODE_PRIVATE)
         prefs.edit().remove("last_errors").apply()
+    }
+
+    fun logFloorNote(
+        context: Context,
+        settingsManager: SettingsManager,
+        noteType: String,
+        noteContent: String
+    ) {
+        val staff = "${settingsManager.staffName} (${settingsManager.employeeId} - ${settingsManager.staffRole})"
+        val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
+        val timestamp = System.currentTimeMillis()
+        val formattedLog = "[$timestamp] [NOTE: $noteType] $staff | $deviceModel | Content: $noteContent"
+
+        Log.i(TAG, formattedLog)
+
+        // Save locally in SharedPreferences for in-app viewer
+        val prefs = context.getSharedPreferences("error_logs", Context.MODE_PRIVATE)
+        val existing = prefs.getString("last_errors", "") ?: ""
+        val updated = "💡 $formattedLog\n$existing".take(4000)
+        prefs.edit().putString("last_errors", updated).apply()
+
+        // Also save to floor_notes
+        val notesPrefs = context.getSharedPreferences("floor_notes", Context.MODE_PRIVATE)
+        val existingNotes = notesPrefs.getString("notes_list", "") ?: ""
+        val updatedNotes = "$formattedLog\n$existingNotes".take(4000)
+        notesPrefs.edit().putString("notes_list", updatedNotes).apply()
+
+        // Asynchronously upload to Firestore & Google Sheets Webhook
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val firestore = FirebaseFirestore.getInstance()
+                val noteData = mapOf(
+                    "timestamp" to timestamp,
+                    "type" to noteType,
+                    "staff" to staff,
+                    "companyCode" to settingsManager.companyCode,
+                    "department" to settingsManager.department,
+                    "device" to deviceModel,
+                    "content" to noteContent
+                )
+                firestore.collection("companies")
+                    .document(settingsManager.companyCode)
+                    .collection("floor_notes")
+                    .add(noteData)
+            } catch (_: Exception) {}
+
+            try {
+                val webhook = settingsManager.webAppUrl
+                if (webhook.isNotBlank()) {
+                    val url = URL(webhook)
+                    val conn = url.openConnection() as HttpURLConnection
+                    try {
+                        conn.requestMethod = "POST"
+                        conn.setRequestProperty("Content-Type", "application/json")
+                        conn.doOutput = true
+                        conn.connectTimeout = 5000
+                        conn.readTimeout = 5000
+
+                        val json = JSONObject().apply {
+                            put("action", "log_floor_note")
+                            put("noteType", noteType)
+                            put("staff", staff)
+                            put("device", deviceModel)
+                            put("content", noteContent)
+                            put("timestamp", timestamp)
+                        }
+
+                        val writer = OutputStreamWriter(conn.outputStream)
+                        writer.write(json.toString())
+                        writer.flush()
+                        writer.close()
+                        conn.responseCode
+                    } finally {
+                        conn.disconnect()
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun getFloorNotes(context: Context): String {
+        val prefs = context.getSharedPreferences("floor_notes", Context.MODE_PRIVATE)
+        return prefs.getString("notes_list", "No floor notes logged yet.") ?: "No floor notes logged yet."
+    }
+
+    fun clearFloorNotes(context: Context) {
+        val prefs = context.getSharedPreferences("floor_notes", Context.MODE_PRIVATE)
+        prefs.edit().remove("notes_list").apply()
     }
 }

@@ -9,6 +9,7 @@ import retrofit2.http.Url
 
 import com.google.gson.annotations.SerializedName
 import okhttp3.RequestBody
+import com.dietaryops.manager.data.SettingsManager
 
 @Keep
 data class SheetScanRecordDto(
@@ -168,7 +169,7 @@ data class CatalogFetchRequest(
 @Keep
 interface GoogleSheetsApiService {
     companion object {
-        const val DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx0heDYU0f1XyDELM_DFuKdlKmFW_ZJD6cEGegpLHva19PLv-_2CBE_U2EmAuJt1_FxDg/exec"
+        const val DEFAULT_WEB_APP_URL = SettingsManager.DEFAULT_WEB_APP_URL
     }
 
     @POST

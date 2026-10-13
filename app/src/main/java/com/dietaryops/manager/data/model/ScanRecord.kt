@@ -24,7 +24,4 @@ data class ScanRecord(
     val isAudit: Boolean = false,
     val itemNumber: String = "",
     val receivedBy: String = ""
-) {
-    val effectiveOnHandAmount: Double
-        get() = onHandAmount
-}
+)

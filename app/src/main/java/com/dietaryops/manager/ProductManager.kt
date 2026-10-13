@@ -31,8 +31,18 @@ data class SyscoProduct(
     val vendorItemNumber: String = "",
     val vendorSku: String = "",
     val alternateBarcodes: String = "",
-    val parLevel: Double = 0.0
-)
+    val parLevel: Double = 0.0,
+    val casePackQty: Int = 1,
+    val labelNickname: String = "",
+    val vendorName: String = "Sysco",
+    val linkedInventoryItem: String = ""
+) {
+    val resolvedItemName: String
+        get() = if (linkedInventoryItem.isNotBlank()) linkedInventoryItem.trim() else name.trim()
+
+    val displayNameForLabel: String
+        get() = if (labelNickname.isNotBlank()) labelNickname.trim() else resolvedItemName
+}
 
 data class ScannedItemState(
     val rawUpc: String,
@@ -53,10 +63,8 @@ class ProductManager(context: Context) {
     suspend fun processScan(rawUpc: String, scanDate: LocalDate = LocalDate.now()): ScannedItemState {
         val parsedData = Gs1BarcodeParser.parseBarcode(rawUpc)
         val extractedUpc = parsedData.extractedUpc.ifBlank { SyscoUpcNormalizer.normalize(rawUpc) }
-        
-        repository.seedDefaultsIfEmpty()
 
-        // Catalog lookup: try extractedUpc first, then rawUpc, then gtin if present
+        // Local Room DB query ONLY — sub-10ms execution without network blocking
         var catalogItem = repository.getCatalogItem(extractedUpc)
         if (catalogItem.name == "Unrecognized Item" && rawUpc != extractedUpc) {
             val rawItem = repository.getCatalogItem(rawUpc)
@@ -109,6 +117,28 @@ class ProductManager(context: Context) {
             catalogItem.lastOnHandAmount
         } else {
             1.0
+        }
+
+        // If new UPC is scanned for known item, promote new UPC to primary and keep old primary as alternate
+        if (isKnownInDb && extractedUpc.isNotBlank() && !catalogItem.syscoUpc.equals(extractedUpc, ignoreCase = true)) {
+            val currentAlts = catalogItem.alternateBarcodes
+                .split(",")
+                .map { SyscoUpcNormalizer.normalize(it.trim()) }
+                .filter { it.isNotBlank() }
+                .toMutableList()
+
+            if (catalogItem.syscoUpc.isNotBlank() && !currentAlts.contains(catalogItem.syscoUpc)) {
+                currentAlts.add(0, catalogItem.syscoUpc)
+            }
+            currentAlts.removeAll { it.equals(extractedUpc, ignoreCase = true) }
+            val updatedAlts = currentAlts.distinct().joinToString(", ")
+
+            val updatedCatalogItem = catalogItem.copy(
+                syscoUpc = extractedUpc,
+                alternateBarcodes = updatedAlts
+            )
+            repository.saveCatalogItem(updatedCatalogItem)
+            catalogItem = updatedCatalogItem
         }
 
         val product = if (isKnownInDb) {
@@ -207,7 +237,9 @@ class ProductManager(context: Context) {
         category: String,
         unit: String,
         shelfLifeDays: Int,
-        onHandAmount: Double
+        onHandAmount: Double,
+        casePackQty: Int = 1,
+        labelNickname: String = ""
     ): CatalogItem {
         val normUpc = SyscoUpcNormalizer.normalize(scannedUpc).ifBlank { scannedUpc.trim() }
         val cleanName = productName.removePrefix("Sysco ").removePrefix("SYSCO ").trim().ifBlank { "Unrecognized Item" }.toTitleCase()
@@ -218,45 +250,35 @@ class ProductManager(context: Context) {
         val existingItem = repository.getCatalogItemByName(cleanName)
 
         if (existingItem != null) {
-            val currentAlt = existingItem.alternateBarcodes
-            val altList = if (currentAlt.isNotBlank()) {
-                currentAlt.split(",").map { SyscoUpcNormalizer.normalize(it.trim()) }.filter { it.isNotBlank() }
-            } else {
-                emptyList()
+            val currentAlts = existingItem.alternateBarcodes
+                .split(",")
+                .map { SyscoUpcNormalizer.normalize(it.trim()) }
+                .filter { it.isNotBlank() }
+                .toMutableList()
+
+            // If existingItem has a different primary UPC, add old primary to alternateBarcodes
+            if (existingItem.syscoUpc.isNotBlank() && 
+                !existingItem.syscoUpc.equals(normUpc, ignoreCase = true) && 
+                !currentAlts.contains(existingItem.syscoUpc)) {
+                currentAlts.add(0, existingItem.syscoUpc)
             }
 
-            val isPrimaryMatch = existingItem.syscoUpc.equals(normUpc, ignoreCase = true)
-            val newAltBarcodes = if (!isPrimaryMatch && !altList.contains(normUpc) && normUpc.isNotBlank()) {
-                if (currentAlt.isBlank()) normUpc else "$currentAlt, $normUpc"
-            } else {
-                currentAlt
-            }
+            // Remove normUpc from alternateBarcodes since normUpc is now becoming the primary UPC
+            currentAlts.removeAll { it.equals(normUpc, ignoreCase = true) }
+            val updatedAltString = currentAlts.distinct().joinToString(", ")
 
             val updatedExisting = existingItem.copy(
-                alternateBarcodes = newAltBarcodes,
+                syscoUpc = normUpc, // Newest Scanned UPC becomes the current primary UPC!
+                alternateBarcodes = updatedAltString,
                 category = normCategory,
                 defaultShelfLifeDays = validDays,
                 unit = unit,
-                lastOnHandAmount = validOnHand
+                lastOnHandAmount = validOnHand,
+                casePackQty = if (casePackQty > 0) casePackQty else existingItem.casePackQty,
+                labelNickname = labelNickname.ifBlank { existingItem.labelNickname }
             )
             repository.saveCatalogItem(updatedExisting)
 
-            if (!isPrimaryMatch && normUpc.isNotBlank()) {
-                val directCatalogItem = CatalogItem(
-                    syscoUpc = normUpc,
-                    name = cleanName,
-                    category = normCategory,
-                    defaultShelfLifeDays = validDays,
-                    unit = unit,
-                    lastOnHandAmount = validOnHand,
-                    syscoItemNumber = existingItem.syscoItemNumber,
-                    piazzaItemNumber = existingItem.piazzaItemNumber,
-                    vendorItemNumber = existingItem.vendorItemNumber,
-                    vendorSku = existingItem.vendorSku,
-                    alternateBarcodes = newAltBarcodes
-                )
-                repository.saveCatalogItem(directCatalogItem)
-            }
             return updatedExisting
         } else {
             val newCatalogItem = CatalogItem(
@@ -266,7 +288,9 @@ class ProductManager(context: Context) {
                 defaultShelfLifeDays = validDays,
                 unit = unit,
                 lastOnHandAmount = validOnHand,
-                alternateBarcodes = ""
+                alternateBarcodes = "",
+                casePackQty = casePackQty,
+                labelNickname = labelNickname
             )
             repository.saveCatalogItem(newCatalogItem)
             return newCatalogItem
@@ -331,7 +355,6 @@ class ProductManager(context: Context) {
         scope: CoroutineScope,
         onSyncResult: ((Result<Int>) -> Unit)? = null
     ) {
-        SyncWorker.enqueue(repository.appContext)
         scope.launch(Dispatchers.IO) {
             repository.addScanRecord(scanRecord)
             val url = webAppUrl

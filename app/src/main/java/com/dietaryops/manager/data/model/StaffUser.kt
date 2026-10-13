@@ -5,7 +5,7 @@ data class StaffUser(
     val displayName: String = "",
     val companyCode: String = "",
     val department: String = "Dietary",
-    val role: StaffRole = StaffRole.OPERATOR,
+    val role: StaffRole = StaffRole.AIDE,
     val pin: String = "",
     val badgeToken: String = "",
     val active: Boolean = true
@@ -70,7 +70,7 @@ data class StaffUser(
                 }
             }
 
-            // Direct Employee ID (e.g. "AD99", "TL01", "AT01", "LS01")
+            // Direct Employee ID (e.g. "KH01", "TL01", "AT01", "LS01")
             if (trimmed.matches("^[A-Za-z0-9_]{2,10}$".toRegex())) {
                 return Triple("", trimmed.uppercase(), "")
             }

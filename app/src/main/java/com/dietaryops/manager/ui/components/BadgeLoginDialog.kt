@@ -67,21 +67,35 @@ fun BadgeLoginDialog(
                 displayName = "Terry Little Jr.",
                 companyCode = companyCode,
                 department = "Dietary",
-                role = StaffRole.SUPERVISOR
+                role = StaffRole.RECEIVER
             )
             clean == "AT01" -> StaffUser(
                 employeeId = "AT01",
                 displayName = "Andy Tygart",
                 companyCode = companyCode,
                 department = "Dietary",
-                role = StaffRole.OPERATOR
+                role = StaffRole.MANAGER
+            )
+            clean == "CK01" -> StaffUser(
+                employeeId = "CK01",
+                displayName = "Kitchen Cook",
+                companyCode = companyCode,
+                department = "Dietary",
+                role = StaffRole.COOK
+            )
+            clean == "AI01" -> StaffUser(
+                employeeId = "AI01",
+                displayName = "Dietary Aide",
+                companyCode = companyCode,
+                department = "Dietary",
+                role = StaffRole.AIDE
             )
             clean == "LS01" -> StaffUser(
                 employeeId = "LS01",
                 displayName = "Lorraine S.",
                 companyCode = companyCode,
                 department = "EVS",
-                role = StaffRole.SUPERVISOR
+                role = StaffRole.MANAGER
             )
             clean.equals(settingsManager.employeeId, ignoreCase = true) -> StaffUser(
                 employeeId = settingsManager.employeeId,
@@ -168,14 +182,20 @@ fun BadgeLoginDialog(
                 
                 onLoginSuccess(user)
             }.onFailure { err ->
-                // Fallback / local check if default test admin PIN
-                val localUser = if (pinInput == "1234") resolveLocalStaffUser(employeeIdInput) else null
+                // Fallback / local check with strict PIN security for Admin
+                val cleanEmpId = employeeIdInput.trim().uppercase()
+                val isAdminId = cleanEmpId == "AD99" || cleanEmpId == "ADMIN"
+                val localUser = when {
+                    isAdminId && (pinInput == "2200" || pinInput == "9999") -> resolveLocalStaffUser(cleanEmpId)
+                    !isAdminId && (pinInput == "1234" || pinInput == "2200") -> resolveLocalStaffUser(cleanEmpId)
+                    else -> null
+                }
                 if (localUser != null) {
                     successUser = localUser
                     settingsManager.currentStaffUser = localUser
                     onLoginSuccess(localUser)
                 } else {
-                    errorMessage = err.message ?: "Incorrect PIN"
+                    errorMessage = if (isAdminId) "Admin PIN required (2200)" else (err.message ?: "Incorrect PIN")
                 }
             }
             isVerifying = false

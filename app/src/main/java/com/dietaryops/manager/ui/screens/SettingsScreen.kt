@@ -78,6 +78,8 @@ fun SettingsScreen(
     var webAppUrlInput by remember { mutableStateOf(settingsManager.webAppUrl.ifBlank { remoteWebhookUrl }) }
     var sheetIdInput by remember { mutableStateOf(settingsManager.sheetId) }
     var publishedWebUrlInput by remember { mutableStateOf(settingsManager.publishedWebUrl) }
+    var liveDashboardInput by remember { mutableStateOf(settingsManager.liveDashboardUrl) }
+    var kitchenDashboardInput by remember { mutableStateOf(settingsManager.kitchenDashboardUrl) }
     var isTestingSync by remember { mutableStateOf(false) }
     var showFacilityQrDialog by remember { mutableStateOf(false) }
     var facilityQrInput by remember { mutableStateOf("") }
@@ -558,8 +560,9 @@ fun SettingsScreen(
             }
         }
 
-        // --- STAFF SECTION 3: System Diagnostics & Error Logs ---
+        // --- STAFF SECTION 3: System Diagnostics, Error Logs & Floor Notes ---
         var showErrorLogsDialog by remember { mutableStateOf(false) }
+        var showFloorNotesDialog by remember { mutableStateOf(false) }
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -581,18 +584,67 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Default.BugReport, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("App Error & Diagnostic Logs", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Diagnostics & Floor Notes", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
 
-                    OutlinedButton(
-                        onClick = { showErrorLogsDialog = true },
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Text("View Logs", fontSize = 11.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedButton(
+                            onClick = { showFloorNotesDialog = true },
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text("Floor Notes", fontSize = 11.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = { showErrorLogsDialog = true },
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Text("Logs", fontSize = 11.sp)
+                        }
                     }
                 }
-                Text("App automatically records runtime errors & sync failures, uploading reports to Cloud Firestore & Google Sheets.", fontSize = 11.sp, color = Color.Gray)
+                Text("App records runtime errors & floor feedback, syncing reports directly to Cloud Firestore & Google Sheets.", fontSize = 11.sp, color = Color.Gray)
             }
+        }
+
+        if (showFloorNotesDialog) {
+            val notes = remember { ErrorLogger.getFloorNotes(context) }
+            AlertDialog(
+                onDismissRequest = { showFloorNotesDialog = false },
+                title = { Text("Submitted Floor Notes & Ideas") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = notes,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 240.dp)
+                                .verticalScroll(rememberScrollState())
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText("Floor Notes", notes)
+                        clipboard.setPrimaryClip(clip)
+                        Toast.makeText(context, "Floor notes copied to clipboard!", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Text("Copy Notes")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        ErrorLogger.clearFloorNotes(context)
+                        showFloorNotesDialog = false
+                        Toast.makeText(context, "Floor notes cleared", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Text("Clear Notes")
+                    }
+                }
+            )
         }
 
         if (showErrorLogsDialog) {
@@ -692,6 +744,51 @@ fun SettingsScreen(
         // --- ADMIN ONLY SECTION: Advanced Integrations & Configuration ---
         AnimatedVisibility(visible = isAdminUnlocked) {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // Section: Dashboard Links & Web URLs
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Analytics, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Text("Dashboard Links & Web URLs", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedTextField(
+                            value = liveDashboardInput,
+                            onValueChange = {
+                                liveDashboardInput = it
+                                settingsManager.liveDashboardUrl = it
+                            },
+                            label = { Text("Live Inventory Dashboard URL") },
+                            placeholder = { Text("https://docs.google.com/spreadsheets/d/.../edit#gid=0") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = kitchenDashboardInput,
+                            onValueChange = {
+                                kitchenDashboardInput = it
+                                settingsManager.kitchenDashboardUrl = it
+                            },
+                            label = { Text("Kitchen Operations Dashboard URL") },
+                            placeholder = { Text("https://docs.google.com/spreadsheets/d/.../edit#gid=1") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
                 // Section: Audit / Info-Only Scan Mode (First Scan Day Mode)
                 Card(
                     modifier = Modifier.fillMaxWidth(),

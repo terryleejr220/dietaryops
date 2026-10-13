@@ -6,6 +6,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -45,8 +46,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.draw.clip
+import com.dietaryops.manager.data.model.AppPermission
 import com.dietaryops.manager.data.remote.SheetScanRecordDto
 import com.dietaryops.manager.data.remote.SheetSyncPayload
+import com.dietaryops.manager.ui.components.VendorReorderSheetDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -82,6 +85,7 @@ fun InventoryLogsScreen(
     var showClearAllConfirm by remember { mutableStateOf(false) }
     var showAddCatalogDialog by remember { mutableStateOf(false) }
     var showMassPrintDialog by remember { mutableStateOf(false) }
+    var showReorderDialog by remember { mutableStateOf(false) }
 
     // Auto-sync catalog from published Google Sheet if empty or default
     LaunchedEffect(Unit) {
@@ -124,7 +128,23 @@ fun InventoryLogsScreen(
 
     // Filtered master catalog items list
     val filteredCatalogItems = remember(catalogItems, searchQuery, activeTab, sortMode, selectedCatalogFilter, recentlyScannedUpcs) {
+        val categoryHeaders = setOf(
+            "canned goods", "dry storage", "condiments & sauces", "misc dry & cereal",
+            "dairy & fresh", "proteins & frozen", "supplement", "general",
+            "gloves & ppe", "incontinence (depends)", "incontinence", "chemicals & cleaners",
+            "paper goods", "liners & trash bags", "equipment"
+        )
+
         val filtered = catalogItems.filter { item ->
+            val isCategoryHeader = categoryHeaders.contains(item.name.trim().lowercase())
+            val isValidCatalogItem = !isCategoryHeader &&
+                                     !item.name.startsWith("Unrecognized", ignoreCase = true) &&
+                                     !item.name.startsWith("Item (", ignoreCase = true) &&
+                                     !item.syscoUpc.startsWith("DOPS-AUTH", ignoreCase = true) &&
+                                     !item.syscoUpc.startsWith("CV-", ignoreCase = true)
+
+            if (!isValidCatalogItem) return@filter false
+
             val matchesSearch = searchQuery.isBlank() ||
                     item.name.contains(searchQuery, ignoreCase = true) ||
                     item.syscoUpc.contains(searchQuery, ignoreCase = true) ||
@@ -132,7 +152,9 @@ fun InventoryLogsScreen(
                     item.piazzaItemNumber.contains(searchQuery, ignoreCase = true)
                     
             val matchesCatalogFilter = when (selectedCatalogFilter) {
-                "Low Stock" -> item.parLevel > 0 && item.lastOnHandAmount < item.parLevel
+                "Out of Stock" -> item.lastOnHandAmount <= 0
+                "Below Par", "Low Stock" -> item.parLevel > 0 && item.lastOnHandAmount < item.parLevel
+                "In Stock" -> item.lastOnHandAmount >= item.parLevel
                 "Recently Scanned" -> recentlyScannedUpcs.contains(item.syscoUpc)
                 else -> true
             }
@@ -150,12 +172,8 @@ fun InventoryLogsScreen(
             }
         }
         
-        // Push items with 0 on hand to the bottom if we aren't heavily filtering
-        if (searchQuery.isBlank() && selectedCatalogFilter == "All") {
-            sorted.sortedBy { it.lastOnHandAmount <= 0 }
-        } else {
-            sorted
-        }
+        // "Shelf Layout" preserves exact row position from Google Sheets / Count Walk
+        sorted
     }
 
     // Manual Sync function
@@ -502,15 +520,73 @@ fun InventoryLogsScreen(
                         }
 
                         Button(
-                            onClick = { showAddCatalogDialog = true },
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            onClick = { showReorderDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(13.dp))
                             Spacer(modifier = Modifier.width(3.dp))
-                            Text("Add", fontSize = 11.sp)
+                            Text("Reorder Sheet", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        if (settingsManager.currentStaffUser.hasPermission(AppPermission.EDIT_ITEMS)) {
+                            Button(
+                                onClick = { showAddCatalogDialog = true },
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text("Add", fontSize = 11.sp)
+                            }
                         }
                     }
+                }
+
+                // KPI Status Badges Row
+                val outOfStockCount = remember(catalogItems) { catalogItems.count { it.lastOnHandAmount <= 0 } }
+                val belowParCount = remember(catalogItems) { catalogItems.count { it.parLevel > 0 && it.lastOnHandAmount < it.parLevel } }
+                val inStockCount = remember(catalogItems) { catalogItems.count { it.lastOnHandAmount >= it.parLevel || it.parLevel == 0.0 } }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FilterChip(
+                        selected = selectedCatalogFilter == "All",
+                        onClick = { selectedCatalogFilter = "All" },
+                        label = { Text("All Items (${catalogItems.size})", fontSize = 11.sp) }
+                    )
+                    FilterChip(
+                        selected = selectedCatalogFilter == "Out of Stock",
+                        onClick = { selectedCatalogFilter = "Out of Stock" },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
+                            selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer
+                        ),
+                        label = { Text("🔴 Out of Stock ($outOfStockCount)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                    )
+                    FilterChip(
+                        selected = selectedCatalogFilter == "Below Par",
+                        onClick = { selectedCatalogFilter = "Below Par" },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = ExpiringSoonAmber.copy(alpha = 0.2f),
+                            selectedLabelColor = ExpiringSoonAmber
+                        ),
+                        label = { Text("🟠 Below Par ($belowParCount)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                    )
+                    FilterChip(
+                        selected = selectedCatalogFilter == "In Stock",
+                        onClick = { selectedCatalogFilter = "In Stock" },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFF10B981).copy(alpha = 0.2f),
+                            selectedLabelColor = Color(0xFF10B981)
+                        ),
+                        label = { Text("🟢 In Stock ($inStockCount)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                    )
                 }
 
                 // Compact Sort Row
@@ -733,11 +809,14 @@ fun InventoryLogsScreen(
                                             department = settingsManager.department,
                                             records = countDtos
                                         )
+                                        // 1. Update Column B On-Hand counts via update_inventory
+                                        repository.updateInventoryCountsOnSheets(webAppUrl, catalogItems)
+                                        // 2. Sync full catalog records to Inventory Raw
                                         val res = repository.syncCatalogWithPayload(webAppUrl, payload)
                                         withContext(Dispatchers.Main) {
                                             isSyncingCountSheet = false
                                             res.onSuccess {
-                                                Toast.makeText(context, "Populated $targetTab on Google Sheets!", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(context, "Synced On-Hand Counts to $targetTab in Google Sheets!", Toast.LENGTH_LONG).show()
                                             }.onFailure { err ->
                                                 Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
                                             }
@@ -1087,6 +1166,8 @@ fun InventoryLogsScreen(
     if (showAddCatalogDialog) {
         var newUpc by remember { mutableStateOf("") }
         var newName by remember { mutableStateOf("") }
+        var newNickname by remember { mutableStateOf("") }
+        var newCasePackStr by remember { mutableStateOf("1") }
         var newCategory by remember { mutableStateOf("General") }
         var newUnit by remember { mutableStateOf("EA") }
         var newDaysStr by remember { mutableStateOf("7") }
@@ -1115,8 +1196,25 @@ fun InventoryLogsScreen(
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
-                        label = { Text("Product Name") },
-                        placeholder = { Text("e.g. Diced Peaches") },
+                        label = { Text("Product Vendor Name") },
+                        placeholder = { Text("e.g. SYSCO IMPERIAL BEAN GREEN CUT #10") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = newNickname,
+                        onValueChange = { newNickname = it },
+                        label = { Text("Label Nickname / Short Name (Optional)") },
+                        placeholder = { Text("e.g. Cut Green Beans #10") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = newCasePackStr,
+                        onValueChange = { newCasePackStr = it },
+                        label = { Text("Case Pack Qty (Units/Case)") },
+                        placeholder = { Text("e.g. 6 or 12") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -1208,18 +1306,21 @@ fun InventoryLogsScreen(
                         val cleanUpc = SyscoUpcNormalizer.normalize(newUpc)
                         val daysInt = newDaysStr.toIntOrNull() ?: 7
                         val onHandVal = newOnHandStr.toDoubleOrNull() ?: 1.0
+                        val packQtyInt = newCasePackStr.toIntOrNull()?.coerceAtLeast(1) ?: 1
                         val item = CatalogItem(
                             syscoUpc = cleanUpc,
                             name = newName,
                             category = newCategory,
                             defaultShelfLifeDays = DateCalculator.clampShelfLifeDays(daysInt),
                             unit = newUnit,
-                            lastOnHandAmount = onHandVal
+                            lastOnHandAmount = onHandVal,
+                            casePackQty = packQtyInt,
+                            labelNickname = newNickname.trim()
                         )
                         coroutineScope.launch {
                             repository.saveCatalogItem(item)
                             showAddCatalogDialog = false
-                            Toast.makeText(context, "Added '${item.name}' to catalog!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Added '${item.displayNameForLabel}' to catalog!", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }) {
@@ -1231,6 +1332,15 @@ fun InventoryLogsScreen(
                     Text("Cancel")
                 }
             }
+        )
+    }
+
+    if (showReorderDialog) {
+        VendorReorderSheetDialog(
+            catalogItems = catalogItems,
+            settingsManager = settingsManager,
+            onDismiss = { showReorderDialog = false },
+            onExportSuccess = { showReorderDialog = false }
         )
     }
 }

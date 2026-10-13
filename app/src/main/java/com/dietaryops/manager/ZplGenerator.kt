@@ -62,6 +62,8 @@ object ZplGenerator {
 
         return """
 ^XA
+^MNY
+^MTD
 ^PW456
 ^LL254
 ^MD18
@@ -110,7 +112,7 @@ object ZplGenerator {
         )
         val useByDate = deliveryDate.plusDays(validDays.toLong())
         return generateLabel(
-            itemName = product.name,
+            itemName = product.displayNameForLabel,
             upc = product.upc,
             deliveryDate = deliveryDate,
             useByDate = useByDate,
@@ -149,6 +151,8 @@ object ZplGenerator {
 
         return """
 ^XA
+^MNY
+^MTD
 ^PW456
 ^LL254
 ^MD18
@@ -185,7 +189,7 @@ object ZplGenerator {
     ): String {
         val location = storageLocation ?: getStorageLocationForCategory(item.category)
         return generateShelfLabelZpl(
-            itemName = item.name,
+            itemName = item.displayNameForLabel,
             upc = item.syscoUpc,
             storageLocation = location,
             syscoItemNumber = item.syscoItemNumber,
@@ -209,7 +213,7 @@ object ZplGenerator {
     ): String {
         val location = storageLocation ?: getStorageLocationForCategory(item.category)
         return generateShelfLabelZpl(
-            itemName = item.name,
+            itemName = item.displayNameForLabel,
             upc = item.upc,
             storageLocation = location,
             syscoItemNumber = item.syscoItemNumber,
@@ -223,7 +227,8 @@ object ZplGenerator {
     }
 
     /**
-     * Generates a 2.25" x 1.25" ZPL staff access badge thermal sticker (203 dpi Zebra QLn420).
+     * Generates a 2" x 1" (or 2.25" x 1.25") ZPL staff access badge thermal sticker (203 dpi Zebra QLn420).
+     * Shortened payload (e.g. "CV-TL01") ensures the barcode fits cleanly on 2" x 1" labels without overflowing.
      */
     fun generateStaffBadgeZpl(
         displayName: String,
@@ -235,29 +240,31 @@ object ZplGenerator {
         val cleanId = employeeId.trim().uppercase()
         val cleanRole = role.trim().uppercase()
         val cleanCompany = companyName.trim().uppercase()
-        val barcodePayload = "CV-$cleanId-$cleanRole"
+        val barcodePayload = "$cleanCompany-$cleanId"
 
         return """
 ^XA
-^PW456
-^LL254
+^MNY
+^MTD
+^PW416
+^LL220
 ^MD15
 ^LH0,0
 
 ; 1. COMPANY HEADER
-^FO15,12^A0N,22,22^FB426,1,0,C,0^FD$cleanCompany ACCESS BADGE^FS
-^FO15,38^GB426,2,2^FS
+^FO10,8^A0N,20,20^FB396,1,0,C,0^FD$cleanCompany ACCESS BADGE^FS
+^FO10,30^GB396,2,2^FS
 
 ; 2. STAFF NAME & ROLE
-^FO15,50^A0N,28,28^FB426,1,0,C,0^FD$cleanName^FS
-^FO15,82^A0N,22,20^FB426,1,0,C,0^FDROLE: $cleanRole  •  ID: $cleanId^FS
+^FO10,38^A0N,26,26^FB396,1,0,C,0^FD$cleanName^FS
+^FO10,66^A0N,18,18^FB396,1,0,C,0^FDROLE: $cleanRole  •  ID: $cleanId^FS
 
-; 3. CODE 128 BARCODE
-^FO55,115^BY2,2.5,50^BCN,50,Y,N,N^FD$barcodePayload^FS
+; 3. CODE 128 BARCODE (Short 7-char payload fits 2x1 label cleanly)
+^FO35,88^BY2,2.0,55^BCN,55,Y,N,N^FD$barcodePayload^FS
 
 ; 4. FOOTER
-^FO15,208^GB426,1,1^FS
-^FO15,220^A0N,16,16^FB426,1,0,C,0^FDScan Badge to Sign-In / Audit^FS
+^FO10,172^GB396,1,1^FS
+^FO10,180^A0N,14,14^FB396,1,0,C,0^FDScan Badge to Sign-In / Audit^FS
 
 ^XZ
         """.trimIndent()
@@ -265,11 +272,11 @@ object ZplGenerator {
 
     /**
      * Generates a 2.25" x 1.25" ZPL ServSafe "Pull to Thaw" label (203 dpi Zebra QLn420).
-     * Enforces strict ServSafe TCS 7-day expiration (<=41degF) when pulled from freezer to thaw in cooler.
+     * No barcodes, large item name, clear discard date, clean ASCII (no degree symbol / ?).
      */
     fun generateThawLabelZpl(
         itemName: String,
-        upc: String,
+        upc: String = "",
         thawDate: LocalDate = LocalDate.now(),
         staffInitials: String = "DO"
     ): String {
@@ -277,29 +284,192 @@ object ZplGenerator {
         val useByStr = thawDate.plusDays(7).format(dateFormatter)
         val cleanName = itemName.trim()
         val cleanInitials = if (staffInitials.isBlank()) "DO" else staffInitials.trim()
-        val cleanUpc = if (upc.isNotBlank()) upc.trim() else "000000000000"
 
         return """
 ^XA
+^MNY
+^MTD
 ^PW456
 ^LL254
 ^MD18
 ^LH10,10
 
-; --- 1. THAW HEADER ---
-^FO0,10^A0N,22,22^FB436,1,0,C,0^FD[ PULLED TO THAW - SERVSAFE ]^FS
-^FO10,36^GB416,2,2^FS
+; --- 1. ITEM NAME (Large & Prominent 34pt font) ---
+^FO10,10^A0N,34,32^FB436,2,0,L,0^FD$cleanName^FS
 
-; --- 2. PRODUCT NAME ---
-^FO10,48^A0N,28,28^FB416,2,0,L,0^FD$cleanName^FS
+; --- DIVIDER LINE ---
+^FO10,95^GB436,2,2^FS
 
-; --- 3. THAW DATES ---
-^FO10,110^A0N,20,20^FB416,1,0,L,0^FDPULLED: $thawStr • LOC: COOLER^FS
-^FO10,135^A0N,26,26^FB416,1,0,L,0^FDDISCBY: $useByStr (+7d)^FS
+; --- 2. THAW HEADER & DATE ---
+^FO10,108^A0N,22,22^FDPULLED: $thawStr^FS
+^FO250,108^A0N,20,20^FD[ THAW COOLER ]^FS
 
-; --- 4. BARCODE & SIGNATURE ---
-^FO40,168^BY2,2.5,45^BCN,45,Y,N,N^FD$cleanUpc^FS
-^FO320,220^A0N,18,18^FDBY: $cleanInitials^FS
+; --- 3. DISCARD DATE (Largest 40pt font) ---
+^FO10,145^A0N,28,26^FDDISCARD:^FS
+^FO150,138^A0N,40,38^FD$useByStr^FS
+
+; --- DIVIDER LINE ---
+^FO10,190^GB436,2,2^FS
+
+; --- 4. STAFF SIGNATURE & ROTATION ---
+^FO10,202^A0N,20,20^FDBY: $cleanInitials^FS
+^FO160,202^A0N,20,20^FDFIFO - ROTATE STOCK^FS
+
+^XZ
+        """.trimIndent()
+    }
+
+    /**
+     * Generates a 2.25" x 1.25" ZPL "Opened Container" ServSafe TCS label (203 dpi Zebra QLn420).
+     * No barcodes, large item name, clear discard date, clean ASCII (no degree symbol / ?).
+     */
+    fun generateOpenedContainerZpl(
+        itemName: String,
+        upc: String = "",
+        openedDate: LocalDate = LocalDate.now(),
+        staffInitials: String = "DO"
+    ): String {
+        val openedStr = openedDate.format(dateFormatter)
+        val useByStr = openedDate.plusDays(7).format(dateFormatter)
+        val cleanName = itemName.trim()
+        val cleanInitials = if (staffInitials.isBlank()) "DO" else staffInitials.trim()
+
+        return """
+^XA
+^MNY
+^MTD
+^PW456
+^LL254
+^MD18
+^LH10,10
+
+; --- 1. ITEM NAME (Large & Prominent 34pt font) ---
+^FO10,10^A0N,34,32^FB436,2,0,L,0^FD$cleanName^FS
+
+; --- DIVIDER LINE ---
+^FO10,95^GB436,2,2^FS
+
+; --- 2. OPENED DATE & TEMP ---
+^FO10,108^A0N,22,22^FDOPENED: $openedStr^FS
+^FO250,108^A0N,20,20^FDKEEP <= 41F^FS
+
+; --- 3. DISCARD DATE (Largest 40pt font) ---
+^FO10,145^A0N,28,26^FDDISCARD:^FS
+^FO150,138^A0N,40,38^FD$useByStr^FS
+
+; --- DIVIDER LINE ---
+^FO10,190^GB436,2,2^FS
+
+; --- 4. STAFF SIGNATURE & ROTATION ---
+^FO10,202^A0N,20,20^FDBY: $cleanInitials^FS
+^FO160,202^A0N,20,20^FDFIFO - ROTATE STOCK^FS
+
+^XZ
+        """.trimIndent()
+    }
+
+    /**
+     * Generates a 2.25" x 1.25" ZPL ServSafe Prepared / Cooked Food Prep label (203 dpi Zebra QLn420).
+     * No barcodes, large item name, clear discard date, clean ASCII (no degree symbol / ?).
+     *
+     * @param prepItemName Name of dish / prepared item (e.g. "Tuna Salad", "Cooked Marinara", "Sliced Turkey")
+     * @param prepDate Date prepared (defaults to today)
+     * @param prepType Category / Prep Type label (e.g. "PREPARED FOOD", "COOK & CHILL", "PORTIONED")
+     * @param retentionDays Days until discard (defaults to 7 for ServSafe TCS)
+     * @param staffInitials Staff initials for accountability
+     */
+    fun generatePrepLabelZpl(
+        prepItemName: String,
+        prepDate: LocalDate = LocalDate.now(),
+        prepType: String = "PREPARED FOOD",
+        retentionDays: Int = 7,
+        staffInitials: String = "DO",
+        companyHeader: String = "DIETARY KITCHEN PREP"
+    ): String {
+        val prepStr = prepDate.format(dateFormatter)
+        val discardDate = prepDate.plusDays(retentionDays.toLong())
+        val discardStr = discardDate.format(dateFormatter)
+        val cleanName = prepItemName.trim()
+        val cleanInitials = if (staffInitials.isBlank()) "DO" else staffInitials.trim()
+
+        return """
+^XA
+^MNY
+^MTD
+^PW456
+^LL254
+^MD18
+^LH10,10
+
+; --- 1. PREP ITEM NAME (Large & Prominent 36pt font) ---
+^FO10,10^A0N,36,34^FB436,2,0,L,0^FD$cleanName^FS
+
+; --- DIVIDER LINE ---
+^FO10,95^GB436,2,2^FS
+
+; --- 2. PREPPED DATE & TEMP ---
+^FO10,108^A0N,22,22^FDPREPPED: $prepStr^FS
+^FO250,108^A0N,20,20^FDKEEP <= 41F^FS
+
+; --- 3. DISCARD DATE (Largest 40pt font) ---
+^FO10,145^A0N,28,26^FDDISCARD:^FS
+^FO150,138^A0N,40,38^FD$discardStr^FS
+
+; --- DIVIDER LINE ---
+^FO10,190^GB436,2,2^FS
+
+; --- 4. STAFF SIGNATURE & ROTATION ---
+^FO10,202^A0N,20,20^FDBY: $cleanInitials^FS
+^FO160,202^A0N,20,20^FDFIFO - ROTATE STOCK^FS
+
+^XZ
+        """.trimIndent()
+    }
+
+    /**
+     * Generates a 2.25" x 1.25" ZPL ServSafe "USE FIRST" rotation thermal sticker (203 dpi Zebra QLn420).
+     * Flashy bold "USE FIRST" border box, optional item name, print date, and small staff initials at the very bottom.
+     */
+    fun generateUseFirstLabelZpl(
+        itemName: String = "",
+        printDate: LocalDate = LocalDate.now(),
+        staffInitials: String = "DO"
+    ): String {
+        val printDateStr = printDate.format(dateFormatter)
+        val cleanName = itemName.trim().uppercase()
+        val cleanInitials = if (staffInitials.isBlank()) "DO" else staffInitials.trim().uppercase()
+
+        val hasName = cleanName.isNotBlank()
+        val boxHeight = if (hasName) 115 else 145
+        val textY = if (hasName) 20 else 32
+        val subY = if (hasName) 80 else 98
+
+        val nameZpl = if (hasName) {
+            "^FO10,138^A0N,24,24^FB416,1,0,C,0^FD$cleanName^FS\n^FO10,170^GB416,1,1^FS"
+        } else {
+            ""
+        }
+
+        return """
+^XA
+^MNY
+^MTD
+^PW456
+^LL254
+^MD18
+^LH10,10
+
+; --- 1. FLASHY BOLD USE FIRST FRAME BOX ---
+^FO10,10^GB416,$boxHeight,6^FS
+^FO20,$textY^A0N,60,56^FB396,1,0,C,0^FDUSE FIRST^FS
+^FO20,$subY^A0N,22,20^FB396,1,0,C,0^FDROTATE STOCK - SERVSAFE FIFO^FS
+
+$nameZpl
+
+; --- 2. PRINT DATE & SMALL INITIALS AT VERY BOTTOM ---
+^FO10,192^GB416,1,1^FS
+^FO10,208^A0N,18,18^FDDATED: $printDateStr^FS
+^FO280,208^A0N,16,16^FDBY: $cleanInitials^FS
 
 ^XZ
         """.trimIndent()

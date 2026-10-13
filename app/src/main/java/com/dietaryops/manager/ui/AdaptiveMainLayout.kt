@@ -1,6 +1,7 @@
 package com.dietaryops.manager.ui
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,8 +29,13 @@ import com.dietaryops.manager.ProductManager
 import com.dietaryops.manager.ZebraPrinterManager
 import com.dietaryops.manager.ZplGenerator
 import com.dietaryops.manager.data.SettingsManager
+import com.dietaryops.manager.data.model.AppPermission
 import com.dietaryops.manager.ui.components.BadgeLoginDialog
+import com.dietaryops.manager.ui.components.FloorNoteDialog
 import com.dietaryops.manager.ui.screens.InventoryLogsScreen
+import com.dietaryops.manager.ui.screens.KitchenDisplayScreen
+import com.dietaryops.manager.ui.screens.LiveCanvasScreen
+import com.dietaryops.manager.ui.screens.PrepStickersScreen
 import com.dietaryops.manager.ui.screens.ReceivingScreen
 import com.dietaryops.manager.ui.screens.SettingsScreen
 import com.dietaryops.manager.ui.theme.PrimaryGradient
@@ -39,7 +45,10 @@ enum class NavDestination(
     val icon: ImageVector
 ) {
     RECEIVING("Receiving", Icons.Default.QrCodeScanner),
+    PREP_STICKERS("Prep Stickers", Icons.Default.RestaurantMenu),
+    KITCHEN_DISPLAY("Kitchen Hub", Icons.Default.Restaurant),
     INVENTORY("Inventory Logs", Icons.Default.Inventory),
+    CANVAS_SHEET("Live Canvas", Icons.Default.TableChart),
     SETTINGS("Settings", Icons.Default.Settings)
 }
 
@@ -54,10 +63,38 @@ fun AdaptiveMainLayout(
     var showProfileDialog by remember { mutableStateOf(false) }
     var showBadgeLoginDialog by remember { mutableStateOf(false) }
     var showOperatorSheet by remember { mutableStateOf(false) }
+    var showFloorNoteDialog by remember { mutableStateOf(false) }
+    var showDashboardDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val printerState by printerManager.connectionState.collectAsState()
     val connectedDevice by printerManager.connectedDevice.collectAsState()
+
+    val currentStaffUser = settingsManager.currentStaffUser
+
+    fun isDestinationVisible(destination: NavDestination): Boolean {
+        return when (destination) {
+            NavDestination.RECEIVING -> currentStaffUser.hasPermission(AppPermission.PREP_LABELS) ||
+                                        currentStaffUser.hasPermission(AppPermission.RECEIVING_SCAN)
+            NavDestination.PREP_STICKERS -> currentStaffUser.hasPermission(AppPermission.PREP_LABELS) ||
+                                            currentStaffUser.hasPermission(AppPermission.RECEIVING_SCAN)
+            NavDestination.KITCHEN_DISPLAY -> currentStaffUser.hasPermission(AppPermission.PREP_LABELS) ||
+                                              currentStaffUser.hasPermission(AppPermission.RECEIVING_SCAN) ||
+                                              currentStaffUser.hasPermission(AppPermission.VIEW_INVENTORY)
+            NavDestination.INVENTORY -> currentStaffUser.hasPermission(AppPermission.VIEW_INVENTORY)
+            NavDestination.CANVAS_SHEET -> true
+            NavDestination.SETTINGS -> currentStaffUser.hasPermission(AppPermission.PRINTER_SETTINGS) ||
+                                       currentStaffUser.hasPermission(AppPermission.BASIC_ADMIN_SETTINGS) ||
+                                       currentStaffUser.hasPermission(AppPermission.ADVANCED_SETTINGS) ||
+                                       currentStaffUser.hasPermission(AppPermission.BACKEND_SETTINGS)
+        }
+    }
+
+    LaunchedEffect(currentStaffUser.role) {
+        if (!isDestinationVisible(currentDestination)) {
+            currentDestination = NavDestination.RECEIVING
+        }
+    }
 
     // Staff profile dialog
     if (showProfileDialog) {
@@ -175,28 +212,16 @@ fun AdaptiveMainLayout(
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         FilterChip(
-                            selected = settingsManager.employeeId == SettingsManager.ADMIN_EMPLOYEE_ID,
-                            onClick = {
-                                settingsManager.employeeId = SettingsManager.ADMIN_EMPLOYEE_ID
-                                settingsManager.staffName = SettingsManager.ADMIN_NAME
-                                settingsManager.staffInitials = "AD"
-                                settingsManager.staffRole = "SUPER_ADMIN"
-                                settingsManager.department = "Dietary"
-                                Toast.makeText(context, "Switched operator to System Administrator (AD99)", Toast.LENGTH_SHORT).show()
-                            },
-                            label = { Text("Admin (AD99)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
-                        )
-                        FilterChip(
                             selected = settingsManager.employeeId == "TL01",
                             onClick = {
                                 settingsManager.employeeId = "TL01"
                                 settingsManager.staffName = "Terry Little Jr."
                                 settingsManager.staffInitials = "TL"
-                                settingsManager.staffRole = "SUPERVISOR"
+                                settingsManager.staffRole = "RECEIVER"
                                 settingsManager.department = "Dietary"
-                                Toast.makeText(context, "Switched operator to Terry Little Jr. (TL01)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Switched operator to Terry Little Jr. (TL01 - Receiver)", Toast.LENGTH_SHORT).show()
                             },
-                            label = { Text("Terry (TL01)", fontSize = 11.sp) }
+                            label = { Text("Receiver (TL01)", fontSize = 11.sp) }
                         )
                         FilterChip(
                             selected = settingsManager.employeeId == "AT01",
@@ -204,11 +229,35 @@ fun AdaptiveMainLayout(
                                 settingsManager.employeeId = "AT01"
                                 settingsManager.staffName = "Andy Tygart"
                                 settingsManager.staffInitials = "AT"
-                                settingsManager.staffRole = "SUPERVISOR"
+                                settingsManager.staffRole = "MANAGER"
                                 settingsManager.department = "Dietary"
-                                Toast.makeText(context, "Switched operator to Andy Tygart (AT01)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Switched operator to Andy Tygart (AT01 - Manager)", Toast.LENGTH_SHORT).show()
                             },
-                            label = { Text("Andy (AT01)", fontSize = 11.sp) }
+                            label = { Text("Manager (AT01)", fontSize = 11.sp) }
+                        )
+                        FilterChip(
+                            selected = settingsManager.employeeId == "CK01",
+                            onClick = {
+                                settingsManager.employeeId = "CK01"
+                                settingsManager.staffName = "Kitchen Cook"
+                                settingsManager.staffInitials = "CK"
+                                settingsManager.staffRole = "COOK"
+                                settingsManager.department = "Dietary"
+                                Toast.makeText(context, "Switched operator to Kitchen Cook (CK01 - Cook)", Toast.LENGTH_SHORT).show()
+                            },
+                            label = { Text("Cook (CK01)", fontSize = 11.sp) }
+                        )
+                        FilterChip(
+                            selected = settingsManager.employeeId == "AI01",
+                            onClick = {
+                                settingsManager.employeeId = "AI01"
+                                settingsManager.staffName = "Dietary Aide"
+                                settingsManager.staffInitials = "AI"
+                                settingsManager.staffRole = "AIDE"
+                                settingsManager.department = "Dietary"
+                                Toast.makeText(context, "Switched operator to Dietary Aide (AI01 - Aide)", Toast.LENGTH_SHORT).show()
+                            },
+                            label = { Text("Aide (AI01)", fontSize = 11.sp) }
                         )
                         FilterChip(
                             selected = settingsManager.employeeId == "LS01",
@@ -216,11 +265,11 @@ fun AdaptiveMainLayout(
                                 settingsManager.employeeId = "LS01"
                                 settingsManager.staffName = "Lorraine S."
                                 settingsManager.staffInitials = "LS"
-                                settingsManager.staffRole = "EVS MANAGER"
+                                settingsManager.staffRole = "MANAGER"
                                 settingsManager.department = "EVS"
-                                Toast.makeText(context, "Switched operator to Lorraine S. (LS01)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Switched operator to Lorraine S. (LS01 - EVS Manager)", Toast.LENGTH_SHORT).show()
                             },
-                            label = { Text("Lorraine (LS01)", fontSize = 11.sp) }
+                            label = { Text("EVS Manager (LS01)", fontSize = 11.sp) }
                         )
                     }
 
@@ -294,6 +343,93 @@ fun AdaptiveMainLayout(
         )
     }
 
+    if (showFloorNoteDialog) {
+        FloorNoteDialog(
+            settingsManager = settingsManager,
+            onDismiss = { showFloorNoteDialog = false },
+            onSubmitSuccess = { showFloorNoteDialog = false }
+        )
+    }
+
+    if (showDashboardDialog) {
+        AlertDialog(
+            onDismissRequest = { showDashboardDialog = false },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Analytics,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            },
+            title = { Text("Google Sheets Live Dashboards", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text(
+                        "Tap to open your live inventory and kitchen analytics dashboards directly in Google Sheets:",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Button(
+                        onClick = {
+                            showDashboardDialog = false
+                            settingsManager.openUrl(context, settingsManager.liveDashboardUrl)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Open Live Inventory Dashboard", fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            showDashboardDialog = false
+                            settingsManager.openUrl(context, settingsManager.kitchenDashboardUrl)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Open Kitchen Operations Dashboard", fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            showDashboardDialog = false
+                            settingsManager.openUrl(context, "https://docs.google.com/spreadsheets/d/${settingsManager.sheetId}")
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Open Full Google Sheet", fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showDashboardDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
+
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val isWideScreen = maxWidth >= 720.dp
 
@@ -331,7 +467,7 @@ fun AdaptiveMainLayout(
                     }
                 ) {
                     NavDestination.entries.forEach { destination ->
-                        if (destination == NavDestination.SETTINGS && settingsManager.staffRole == "OPERATOR") return@forEach
+                        if (!isDestinationVisible(destination)) return@forEach
                         
                         NavigationRailItem(
                             selected = currentDestination == destination,
@@ -365,6 +501,23 @@ fun AdaptiveMainLayout(
                                     )
                                 }
                             }
+                        }
+                        NavDestination.PREP_STICKERS -> {
+                            PrepStickersScreen(
+                                printerManager = printerManager,
+                                settingsManager = settingsManager
+                            )
+                        }
+                        NavDestination.KITCHEN_DISPLAY -> {
+                            KitchenDisplayScreen(
+                                printerManager = printerManager,
+                                settingsManager = settingsManager
+                            )
+                        }
+                        NavDestination.CANVAS_SHEET -> {
+                            LiveCanvasScreen(
+                                settingsManager = settingsManager
+                            )
                         }
                         NavDestination.SETTINGS -> {
                             SettingsScreen(
@@ -431,46 +584,45 @@ fun AdaptiveMainLayout(
                                 }
                             }
 
-                            // Right Action / Profile & Printer Indicators
+                            // Right Action / Profile & Dashboard Indicators
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                // Live Compact Printer Pill
-                                val (statusDotColor, statusLabel) = when (printerState) {
-                                    ConnectionState.CONNECTED -> Pair(Color(0xFF10B981), connectedDevice?.let { try { it.name } catch (_: SecurityException) { null } } ?: "Zebra")
-                                    ConnectionState.CONNECTING -> Pair(Color(0xFFF59E0B), "Pairing...")
-                                    ConnectionState.ERROR -> Pair(MaterialTheme.colorScheme.error, "Err")
-                                    ConnectionState.DISCONNECTED -> Pair(Color(0xFF64748B), "Offline")
+                                // Dashboard Quick Access Button
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = CircleShape,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)),
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clickable { showDashboardDialog = true }
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Default.Analytics,
+                                            contentDescription = "Live Dashboards",
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
                                 }
 
+                                // Floor Note / Idea Report Button
                                 Surface(
-                                    color = statusDotColor.copy(alpha = 0.12f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, statusDotColor.copy(alpha = 0.3f))
+                                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                                    shape = CircleShape,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)),
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clickable { showFloorNoteDialog = true }
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(6.dp)
-                                                .clip(CircleShape)
-                                                .background(statusDotColor)
-                                        )
+                                    Box(contentAlignment = Alignment.Center) {
                                         Icon(
-                                            Icons.Default.Print,
-                                            contentDescription = null,
-                                            tint = statusDotColor,
-                                            modifier = Modifier.size(12.dp)
-                                        )
-                                        Text(
-                                            text = statusLabel,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = statusDotColor
+                                            Icons.Default.Lightbulb,
+                                            contentDescription = "Report Floor Note",
+                                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                            modifier = Modifier.size(18.dp)
                                         )
                                     }
                                 }
@@ -515,6 +667,8 @@ fun AdaptiveMainLayout(
                             tonalElevation = 0.dp
                         ) {
                             NavDestination.entries.forEach { destination ->
+                                if (!isDestinationVisible(destination)) return@forEach
+
                                 NavigationBarItem(
                                     selected = currentDestination == destination,
                                     onClick = { currentDestination = destination },
@@ -550,9 +704,20 @@ fun AdaptiveMainLayout(
                             printerManager = printerManager,
                             settingsManager = settingsManager
                         )
+                        NavDestination.PREP_STICKERS -> PrepStickersScreen(
+                            printerManager = printerManager,
+                            settingsManager = settingsManager
+                        )
+                        NavDestination.KITCHEN_DISPLAY -> KitchenDisplayScreen(
+                            printerManager = printerManager,
+                            settingsManager = settingsManager
+                        )
                         NavDestination.INVENTORY -> InventoryLogsScreen(
                             repository = productManager.repository,
                             printerManager = printerManager,
+                            settingsManager = settingsManager
+                        )
+                        NavDestination.CANVAS_SHEET -> LiveCanvasScreen(
                             settingsManager = settingsManager
                         )
                         NavDestination.SETTINGS -> SettingsScreen(

@@ -11,10 +11,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,11 +51,14 @@ import com.dietaryops.manager.ui.components.ScannerOverlay
 import com.dietaryops.manager.ui.theme.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
+import com.dietaryops.manager.data.model.AppPermission
+import com.dietaryops.manager.ui.components.LearnOnScanBottomSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 
 val UNIT_OPTIONS = listOf("EA", "LB", "CS", "CTN", "GAL", "BLK", "BOX", "PK")
@@ -108,6 +114,17 @@ fun ReceivingScreen(
     var showCustomDaysDialog by remember { mutableStateOf(false) }
     var customDaysInput by remember { mutableStateOf("") }
 
+    // Learn on Scan Bottom Sheet state
+    var showLearnOnScanSheet by remember { mutableStateOf(false) }
+    var unmappedBarcodeForLearning by remember { mutableStateOf("") }
+
+    // Prep Sticker Dialog state
+    var showPrepStickerDialog by remember { mutableStateOf(false) }
+    var prepItemNameInput by remember { mutableStateOf("") }
+    var prepCategoryInput by remember { mutableStateOf("PREPARED") }
+    var prepRetentionDaysInput by remember { mutableStateOf(7) }
+    var prepLabelQuantity by remember { mutableStateOf(1) }
+
     var lastSyncedRecordId by remember { mutableStateOf<String?>(null) }
     var recordHasUnsyncedChanges by remember { mutableStateOf(false) }
     var isPackageOpened by remember { mutableStateOf(false) }
@@ -120,22 +137,33 @@ fun ReceivingScreen(
         }
     }
 
-    // Initialize/update label quantity when scannedState changes
+    // Initialize/update label quantity when scannedState changes (Case Pack Wizard)
     LaunchedEffect(scannedState) {
         scannedState?.let { state ->
-            val defaultQty = if (state.onHandAmount > 0.0) state.onHandAmount.toInt() else settingsManager.defaultLabelQuantity
+            val casePack = state.product.casePackQty.coerceAtLeast(1)
+            val defaultQty = if (state.onHandAmount > 0.0) {
+                (state.onHandAmount * casePack).toInt()
+            } else {
+                casePack * settingsManager.defaultLabelQuantity
+            }
             labelQuantity = defaultQty.coerceAtLeast(1)
         }
     }
 
-    // Real-time scan processor
+    // Real-time scan processor (Non-blocking async execution)
     val processUpcScan: (String) -> Unit = { rawUpc ->
-        coroutineScope.launch {
+        val normUpc = SyscoUpcNormalizer.normalize(rawUpc).ifBlank { rawUpc.trim() }
+        statusMessage = "Scanned: $normUpc — Processing..."
+
+        coroutineScope.launch(Dispatchers.IO) {
             val state = productManager.processScan(rawUpc)
-            scannedState = state
-            isScanningEnabled = false
-            isPackageOpened = false
-            recordHasUnsyncedChanges = false
+            withContext(Dispatchers.Main) {
+                scannedState = state
+                isScanningEnabled = false
+                isPackageOpened = false
+                recordHasUnsyncedChanges = false
+                statusMessage = "Scanned: ${state.product.displayNameForLabel} ($normUpc)"
+            }
 
             // Create local scan record & save to master catalog with staff attribution
             val effectiveOnHand = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
@@ -152,27 +180,32 @@ fun ReceivingScreen(
                 receivedBy = currentStaffAttribution
             )
             productManager.saveProduct(state.product)
-            currentScanRecord = scanRecord
+            withContext(Dispatchers.Main) {
+                currentScanRecord = scanRecord
+            }
 
             // Single sync entry point: saves to Room then pushes to Sheets in background
-            isSyncing = true
-            statusMessage = "Syncing scan to Google Sheets..."
             productManager.logScanAsync(scanRecord, coroutineScope) { result ->
-                isSyncing = false
                 result.onSuccess { count ->
                     lastSyncedRecordId = scanRecord.id
                     recordHasUnsyncedChanges = false
-                    statusMessage = if (count > 0) "Scanned & synced to Google Sheets!" else "Scanned: ${state.product.name}"
-                }.onFailure { err ->
-                    statusMessage = "Scanned locally. Sheets sync offline: ${err.localizedMessage}"
                 }
             }
 
-            // Auto-print if enabled and printer selected
+            // Auto-print if enabled and printer selected (Prevent auto-printing Unrecognized Items)
+            val isKnownItem = state.isKnownCatalog &&
+                              !state.product.name.startsWith("Unrecognized", ignoreCase = true) &&
+                              !state.product.name.startsWith("Item (", ignoreCase = true)
+
             val activePrinter = connectedDevice ?: selectedPrinter
-            val printQty = if (state.onHandAmount > 0.0) state.onHandAmount.toInt() else settingsManager.defaultLabelQuantity
-            if (autoPrint && activePrinter != null) {
-                statusMessage = "Printing $printQty label(s) for ${state.product.name}..."
+            val casePack = state.product.casePackQty.coerceAtLeast(1)
+            val printQty = if (state.onHandAmount > 0.0) {
+                (state.onHandAmount * casePack).toInt()
+            } else {
+                casePack * settingsManager.defaultLabelQuantity
+            }
+
+            if (autoPrint && activePrinter != null && isKnownItem) {
                 val zpl = if (settingsManager.department.equals("Environmental Services", ignoreCase = true) || settingsManager.department.equals("EVS", ignoreCase = true)) {
                     ZplGenerator.generateShelfLabelZpl(
                         item = state.product,
@@ -186,15 +219,34 @@ fun ReceivingScreen(
                     )
                 }
                 printerManager.printDirect(activePrinter, zpl, quantity = printQty) { success, msg ->
-                    statusMessage = msg
+                    coroutineScope.launch(Dispatchers.Main) {
+                        statusMessage = msg
+                    }
                     if (success) {
                         coroutineScope.launch { productManager.markRecordPrinted(scanRecord.id) }
                     }
                 }
-            } else if (!isSyncing) {
-                statusMessage = "Scanned: ${state.product.name} (${state.normalizedUpc})"
+            } else if (!isKnownItem) {
+                withContext(Dispatchers.Main) {
+                    unmappedBarcodeForLearning = normUpc
+                    showLearnOnScanSheet = true
+                    statusMessage = "⚠️ Unrecognized Item ($normUpc) — Select matching item in Learn on Scan."
+                }
             }
         }
+    }
+
+    if (showLearnOnScanSheet && unmappedBarcodeForLearning.isNotBlank()) {
+        LearnOnScanBottomSheet(
+            unrecognizedUpcOrItemNum = unmappedBarcodeForLearning,
+            productManager = productManager,
+            settingsManager = settingsManager,
+            onDismiss = { showLearnOnScanSheet = false },
+            onLinkedSuccess = { mappedItem ->
+                showLearnOnScanSheet = false
+                processUpcScan(mappedItem.syscoUpc)
+            }
+        )
     }
 
     val remoteBannerMessage by RemoteConfigManager.bannerMessage.collectAsState()
@@ -297,7 +349,8 @@ fun ReceivingScreen(
         }
 
         // Open Admin Drawer Button
-        if (settingsManager.staffRole != "OPERATOR") {
+        if (settingsManager.currentStaffUser.hasPermission(AppPermission.PRINTER_SETTINGS) ||
+            settingsManager.currentStaffUser.hasPermission(AppPermission.BASIC_ADMIN_SETTINGS)) {
             Button(
                 onClick = { coroutineScope.launch { drawerState.open() } },
                 modifier = Modifier.fillMaxWidth(),
@@ -309,35 +362,36 @@ fun ReceivingScreen(
             }
         }
 
-        // Action Row: Positioned directly above Camera Window for Ergonomics
+        // Action Row 1: Primary Scanner Button (Full Width, Spacious)
+        Button(
+            onClick = {
+                isCameraActive = true
+                isScanningEnabled = true
+                scannedState = null
+                currentScanRecord = null
+                statusMessage = "Ready to scan barcode..."
+            },
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(
+                imageVector = if (isCameraActive) Icons.Default.QrCodeScanner else Icons.Default.CameraAlt,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = if (isCameraActive) "Scan Next Barcode" else "Start Scanner",
+                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp
+            )
+        }
+
+        // Action Row 2: Secondary Quick Buttons (Manual Lookup & Prep Sticker)
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Button(
-                onClick = {
-                    isCameraActive = true
-                    isScanningEnabled = true
-                    scannedState = null
-                    currentScanRecord = null
-                    statusMessage = "Ready to scan barcode..."
-                },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    imageVector = if (isCameraActive) Icons.Default.QrCodeScanner else Icons.Default.CameraAlt,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (isCameraActive) "Scan Next Barcode" else "Start Scanner",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
-                )
-            }
-
             OutlinedButton(
                 onClick = {
                     val nextShowState = !showManualInputCard
@@ -351,9 +405,22 @@ fun ReceivingScreen(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                Icon(Icons.Default.Keyboard, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Manual UPC", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                Icon(Icons.Default.Keyboard, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Manual UPC", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+            }
+
+            Button(
+                onClick = {
+                    showPrepStickerDialog = true
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Prep Sticker", fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
 
@@ -379,13 +446,13 @@ fun ReceivingScreen(
                     modifier = Modifier.padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("🔍 Manual Barcode / Product Lookup", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("🔍 Manual UPC or Sysco Item # Keypad", fontWeight = FontWeight.Bold, fontSize = 15.sp)
 
                     OutlinedTextField(
                         value = manualUpcInput,
                         onValueChange = { manualUpcInput = it },
-                        label = { Text("Type 12-digit UPC or Product Name") },
-                        placeholder = { Text("e.g. 074861000001 or Brown Sugar") },
+                        label = { Text("Type UPC, 6-7 Digit Sysco Item #, or Name") },
+                        placeholder = { Text("e.g. 4455648 for Quaker Oats or 074865027137") },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         trailingIcon = {
                             if (manualUpcInput.isNotEmpty()) {
@@ -395,10 +462,36 @@ fun ReceivingScreen(
                             }
                         },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = {
+                                if (manualUpcInput.isNotBlank()) {
+                                    processUpcScan(manualUpcInput)
+                                    showManualInputCard = false
+                                    isCameraActive = true
+                                }
+                            }
+                        ),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
+
+                    Button(
+                        onClick = {
+                            if (manualUpcInput.isNotBlank()) {
+                                processUpcScan(manualUpcInput)
+                                showManualInputCard = false
+                                isCameraActive = true
+                            }
+                        },
+                        enabled = manualUpcInput.isNotBlank(),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Lookup & Process Item", fontWeight = FontWeight.Bold)
+                    }
 
                     if (searchResults.isNotEmpty()) {
                         Text("Matching Catalog Items (${searchResults.size}):", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
@@ -415,6 +508,7 @@ fun ReceivingScreen(
                                         .clickable {
                                             processUpcScan(matchItem.syscoUpc)
                                             showManualInputCard = false
+                                            isCameraActive = true
                                         }
                                 ) {
                                     Row(
@@ -441,6 +535,7 @@ fun ReceivingScreen(
                                 onClick = {
                                     processUpcScan(manualUpcInput)
                                     showManualInputCard = false
+                                    isCameraActive = true
                                 },
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -1036,6 +1131,28 @@ fun ReceivingScreen(
                             Text("Print ($labelQuantity)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
 
+                        OutlinedButton(
+                            onClick = {
+                                val activePrinter = connectedDevice ?: selectedPrinter
+                                if (activePrinter != null) {
+                                    val zpl = ZplGenerator.generateUseFirstLabelZpl(
+                                        itemName = prod.name,
+                                        printDate = LocalDate.now(),
+                                        staffInitials = settingsManager.staffInitials
+                                    )
+                                    printerManager.printDirect(activePrinter, zpl, quantity = labelQuantity) { _, msg ->
+                                        statusMessage = msg
+                                    }
+                                } else {
+                                    Toast.makeText(context, "Select or connect printer first!", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Text("⚠️ Use First", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
+                        }
+
                         Button(
                             onClick = {
                                 val current = currentScanRecord
@@ -1118,6 +1235,8 @@ fun ReceivingScreen(
     if (showEditDialog && scannedState != null) {
         val currentState = scannedState!!
         var editName by remember { mutableStateOf(currentState.product.name) }
+        var editNickname by remember { mutableStateOf(currentState.product.labelNickname) }
+        var editCasePackStr by remember { mutableStateOf(currentState.product.casePackQty.toString()) }
         var editCategory by remember { mutableStateOf(currentState.product.category) }
         var editUnit by remember { mutableStateOf(currentState.product.unit) }
         val initialOnHand = if (currentState.onHandAmount > 0.0) currentState.onHandAmount else 1.0
@@ -1182,6 +1301,25 @@ fun ReceivingScreen(
                             }
                         }
                     }
+
+                    OutlinedTextField(
+                        value = editNickname,
+                        onValueChange = { editNickname = it },
+                        label = { Text("Label Nickname / Short Name (Optional)") },
+                        placeholder = { Text("e.g. Cut Green Beans #10") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = editCasePackStr,
+                        onValueChange = { editCasePackStr = it },
+                        label = { Text("Case Pack Qty (Units/Case)") },
+                        placeholder = { Text("e.g. 6 or 12") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
                     OutlinedTextField(
                         value = editOnHandStr,
@@ -1314,6 +1452,8 @@ fun ReceivingScreen(
                         val scannedUpc = currentState.normalizedUpc.ifBlank { currentState.rawUpc.trim() }
                         val cleanName = editName.ifBlank { "Unrecognized Item" }
 
+                        val editCasePackInt = editCasePackStr.toIntOrNull()?.coerceAtLeast(1) ?: 1
+
                         // Preserve exact scanned barcode & register alternate barcode mapping if linking to existing catalog item
                         val savedCatalogItem = productManager.linkBarcodeToCatalogItem(
                             scannedUpc = scannedUpc,
@@ -1321,7 +1461,9 @@ fun ReceivingScreen(
                             category = editCategory,
                             unit = editUnit,
                             shelfLifeDays = validDays,
-                            onHandAmount = editOnHand
+                            onHandAmount = editOnHand,
+                            casePackQty = editCasePackInt,
+                            labelNickname = editNickname.trim()
                         )
 
                         val updatedProduct = SyscoProduct(
@@ -1335,7 +1477,9 @@ fun ReceivingScreen(
                             piazzaItemNumber = savedCatalogItem.piazzaItemNumber,
                             vendorItemNumber = savedCatalogItem.vendorItemNumber,
                             vendorSku = savedCatalogItem.vendorSku,
-                            alternateBarcodes = savedCatalogItem.alternateBarcodes
+                            alternateBarcodes = savedCatalogItem.alternateBarcodes,
+                            casePackQty = editCasePackInt,
+                            labelNickname = editNickname.trim()
                         )
 
                         val newCalc = DateCalculator.calculate(
@@ -1463,6 +1607,241 @@ fun ReceivingScreen(
                     onClick = {
                         showCustomDaysDialog = false
                         customDaysInput = ""
+                    }
+                ) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showPrepStickerDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showPrepStickerDialog = false
+                prepItemNameInput = ""
+            },
+            icon = {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.secondaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Restaurant,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            },
+            title = { Text("Kitchen Prep & ServSafe Sticker", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.verticalScroll(rememberScrollState())
+                ) {
+                    Text(
+                        "Generate ServSafe compliant prep, thaw, or opened container thermal stickers for Zebra printers.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    OutlinedTextField(
+                        value = prepItemNameInput,
+                        onValueChange = { prepItemNameInput = it },
+                        label = { Text("Prepared Dish / Food Name") },
+                        placeholder = { Text("e.g. Tuna Salad, Sliced Turkey, Marinara") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Quick Food Dish Preset Chips
+                    Text("Quick Dish Presets:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("Tuna Salad", "Sliced Turkey", "Chicken Salad", "Cooked Soup", "Sliced Cheese", "Cut Fruit", "Portioned Dessert").forEach { preset ->
+                            FilterChip(
+                                selected = prepItemNameInput.equals(preset, ignoreCase = true),
+                                onClick = { prepItemNameInput = preset },
+                                label = { Text(preset, fontSize = 11.sp) }
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
+
+                    Text("Prep Category & ServSafe Rule:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        FilterChip(
+                            selected = prepCategoryInput == "PREPARED",
+                            onClick = {
+                                prepCategoryInput = "PREPARED"
+                                prepRetentionDaysInput = 7
+                            },
+                            label = { Text("🥗 Prepared (+7d TCS)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        )
+                        FilterChip(
+                            selected = prepCategoryInput == "USE_FIRST",
+                            onClick = {
+                                prepCategoryInput = "USE_FIRST"
+                                prepRetentionDaysInput = 0
+                            },
+                            label = { Text("⚠️ Use First", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        )
+                        FilterChip(
+                            selected = prepCategoryInput == "THAW",
+                            onClick = {
+                                prepCategoryInput = "THAW"
+                                prepRetentionDaysInput = 7
+                            },
+                            label = { Text("🧊 Pulled to Thaw (+7d)", fontSize = 11.sp) }
+                        )
+                        FilterChip(
+                            selected = prepCategoryInput == "OPENED",
+                            onClick = {
+                                prepCategoryInput = "OPENED"
+                                prepRetentionDaysInput = 7
+                            },
+                            label = { Text("🔓 Opened Container (+7d)", fontSize = 11.sp) }
+                        )
+                    }
+
+                    // Retention Days Preset
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Retention Days:", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            listOf(1, 3, 5, 7, 14).forEach { days ->
+                                FilterChip(
+                                    selected = prepRetentionDaysInput == days,
+                                    onClick = { prepRetentionDaysInput = days },
+                                    label = { Text("+${days}d", fontSize = 11.sp) }
+                                )
+                            }
+                        }
+                    }
+
+                    val calculatedDiscardDate = remember(prepRetentionDaysInput) {
+                        LocalDate.now().plusDays(prepRetentionDaysInput.toLong()).format(
+                            DateTimeFormatter.ofPattern("MM/dd/yy"))
+                    }
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Discard Date:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Text(calculatedDiscardDate, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                        }
+                    }
+
+                    // Quantity selector
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Sticker Quantity:", fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            IconButton(
+                                onClick = { if (prepLabelQuantity > 1) prepLabelQuantity-- },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                            }
+                            Text("$prepLabelQuantity", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            IconButton(
+                                onClick = { prepLabelQuantity++ },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Increase")
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val activePrinter = connectedDevice ?: selectedPrinter
+                        if (prepItemNameInput.isBlank()) {
+                            Toast.makeText(context, "Please enter item / dish name", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        if (activePrinter == null) {
+                            Toast.makeText(context, "Pair Zebra printer first in Settings", Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
+
+                        val zpl = when (prepCategoryInput) {
+                            "USE_FIRST" -> ZplGenerator.generateUseFirstLabelZpl(
+                                itemName = prepItemNameInput,
+                                printDate = LocalDate.now(),
+                                staffInitials = settingsManager.staffInitials
+                            )
+                            "THAW" -> ZplGenerator.generateThawLabelZpl(
+                                itemName = prepItemNameInput,
+                                upc = "000000000000",
+                                thawDate = LocalDate.now(),
+                                staffInitials = settingsManager.staffInitials
+                            )
+                            "OPENED" -> ZplGenerator.generateOpenedContainerZpl(
+                                itemName = prepItemNameInput,
+                                upc = "000000000000",
+                                openedDate = LocalDate.now(),
+                                staffInitials = settingsManager.staffInitials
+                            )
+                            else -> ZplGenerator.generatePrepLabelZpl(
+                                prepItemName = prepItemNameInput,
+                                prepDate = LocalDate.now(),
+                                prepType = "PREPARED FOOD",
+                                retentionDays = prepRetentionDaysInput,
+                                staffInitials = settingsManager.staffInitials,
+                                companyHeader = "${settingsManager.companyCode} KITCHEN PREP"
+                            )
+                        }
+
+                        printerManager.printDirect(activePrinter, zpl, quantity = prepLabelQuantity) { success, msg ->
+                            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                            if (success) {
+                                showPrepStickerDialog = false
+                                prepItemNameInput = ""
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Print ($prepLabelQuantity)")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showPrepStickerDialog = false
+                        prepItemNameInput = ""
                     }
                 ) {
                     Text("Cancel")

@@ -15,10 +15,10 @@ interface CatalogItemDao {
     @Query("SELECT * FROM catalog_items WHERE name = :name COLLATE NOCASE LIMIT 1")
     suspend fun getByName(name: String): CatalogItem?
 
-    @Query("SELECT * FROM catalog_items")
+    @Query("SELECT * FROM catalog_items ORDER BY shelfOrderIndex ASC, name ASC, syscoUpc ASC")
     fun getAllCatalogItems(): Flow<List<CatalogItem>>
 
-    @Query("SELECT * FROM catalog_items")
+    @Query("SELECT * FROM catalog_items ORDER BY shelfOrderIndex ASC, name ASC, syscoUpc ASC")
     suspend fun getAllCatalogItemsList(): List<CatalogItem>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -29,4 +29,10 @@ interface CatalogItemDao {
 
     @Query("DELETE FROM catalog_items WHERE syscoUpc = :upc")
     suspend fun deleteByUpc(upc: String)
+
+    @Query("DELETE FROM catalog_items WHERE name LIKE 'Unrecognized%' OR name LIKE 'Item (%' OR syscoUpc LIKE 'DOPS-AUTH%' OR syscoUpc LIKE 'CV-%'")
+    suspend fun deleteUnrecognizedItems()
+
+    @Query("DELETE FROM catalog_items WHERE LOWER(name) IN ('canned goods', 'dry storage', 'condiments & sauces', 'misc dry & cereal', 'dairy & fresh', 'proteins & frozen', 'supplement', 'general', 'gloves & ppe', 'incontinence (depends)', 'incontinence', 'chemicals & cleaners', 'paper goods', 'liners & trash bags', 'equipment')")
+    suspend fun deleteCategoryHeaderItems()
 }
