@@ -67,9 +67,6 @@ fun AdaptiveMainLayout(
     var showDashboardDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
-    val printerState by printerManager.connectionState.collectAsState()
-    val connectedDevice by printerManager.connectedDevice.collectAsState()
-
     val currentStaffUser = settingsManager.currentStaffUser
 
     fun isDestinationVisible(destination: NavDestination): Boolean {
