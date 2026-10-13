@@ -172,7 +172,7 @@ fun InventoryLogsScreen(
             }
         }
         
-        // "Shelf Layout" preserves exact row position from Google Sheets / Count Walk
+        // "Shelf Layout" preserves exact row position from Google Sheets / Count Walk (never rearrange when counts change)
         sorted
     }
 

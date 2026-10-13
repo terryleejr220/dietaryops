@@ -1147,6 +1147,21 @@ class DeliveryRepository(context: Context) {
         )
         catalogDao.insertOrUpdate(normalizedItem)
         try { firestoreRepository.saveCatalogItem(normalizedItem) } catch (_: Exception) {}
+        try {
+            val record = ScanRecord(
+                syscoUpc = normalizedItem.syscoUpc,
+                itemName = normalizedItem.name,
+                category = normalizedItem.category,
+                shelfLifeDays = normalizedItem.defaultShelfLifeDays,
+                unit = normalizedItem.unit,
+                onHandAmount = normalizedItem.lastOnHandAmount,
+                deliveryDate = java.time.LocalDate.now().toString(),
+                useByDate = java.time.LocalDate.now().plusDays(normalizedItem.defaultShelfLifeDays.toLong()).toString(),
+                receivedBy = settingsManager.staffName
+            )
+            scanRecordDao.insertScanRecord(record)
+            syncWithGoogleSheets()
+        } catch (_: Exception) {}
     }
 
     fun getAllCatalogItems(): Flow<List<CatalogItem>> = catalogDao.getAllCatalogItems()

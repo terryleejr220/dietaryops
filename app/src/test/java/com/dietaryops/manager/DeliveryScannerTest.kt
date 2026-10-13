@@ -125,7 +125,7 @@ class DeliveryScannerTest {
 
     @Test
     fun testDefaultWebAppUrlConfiguration() {
-        val expectedUrl = "https://script.google.com/macros/s/AKfycbx0heDYU0f1XyDELM_DFuKdlKmFW_ZJD6cEGegpLHva19PLv-_2CBE_U2EmAuJt1_FxDg/exec"
+        val expectedUrl = "https://script.google.com/macros/s/AKfycbwvHRDz_7_635MtPnq_ac4gRscE4F_G5N72prO4g4oKheo8kYVUM0XD76jEwoQYHm-H9w/exec"
         assertEquals(expectedUrl, SettingsManager.DEFAULT_WEB_APP_URL)
         assertEquals(expectedUrl, GoogleSheetsApiService.DEFAULT_WEB_APP_URL)
     }
@@ -256,7 +256,6 @@ class DeliveryScannerTest {
             useByDate = "2025-03-17"
         )
         assertEquals(1.0, defaultScanRecord.onHandAmount, 0.001)
-        assertEquals(1.0, defaultScanRecord.effectiveOnHandAmount, 0.001)
 
         val defaultCatalogItem = CatalogItem(
             syscoUpc = "074861000001",

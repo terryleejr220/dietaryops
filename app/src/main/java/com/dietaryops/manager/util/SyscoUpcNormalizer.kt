@@ -9,25 +9,27 @@ object SyscoUpcNormalizer {
     fun normalize(rawInput: String?): String {
         if (rawInput.isNullOrBlank()) return ""
 
-        val clean = rawInput.trim()
-            .removePrefix("(01)")
-            .removePrefix("01")
+        val trimmedInput = rawInput.trim()
 
-        // If rawInput starts with "(" or "]C1" or contains parenthesized GS1 AIs, parse extractedUpc
-        if (clean.startsWith("(") || clean.startsWith("]C1")) {
-            val parsed = Gs1BarcodeParser.parseBarcode(clean)
+        // If rawInput starts with "(" or "]C1" or contains parenthesized GS1 AIs or FNC1, parse extractedUpc
+        if (trimmedInput.contains("(") || trimmedInput.startsWith("]C1") || trimmedInput.contains("\u001D")) {
+            val parsed = Gs1BarcodeParser.parseBarcode(trimmedInput)
             if (parsed.extractedUpc.isNotBlank()) {
                 return parsed.extractedUpc
             }
         }
+
+        val clean = trimmedInput
+            .removePrefix("(01)")
+            .removePrefix("01")
 
         // Strip any non-digit characters for barcode normalization
         val digits = clean.replace(Regex("[^0-9]"), "")
         if (digits.isEmpty()) return clean
 
         return when {
-            // GTIN-14 / ITF-14 with 2 leading zeros ("00") -> 12-digit UPC
-            digits.length == 14 && digits.startsWith("00") -> digits.substring(2)
+            // GTIN-14 / ITF-14 with 2 leading zeros ("00") or indicator "10" -> 12-digit UPC
+            digits.length == 14 && (digits.startsWith("00") || digits.startsWith("10")) -> digits.substring(2)
 
             // GTIN-14 / ITF-14 case code (e.g. 10074865027134) -> extract inner 12-digit UPC (drop indicator & check digit)
             digits.length == 14 -> digits.substring(1, 13)
