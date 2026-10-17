@@ -12,7 +12,12 @@
           "package_name": "com.dietaryops.manager"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1035289624449-84nb76pb3fuh654nvgg3ffuiugr4mcm0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyAHcz8JUXUU80ILDQ1LKizrix7jPaEHZk4"

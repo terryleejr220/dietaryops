@@ -87,9 +87,11 @@ object ZplGenerator {
 ^FO10,158^GB416,2,2^FS
 
 ; --- 4. STAFF INITIALS & ROTATION NOTICE ---
-^FO10,168^A0N,20,20^FDBY: $cleanInitials^FS
-^FO120,168^A0N,18,18^FDFIFO - ROTATE STOCK^FS
-^FO10,192^A0N,16,16^FD$companyHeader^FS
+^FO10,165^A0N,20,20^FDBY: $cleanInitials^FS
+^FO120,165^A0N,18,18^FDFIFO - ROTATE STOCK^FS
+
+; --- 5. CODE 128 BARCODE (Shifted left to ^FO30 to prevent edge cutoff on 14-digit GTINs) ---
+^FO30,185^BY1,2,30^BCN,30,Y,N,N^FD$upc^FS
 
 ^XZ
         """.trimIndent()

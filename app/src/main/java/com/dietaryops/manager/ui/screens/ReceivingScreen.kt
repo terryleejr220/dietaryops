@@ -118,6 +118,9 @@ fun ReceivingScreen(
     var showLearnOnScanSheet by remember { mutableStateOf(false) }
     var unmappedBarcodeForLearning by remember { mutableStateOf("") }
 
+    // High-Quantity Print Warning Safety Dialog state
+    var pendingHighQtyJob by remember { mutableStateOf<Pair<String, Pair<Int, String>>?>(null) }
+
     // Prep Sticker Dialog state
     var showPrepStickerDialog by remember { mutableStateOf(false) }
     var prepItemNameInput by remember { mutableStateOf("") }
@@ -218,7 +221,8 @@ fun ReceivingScreen(
                         staffInitials = settingsManager.staffInitials
                     )
                 }
-                printerManager.printDirect(activePrinter, zpl, quantity = printQty) { success, msg ->
+                // Auto-print is strictly hard-capped to 1 label per box scanned
+                printerManager.printDirect(activePrinter, zpl, quantity = 1) { success, msg ->
                     coroutineScope.launch(Dispatchers.Main) {
                         statusMessage = msg
                     }
@@ -245,6 +249,43 @@ fun ReceivingScreen(
             onLinkedSuccess = { mappedItem ->
                 showLearnOnScanSheet = false
                 processUpcScan(mappedItem.syscoUpc)
+            }
+        )
+    }
+
+    if (pendingHighQtyJob != null) {
+        val (itemName, pair) = pendingHighQtyJob!!
+        val (quantity, zpl) = pair
+        AlertDialog(
+            onDismissRequest = { pendingHighQtyJob = null },
+            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text("⚠️ High Print Quantity Warning", fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "You are about to print $quantity labels for '$itemName'. Are you sure this quantity is correct?",
+                    fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val activePrinter = connectedDevice ?: selectedPrinter
+                        if (activePrinter != null) {
+                            printerManager.printDirect(activePrinter, zpl, quantity = quantity) { _, msg ->
+                                statusMessage = msg
+                            }
+                        }
+                        pendingHighQtyJob = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Yes, Print $quantity Labels")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingHighQtyJob = null }) {
+                    Text("Cancel")
+                }
             }
         )
     }

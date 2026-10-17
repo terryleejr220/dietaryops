@@ -19,6 +19,9 @@ import com.dietaryops.manager.data.SettingsManager
 import androidx.activity.SystemBarStyle
 import com.dietaryops.manager.ui.AdaptiveMainLayout
 import com.dietaryops.manager.ui.theme.DeliveryScannerTheme
+import com.dietaryops.manager.util.RemoteConfig
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 
 class MainActivity : ComponentActivity() {
 
@@ -81,6 +84,9 @@ class MainActivity : ComponentActivity() {
 
                         // Seed default catalog & expiration rules
                         productManager.seedDefaultsIfEmpty()
+
+                        // Sync dynamic remote config in background on launch
+                        RemoteConfig.syncConfig(context, settingsManager.webAppUrl)
 
                         // Drain any unsynced scan records left from previous sessions
                         com.dietaryops.manager.work.SyncWorker.enqueue(context)
