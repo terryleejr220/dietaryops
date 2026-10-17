@@ -22,3 +22,30 @@ steps:
 
 images:
   - 'gcr.io/$PROJECT_ID/dietaryops-admin:$COMMIT_SHA'
+steps:
+  # Build container using Google Buildpacks
+  - name: 'gcr.io/k8s-skaffold/pack'
+    entrypoint: 'pack'
+    args:
+      - 'build'
+      - 'gcr.io/$PROJECT_ID/dietaryops-admin:$COMMIT_SHA'
+      - '--builder=gcr.io/buildpacks/builder:v1'
+      - '--publish'
+
+  # Deploy container to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'dietaryops-admin'
+      - '--image=gcr.io/$PROJECT_ID/dietaryops-admin:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+
+images:
+  - 'gcr.io/$PROJECT_ID/dietaryops-admin:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
