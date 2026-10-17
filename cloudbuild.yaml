@@ -49,3 +49,34 @@ images:
 
 options:
   logging: CLOUD_LOGGING_ONLY
+steps:
+  # Step 0: Give gradlew executable permission
+  - name: 'ubuntu'
+    args: ['chmod', '+x', 'gradlew']
+
+  # Step 1: Build container
+  - name: 'gcr.io/k8s-skaffold/pack'
+    entrypoint: 'pack'
+    args:
+      - 'build'
+      - 'gcr.io/$PROJECT_ID/dietaryops-admin:$COMMIT_SHA'
+      - '--builder=gcr.io/buildpacks/builder:v1'
+      - '--publish'
+
+  # Step 2: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'dietaryops-admin'
+      - '--image=gcr.io/$PROJECT_ID/dietaryops-admin:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+
+images:
+  - 'gcr.io/$PROJECT_ID/dietaryops-admin:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
