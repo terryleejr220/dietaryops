@@ -6,8 +6,8 @@ import java.util.zip.ZipOutputStream
 import java.util.zip.ZipEntry
 import java.util.Properties
 
-val appVersionCode = 34
-val appVersionName = "34.0"
+val appVersionCode = 35
+val appVersionName = "35.0"
 
 val localProperties = Properties().apply {
     val localPropertiesFile = rootProject.file("local.properties")

@@ -202,7 +202,7 @@ class SettingsManager(context: Context) {
         const val ADMIN_NAME = "System Administrator"
 
         const val DEFAULT_WEB_APP_URL =
-            "https://script.google.com/macros/s/AKfycbwvHRDz_7_635MtPnq_ac4gRscE4F_G5N72prO4g4oKheo8kYVUM0XD76jEwoQYHm-H9w/exec"
+            "https://script.google.com/macros/s/AKfycbzNylRogZt0FpU-pMrapoCk8V7c9gtNb195Bl1a1gEFQpbCoQ2hC64I2IWseLwAoikDuA/exec"
         const val DEFAULT_SHEET_ID = "16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY"
         const val DEFAULT_PUBLISHED_WEB_URL =
             "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=1819479005"
