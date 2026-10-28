@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.dietaryops.manager.data.SettingsManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +35,17 @@ fun LiveCanvasScreen(
     var currentUrl by remember { mutableStateOf(liveDashboardUrl) }
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
     var isLoading by remember { mutableStateOf(true) }
+    var isAutoRefreshEnabled by remember { mutableStateOf(true) }
+
+    // Auto-refresh canvas every 5 minutes for wall-mounted kitchen KDS displays
+    LaunchedEffect(isAutoRefreshEnabled, currentUrl) {
+        if (isAutoRefreshEnabled) {
+            while (isActive) {
+                delay(300_000L) // 5 minutes
+                webViewInstance?.reload()
+            }
+        }
+    }
 
     Column(
         modifier = modifier
