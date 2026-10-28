@@ -14,7 +14,11 @@ data class HaccpTempLog(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-enum class StationType(val displayName: String, val defaultTargetMin: Double, val defaultTargetMax: Double) {
+enum class StationType(
+    val displayName: String,
+    val defaultTargetMin: Double,
+    val defaultTargetMax: Double
+) {
     STEAM_TABLE_HOT("Steam Table (Hot Food)", 140.0, 210.0),
     COLD_WELL("Cold Well / Salad Bar", 0.0, 41.0),
     WALK_IN_COOLER("Walk-in Cooler", 32.0, 41.0),

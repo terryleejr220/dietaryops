@@ -52,8 +52,18 @@ object DateCalculator {
         val areaLower = (storageArea ?: "").trim().lowercase()
 
         return when {
-            areaLower.contains("freezer") || catLower.contains("frozen") || catLower.contains("freezer") || catLower.contains("ice cream") -> 14
-            areaLower.contains("cooler") || catLower.contains("dairy") || catLower.contains("fresh") || catLower.contains("produce") || catLower.contains("meat") || catLower.contains("cooler") || catLower.contains("deli") || catLower.contains("egg") || catLower.contains("milk") || catLower.contains("cheese") || catLower.contains("yogurt") || catLower.contains("butter") || catLower.contains("prepared") || catLower.contains("seafood") -> 7
+            areaLower.contains("freezer") || catLower.contains("frozen") || catLower.contains("freezer") || catLower.contains(
+                "ice cream"
+            ) -> 14
+
+            areaLower.contains("cooler") || catLower.contains("dairy") || catLower.contains("fresh") || catLower.contains(
+                "produce"
+            ) || catLower.contains("meat") || catLower.contains("cooler") || catLower.contains("deli") || catLower.contains(
+                "egg"
+            ) || catLower.contains("milk") || catLower.contains("cheese") || catLower.contains("yogurt") || catLower.contains(
+                "butter"
+            ) || catLower.contains("prepared") || catLower.contains("seafood") -> 7
+
             else -> 365
         }
     }
@@ -79,7 +89,11 @@ object DateCalculator {
      * Ensures shelf life is strictly positive and bounded between 1 and 365 days.
      * If days <= 0 or missing, applies ServSafe defaults (Cooler +7d, Freezer +14d, Dry Goods +365d).
      */
-    fun clampShelfLifeDays(days: Int, category: String = "General", storageArea: String? = null): Int {
+    fun clampShelfLifeDays(
+        days: Int,
+        category: String = "General",
+        storageArea: String? = null
+    ): Int {
         if (days <= 0) {
             return getDefaultServSafeDays(category, storageArea)
         }
@@ -89,7 +103,11 @@ object DateCalculator {
     /**
      * Calculate Use-By date given delivery date and shelf life days.
      */
-    fun calculateUseByDate(deliveryDate: LocalDate, shelfLifeDays: Int, category: String = "General"): LocalDate {
+    fun calculateUseByDate(
+        deliveryDate: LocalDate,
+        shelfLifeDays: Int,
+        category: String = "General"
+    ): LocalDate {
         val validDays = clampShelfLifeDays(shelfLifeDays, category)
         return deliveryDate.plusDays(validDays.toLong())
     }
@@ -125,7 +143,10 @@ object DateCalculator {
         category: String,
         customDays: Int? = null
     ): DateCalculationResult {
-        val days = if (customDays != null && customDays > 0) customDays else getShelfLifeDaysForCategory(category)
+        val days =
+            if (customDays != null && customDays > 0) customDays else getShelfLifeDaysForCategory(
+                category
+            )
         return calculate(scanDate, days, category)
     }
 

@@ -31,15 +31,22 @@ fun KitchenInventoryScreen(
     val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("All") }
-    val categories = listOf("All", "Canned Goods", "Dry Storage", "Thickened Beverages", "Proteins & Frozen")
+    val categories =
+        listOf("All", "Canned Goods", "Dry Storage", "Thickened Beverages", "Proteins & Frozen")
 
     var editingItem by remember { mutableStateOf<InventoryItem?>(null) }
     var newCountInput by remember { mutableStateOf("") }
 
     val filteredList = remember(searchQuery, selectedCategory, inventoryList) {
         inventoryList.filter { item ->
-            (selectedCategory == "All" || item.category.equals(selectedCategory, ignoreCase = true)) &&
-            (searchQuery.isBlank() || item.name.contains(searchQuery, ignoreCase = true) || item.category.contains(searchQuery, ignoreCase = true))
+            (selectedCategory == "All" || item.category.equals(
+                selectedCategory,
+                ignoreCase = true
+            )) &&
+                    (searchQuery.isBlank() || item.name.contains(
+                        searchQuery,
+                        ignoreCase = true
+                    ) || item.category.contains(searchQuery, ignoreCase = true))
         }
     }
 
@@ -50,7 +57,10 @@ fun KitchenInventoryScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         // Top Action Bar: Sync to Google Sheets & Open in Drive
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             Button(
                 onClick = { viewModel.syncInventoryToSheets() },
                 modifier = Modifier.weight(1.2f)
@@ -60,7 +70,8 @@ fun KitchenInventoryScreen(
 
             OutlinedButton(
                 onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(ProductManager.SPREADSHEET_URL))
+                    val intent =
+                        Intent(Intent.ACTION_VIEW, Uri.parse(ProductManager.SPREADSHEET_URL))
                     context.startActivity(intent)
                 },
                 modifier = Modifier.weight(1f)
@@ -74,7 +85,14 @@ fun KitchenInventoryScreen(
                 text = statusMessage,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = if (statusMessage.contains("live", ignoreCase = true) || statusMessage.contains("Synced", ignoreCase = true) || statusMessage.contains("success", ignoreCase = true)) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+                color = if (statusMessage.contains(
+                        "live",
+                        ignoreCase = true
+                    ) || statusMessage.contains(
+                        "Synced",
+                        ignoreCase = true
+                    ) || statusMessage.contains("success", ignoreCase = true)
+                ) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
             )
         }
 
@@ -124,15 +142,33 @@ fun KitchenInventoryScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
                                 Text(item.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 if (item.isNew) {
-                                    Surface(color = Color(0xFFE8F5E9), shape = RoundedCornerShape(3.dp)) {
-                                        Text("NEW", color = Color(0xFF2E7D32), fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                    Surface(
+                                        color = Color(0xFFE8F5E9),
+                                        shape = RoundedCornerShape(3.dp)
+                                    ) {
+                                        Text(
+                                            "NEW",
+                                            color = Color(0xFF2E7D32),
+                                            fontSize = 9.sp,
+                                            modifier = Modifier.padding(
+                                                horizontal = 4.dp,
+                                                vertical = 1.dp
+                                            )
+                                        )
                                     }
                                 }
                             }
-                            Text("${item.category} • Prev 8/24: ${if (item.previousCount.isBlank()) "—" else item.previousCount}", fontSize = 11.sp, color = Color.Gray)
+                            Text(
+                                "${item.category} • Prev 8/24: ${if (item.previousCount.isBlank()) "—" else item.previousCount}",
+                                fontSize = 11.sp,
+                                color = Color.Gray
+                            )
                         }
 
                         Surface(

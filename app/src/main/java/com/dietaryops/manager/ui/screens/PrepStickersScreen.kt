@@ -41,7 +41,8 @@ fun PrepStickersScreen(
     var isPrinting by remember { mutableStateOf(false) }
 
     val connectedDevice by printerManager.connectedDevice.collectAsState()
-    val activePrinter = remember(connectedDevice) { connectedDevice ?: printerManager.getPreferredPrinter() }
+    val activePrinter =
+        remember(connectedDevice) { connectedDevice ?: printerManager.getPreferredPrinter() }
 
     val computedDiscardDate = remember(retentionDaysInput) {
         LocalDate.now().plusDays(retentionDaysInput.toLong())
@@ -72,12 +73,26 @@ fun PrepStickersScreen(
                         .background(MaterialTheme.colorScheme.primary),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.RestaurantMenu, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    Icon(
+                        Icons.Default.RestaurantMenu,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Prep & Rotation Sticker Studio", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                    Text("Print ServSafe compliant prep, thaw, opened container, & rotation labels directly to Zebra printers.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f))
+                    Text(
+                        "Prep & Rotation Sticker Studio",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        "Print ServSafe compliant prep, thaw, opened container, & rotation labels directly to Zebra printers.",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                    )
                 }
             }
         }
@@ -86,7 +101,10 @@ fun PrepStickersScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            ),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -105,7 +123,13 @@ fun PrepStickersScreen(
                             selectedStickerType = "PREP"
                             retentionDaysInput = 7
                         },
-                        label = { Text("🥗 Cooked / Prep", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        label = {
+                            Text(
+                                "🥗 Cooked / Prep",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     )
 
@@ -115,7 +139,13 @@ fun PrepStickersScreen(
                             selectedStickerType = "THAW"
                             retentionDaysInput = 7
                         },
-                        label = { Text("🥩 Thaw Pull", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        label = {
+                            Text(
+                                "🥩 Thaw Pull",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -130,7 +160,13 @@ fun PrepStickersScreen(
                             selectedStickerType = "OPENED"
                             retentionDaysInput = 7
                         },
-                        label = { Text("📦 Opened TCS", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        label = {
+                            Text(
+                                "📦 Opened TCS",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     )
 
@@ -144,7 +180,13 @@ fun PrepStickersScreen(
                             selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer
                         ),
-                        label = { Text("⚠️ USE FIRST", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
+                        label = {
+                            Text(
+                                "⚠️ USE FIRST",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -155,7 +197,10 @@ fun PrepStickersScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            ),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -175,7 +220,11 @@ fun PrepStickersScreen(
                 )
 
                 if (selectedStickerType != "USE_FIRST") {
-                    Text("ServSafe Shelf-Life Retention:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "ServSafe Shelf-Life Retention:",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -248,12 +297,20 @@ fun PrepStickersScreen(
                     Button(
                         onClick = {
                             if (itemNameInput.isBlank() && selectedStickerType != "USE_FIRST") {
-                                Toast.makeText(context, "Please enter a product/dish name", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Please enter a product/dish name",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 return@Button
                             }
 
                             if (activePrinter == null) {
-                                Toast.makeText(context, "Connect Zebra printer in Settings to print", Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    context,
+                                    "Connect Zebra printer in Settings to print",
+                                    Toast.LENGTH_LONG
+                                ).show()
                                 return@Button
                             }
 
@@ -263,14 +320,17 @@ fun PrepStickersScreen(
                                     itemName = itemNameInput,
                                     staffInitials = settingsManager.staffInitials
                                 )
+
                                 "OPENED" -> ZplGenerator.generateOpenedContainerZpl(
                                     itemName = itemNameInput,
                                     staffInitials = settingsManager.staffInitials
                                 )
+
                                 "USE_FIRST" -> ZplGenerator.generateUseFirstLabelZpl(
                                     itemName = itemNameInput,
                                     staffInitials = settingsManager.staffInitials
                                 )
+
                                 else -> ZplGenerator.generatePrepLabelZpl(
                                     prepItemName = itemNameInput,
                                     retentionDays = retentionDaysInput,
@@ -278,7 +338,11 @@ fun PrepStickersScreen(
                                 )
                             }
 
-                            printerManager.printDirect(activePrinter, zpl, quantity = printQuantityInput) { success, msg ->
+                            printerManager.printDirect(
+                                activePrinter,
+                                zpl,
+                                quantity = printQuantityInput
+                            ) { success, msg ->
                                 isPrinting = false
                                 Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                             }
@@ -287,9 +351,17 @@ fun PrepStickersScreen(
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         if (isPrinting) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
                         } else {
-                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Print,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Print Sticker ($printQuantityInput)")
                         }

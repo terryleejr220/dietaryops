@@ -44,7 +44,11 @@ fun LiveCanvasScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(14.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                    alpha = 0.6f
+                )
+            )
         ) {
             Row(
                 modifier = Modifier
@@ -65,7 +69,13 @@ fun LiveCanvasScreen(
                             currentUrl = liveDashboardUrl
                             isLoading = true
                         },
-                        label = { Text("📊 Live Dashboard", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        label = {
+                            Text(
+                                "📊 Live Dashboard",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     )
 
                     FilterChip(
@@ -74,7 +84,13 @@ fun LiveCanvasScreen(
                             currentUrl = kitchenDashboardUrl
                             isLoading = true
                         },
-                        label = { Text("👨‍🍳 Kitchen Display", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        label = {
+                            Text(
+                                "👨‍🍳 Kitchen Display",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     )
 
                     FilterChip(
@@ -83,7 +99,13 @@ fun LiveCanvasScreen(
                             currentUrl = inventoryRawUrl
                             isLoading = true
                         },
-                        label = { Text("📋 Inventory Raw", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        label = {
+                            Text(
+                                "📋 Inventory Raw",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     )
                 }
 
@@ -95,9 +117,16 @@ fun LiveCanvasScreen(
                     modifier = Modifier.size(32.dp)
                 ) {
                     if (isLoading) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
                     } else {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh Canvas", modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = "Refresh Canvas",
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }

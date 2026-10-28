@@ -73,7 +73,12 @@ fun HaccpTempDialog(
                 )
 
                 // Station Type Selector Chips
-                Text("Station / Location:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "Station / Location:",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -170,7 +175,11 @@ fun HaccpTempDialog(
             Button(
                 onClick = {
                     if (tempDouble == null) {
-                        Toast.makeText(context, "Please enter a valid temperature", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Please enter a valid temperature",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@Button
                     }
                     isSubmitting = true
@@ -185,7 +194,11 @@ fun HaccpTempDialog(
                         noteContent = logContent
                     )
                     isSubmitting = false
-                    Toast.makeText(context, "Logged ${tempDouble}°F for $stationName [$statusText]", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        "Logged ${tempDouble}°F for $stationName [$statusText]",
+                        Toast.LENGTH_SHORT
+                    ).show()
                     onSubmitSuccess()
                 },
                 enabled = !isSubmitting,

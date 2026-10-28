@@ -12,7 +12,29 @@ fun String.toTitleCase(): String {
 
     // Words that should stay lowercase unless at the start or end of the string
     val minorWords = setOf(
-        "a", "an", "and", "as", "at", "but", "by", "for", "in", "nor", "of", "on", "or", "so", "the", "to", "up", "yet", "v", "vs", "via", "with", "w/"
+        "a",
+        "an",
+        "and",
+        "as",
+        "at",
+        "but",
+        "by",
+        "for",
+        "in",
+        "nor",
+        "of",
+        "on",
+        "or",
+        "so",
+        "the",
+        "to",
+        "up",
+        "yet",
+        "v",
+        "vs",
+        "via",
+        "with",
+        "w/"
     )
 
     // Preserve standard unit/code abbreviations in uppercase

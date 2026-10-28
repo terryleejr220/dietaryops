@@ -52,7 +52,11 @@ fun AdminDrawerContent(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Admin & Diagnostics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(
+                "Admin & Diagnostics",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
             Divider()
 
             // Printer selector
@@ -70,7 +74,11 @@ fun AdminDrawerContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         val displayName = (connectedDevice ?: selectedPrinter)?.let {
-                            try { it.name ?: it.address } catch (_: SecurityException) { it.address }
+                            try {
+                                it.name ?: it.address
+                            } catch (_: SecurityException) {
+                                it.address
+                            }
                         } ?: "No Printer Selected"
                         Text(displayName, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                         Icon(Icons.Default.ArrowDropDown, contentDescription = null)
@@ -78,7 +86,11 @@ fun AdminDrawerContent(
                 }
                 DropdownMenu(expanded = showDropdown, onDismissRequest = { showDropdown = false }) {
                     pairedPrinters.forEach { device ->
-                        val devName = try { device.name ?: device.address } catch (_: SecurityException) { device.address }
+                        val devName = try {
+                            device.name ?: device.address
+                        } catch (_: SecurityException) {
+                            device.address
+                        }
                         DropdownMenuItem(
                             text = { Text(devName) },
                             onClick = {
@@ -97,7 +109,10 @@ fun AdminDrawerContent(
                 ConnectionState.ERROR -> Pair(StatusErrorColor, "ERROR")
                 ConnectionState.DISCONNECTED -> Pair(Color(0xFF64748B), "OFFLINE")
             }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(stateColor))
                 Text(stateText, color = stateColor, fontWeight = FontWeight.Bold)
             }
@@ -111,9 +126,9 @@ fun AdminDrawerContent(
                 Text("Auto-print upon scan:", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 Switch(checked = autoPrint, onCheckedChange = onAutoPrintChanged)
             }
-            
+
             Divider()
-            
+
             // Manual UPC / Item Search Entry
             Text("Manual Item Lookup", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             OutlinedTextField(

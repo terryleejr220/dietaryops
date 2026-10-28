@@ -34,17 +34,21 @@ class ZebraPrinterManager(private val context: Context) {
     @SuppressLint("MissingPermission")
     fun isStrictPrinterDevice(device: BluetoothDevice): Boolean {
         // 1. Check name for known printer keywords
-        val name = try { device.name ?: "" } catch (_: SecurityException) { "" }
+        val name = try {
+            device.name ?: ""
+        } catch (_: SecurityException) {
+            ""
+        }
         if (name.contains("Printer", ignoreCase = true) ||
-            name.contains("Zebra",   ignoreCase = true) ||
-            name.contains("QLn",     ignoreCase = true) ||
-            name.contains("ZQ",      ignoreCase = true) ||
-            name.contains("ZD",      ignoreCase = true) ||
-            name.contains("ZPL",     ignoreCase = true) ||
-            name.contains("Print",   ignoreCase = true) ||
-            name.contains("POS",     ignoreCase = true) ||
-            name.contains("Epson",   ignoreCase = true) ||
-            name.contains("Star",    ignoreCase = true) ||
+            name.contains("Zebra", ignoreCase = true) ||
+            name.contains("QLn", ignoreCase = true) ||
+            name.contains("ZQ", ignoreCase = true) ||
+            name.contains("ZD", ignoreCase = true) ||
+            name.contains("ZPL", ignoreCase = true) ||
+            name.contains("Print", ignoreCase = true) ||
+            name.contains("POS", ignoreCase = true) ||
+            name.contains("Epson", ignoreCase = true) ||
+            name.contains("Star", ignoreCase = true) ||
             name.contains("Bixolon", ignoreCase = true) ||
             name.contains("Brother", ignoreCase = true)
         ) {
@@ -52,7 +56,11 @@ class ZebraPrinterManager(private val context: Context) {
         }
 
         // 2. Check Bluetooth device class (Imaging / Printer)
-        val devClass = try { device.bluetoothClass } catch (_: SecurityException) { null }
+        val devClass = try {
+            device.bluetoothClass
+        } catch (_: SecurityException) {
+            null
+        }
         if (devClass != null) {
             val major = devClass.majorDeviceClass
             val subClass = devClass.deviceClass
@@ -77,8 +85,15 @@ class ZebraPrinterManager(private val context: Context) {
     fun getPreferredPrinter(): BluetoothDevice? {
         val paired = getPairedPrinters()
         return paired.firstOrNull {
-            val devName = try { it.name } catch (_: SecurityException) { null } ?: ""
-            devName.contains("QLn", ignoreCase = true) || devName.contains("Zebra", ignoreCase = true)
+            val devName = try {
+                it.name
+            } catch (_: SecurityException) {
+                null
+            } ?: ""
+            devName.contains("QLn", ignoreCase = true) || devName.contains(
+                "Zebra",
+                ignoreCase = true
+            )
         } ?: paired.firstOrNull()
     }
 
@@ -116,7 +131,12 @@ class ZebraPrinterManager(private val context: Context) {
         storageLocation: String? = null
     ): Boolean {
         val staffInitials = SettingsManager(context).staffInitials
-        val zpl = ZplGenerator.generateLabel(product, deliveryDate, storageLocation, staffInitials = staffInitials)
+        val zpl = ZplGenerator.generateLabel(
+            product,
+            deliveryDate,
+            storageLocation,
+            staffInitials = staffInitials
+        )
         return sppManager.printZpl(zpl)
     }
 
@@ -154,10 +174,24 @@ class ZebraPrinterManager(private val context: Context) {
 
                 outStream.close()
                 socket.close()
-                val nameStr = try { device.name ?: device.address } catch (_: SecurityException) { device.address }
-                mainHandler.post { onResult(true, "Printed ${quantity.coerceAtLeast(1)} label(s) successfully to $nameStr") }
+                val nameStr = try {
+                    device.name ?: device.address
+                } catch (_: SecurityException) {
+                    device.address
+                }
+                mainHandler.post {
+                    onResult(
+                        true,
+                        "Printed ${quantity.coerceAtLeast(1)} label(s) successfully to $nameStr"
+                    )
+                }
             } catch (e: Exception) {
-                mainHandler.post { onResult(false, e.localizedMessage ?: "Bluetooth printer error") }
+                mainHandler.post {
+                    onResult(
+                        false,
+                        e.localizedMessage ?: "Bluetooth printer error"
+                    )
+                }
             }
         }.start()
     }

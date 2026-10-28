@@ -125,8 +125,16 @@ fun KitchenDisplayScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Restaurant, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("Active Meal Line Board", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Icon(
+                            Icons.Default.Restaurant,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            "Active Meal Line Board",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
                     OutlinedButton(
@@ -134,7 +142,11 @@ fun KitchenDisplayScreen(
                         shape = RoundedCornerShape(10.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Icon(Icons.Default.Thermostat, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Icon(
+                            Icons.Default.Thermostat,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Log Temp", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
@@ -207,12 +219,24 @@ fun KitchenDisplayScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                            Text("Portioning & Texture Mods:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                "Portioning & Texture Mods:",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
                         }
 
                         Text("• Portions: ${activeService.portionInstructions}", fontSize = 11.sp)
-                        Text("• Mechanical Soft: ${activeService.mechanicalSoftMod}", fontSize = 11.sp)
+                        Text(
+                            "• Mechanical Soft: ${activeService.mechanicalSoftMod}",
+                            fontSize = 11.sp
+                        )
                         Text("• Pureed: ${activeService.pureedMod}", fontSize = 11.sp)
                     }
                 }
@@ -223,7 +247,10 @@ fun KitchenDisplayScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            ),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -239,8 +266,16 @@ fun KitchenDisplayScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.AcUnit, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("Shift Thaw Pulls & Prep Schedule", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Icon(
+                            Icons.Default.AcUnit,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            "Shift Thaw Pulls & Prep Schedule",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
                     Text(
@@ -256,8 +291,13 @@ fun KitchenDisplayScreen(
                         Surface(
                             color = when (task.status) {
                                 ThawTaskStatus.COMPLETED -> Color(0xFF10B981).copy(alpha = 0.12f)
-                                ThawTaskStatus.IN_PREP -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-                                ThawTaskStatus.SCHEDULED -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                ThawTaskStatus.IN_PREP -> MaterialTheme.colorScheme.primaryContainer.copy(
+                                    alpha = 0.4f
+                                )
+
+                                ThawTaskStatus.SCHEDULED -> MaterialTheme.colorScheme.surfaceVariant.copy(
+                                    alpha = 0.5f
+                                )
                             },
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -274,10 +314,22 @@ fun KitchenDisplayScreen(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Text(task.itemName, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        Text("(${task.batchQty})", fontSize = 11.sp, color = Color.Gray)
+                                        Text(
+                                            task.itemName,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                        Text(
+                                            "(${task.batchQty})",
+                                            fontSize = 11.sp,
+                                            color = Color.Gray
+                                        )
                                     }
-                                    Text("Pull Station: ${task.station} • Time: ${task.scheduledTime}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(
+                                        "Pull Station: ${task.station} • Time: ${task.scheduledTime}",
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
 
                                 Row(
@@ -298,7 +350,8 @@ fun KitchenDisplayScreen(
 
                                             // Auto-print ServSafe Thaw Label on completion
                                             if (nextStatus == ThawTaskStatus.COMPLETED) {
-                                                val activePrinter = printerManager.getPreferredPrinter()
+                                                val activePrinter =
+                                                    printerManager.getPreferredPrinter()
                                                 if (activePrinter != null) {
                                                     val zpl = ZplGenerator.generateThawLabelZpl(
                                                         itemName = task.itemName,
@@ -306,15 +359,32 @@ fun KitchenDisplayScreen(
                                                         thawDate = LocalDate.now(),
                                                         staffInitials = settingsManager.staffInitials
                                                     )
-                                                    printerManager.printDirect(activePrinter, zpl) { success, msg ->
-                                                        Toast.makeText(context, "Printed Thaw Label: $msg", Toast.LENGTH_SHORT).show()
+                                                    printerManager.printDirect(
+                                                        activePrinter,
+                                                        zpl
+                                                    ) { success, msg ->
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Printed Thaw Label: $msg",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
                                                     }
                                                 } else {
-                                                    Toast.makeText(context, "Thaw Task Completed! (Connect Zebra printer in Settings to auto-print label)", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Thaw Task Completed! (Connect Zebra printer in Settings to auto-print label)",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }
                                             }
                                         },
-                                        label = { Text(task.status.displayName, fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                                        label = {
+                                            Text(
+                                                task.status.displayName,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                     )
                                 }
                             }

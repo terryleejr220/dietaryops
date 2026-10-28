@@ -35,7 +35,11 @@ data class MealService(
                 MealService(
                     period = MealPeriod.BREAKFAST,
                     mainEntree = "Scrambled Eggs & Sausage Patties",
-                    sides = listOf("Oatmeal / Cream of Wheat", "Hash Brown Potatoes", "Biscuit & Gravy"),
+                    sides = listOf(
+                        "Oatmeal / Cream of Wheat",
+                        "Hash Brown Potatoes",
+                        "Biscuit & Gravy"
+                    ),
                     dessert = "Chilled Fruit Cup / Orange Juice",
                     portionInstructions = "#8 Scoop Eggs (4 oz) • 2 Patties • 1 Biscuit",
                     mechanicalSoftMod = "Soft Scrambled Eggs & Ground Sausage",

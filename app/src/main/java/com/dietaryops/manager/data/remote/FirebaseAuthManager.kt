@@ -41,7 +41,8 @@ class FirebaseAuthManager(
     suspend fun signIn(email: String, password: String): Result<FirebaseUser> {
         val authInstance = auth ?: return Result.failure(Exception("FirebaseAuth instance is null"))
         return try {
-            val authResult = authInstance.signInWithEmailAndPassword(email.trim(), password.trim()).await()
+            val authResult =
+                authInstance.signInWithEmailAndPassword(email.trim(), password.trim()).await()
             val user = authResult.user
             if (user != null) {
                 Result.success(user)
@@ -56,7 +57,8 @@ class FirebaseAuthManager(
     suspend fun signUp(email: String, password: String): Result<FirebaseUser> {
         val authInstance = auth ?: return Result.failure(Exception("FirebaseAuth instance is null"))
         return try {
-            val authResult = authInstance.createUserWithEmailAndPassword(email.trim(), password.trim()).await()
+            val authResult =
+                authInstance.createUserWithEmailAndPassword(email.trim(), password.trim()).await()
             val user = authResult.user
             if (user != null) {
                 Result.success(user)

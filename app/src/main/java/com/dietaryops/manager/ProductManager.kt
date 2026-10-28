@@ -56,11 +56,14 @@ data class ScannedItemState(
 class ProductManager(context: Context) {
     val settingsManager: SettingsManager = SettingsManager(context)
     val repository: DeliveryRepository = DeliveryRepository(context)
-    
+
     val webAppUrl: String
         get() = settingsManager.webAppUrl
 
-    suspend fun processScan(rawUpc: String, scanDate: LocalDate = LocalDate.now()): ScannedItemState {
+    suspend fun processScan(
+        rawUpc: String,
+        scanDate: LocalDate = LocalDate.now()
+    ): ScannedItemState {
         val parsedData = Gs1BarcodeParser.parseBarcode(rawUpc)
         val extractedUpc = parsedData.extractedUpc.ifBlank { SyscoUpcNormalizer.normalize(rawUpc) }
 
@@ -78,10 +81,10 @@ class ProductManager(context: Context) {
             }
         }
 
-        val isKnownInDb = catalogItem.name != "Unrecognized Item" && 
-                          !catalogItem.name.startsWith("Item (") && 
-                          !catalogItem.name.startsWith("Sysco Item (") &&
-                          !catalogItem.name.startsWith("Unrecognized Item")
+        val isKnownInDb = catalogItem.name != "Unrecognized Item" &&
+                !catalogItem.name.startsWith("Item (") &&
+                !catalogItem.name.startsWith("Sysco Item (") &&
+                !catalogItem.name.startsWith("Unrecognized Item")
 
         val effectiveName = if (isKnownInDb) {
             catalogItem.name
@@ -89,7 +92,8 @@ class ProductManager(context: Context) {
             "Unrecognized Item"
         }.removePrefix("Sysco ").removePrefix("SYSCO ").trim().toTitleCase()
 
-        val normalizedDbCategory = DeliveryRepository.normalizeCategory(catalogItem.category).toTitleCase()
+        val normalizedDbCategory =
+            DeliveryRepository.normalizeCategory(catalogItem.category).toTitleCase()
 
         val effectiveCategory = if (isKnownInDb && normalizedDbCategory.isNotBlank()) {
             normalizedDbCategory
@@ -120,7 +124,11 @@ class ProductManager(context: Context) {
         }
 
         // If new UPC is scanned for known item, promote new UPC to primary and keep old primary as alternate
-        if (isKnownInDb && extractedUpc.isNotBlank() && !catalogItem.syscoUpc.equals(extractedUpc, ignoreCase = true)) {
+        if (isKnownInDb && extractedUpc.isNotBlank() && !catalogItem.syscoUpc.equals(
+                extractedUpc,
+                ignoreCase = true
+            )
+        ) {
             val currentAlts = catalogItem.alternateBarcodes
                 .split(",")
                 .map { SyscoUpcNormalizer.normalize(it.trim()) }
@@ -170,7 +178,8 @@ class ProductManager(context: Context) {
         val dateCalc = if (parsedData.explicitExpirationDate != null) {
             val explicitUseBy = parsedData.explicitExpirationDate
             val calculatedDays = ChronoUnit.DAYS.between(scanDate, explicitUseBy).toInt()
-            val shelfDays = if (calculatedDays > 0) DateCalculator.clampShelfLifeDays(calculatedDays) else product.shelfLifeDays
+            val shelfDays =
+                if (calculatedDays > 0) DateCalculator.clampShelfLifeDays(calculatedDays) else product.shelfLifeDays
             DateCalculationResult(
                 deliveryDate = scanDate,
                 shelfLifeDays = shelfDays,
@@ -212,7 +221,10 @@ class ProductManager(context: Context) {
             syscoUpc = SyscoUpcNormalizer.normalize(item.syscoUpc),
             name = item.name.removePrefix("Sysco ").removePrefix("SYSCO ").trim().toTitleCase(),
             category = normCategory,
-            defaultShelfLifeDays = DateCalculator.clampShelfLifeDays(item.defaultShelfLifeDays, normCategory),
+            defaultShelfLifeDays = DateCalculator.clampShelfLifeDays(
+                item.defaultShelfLifeDays,
+                normCategory
+            ),
             lastOnHandAmount = item.lastOnHandAmount
         )
         repository.saveCatalogItem(cleanItem)
@@ -242,7 +254,8 @@ class ProductManager(context: Context) {
         labelNickname: String = ""
     ): CatalogItem {
         val normUpc = SyscoUpcNormalizer.normalize(scannedUpc).ifBlank { scannedUpc.trim() }
-        val cleanName = productName.removePrefix("Sysco ").removePrefix("SYSCO ").trim().ifBlank { "Unrecognized Item" }.toTitleCase()
+        val cleanName = productName.removePrefix("Sysco ").removePrefix("SYSCO ").trim()
+            .ifBlank { "Unrecognized Item" }.toTitleCase()
         val normCategory = DeliveryRepository.normalizeCategory(category).toTitleCase()
         val validDays = DateCalculator.clampShelfLifeDays(shelfLifeDays, normCategory)
         val validOnHand = if (onHandAmount > 0.0) onHandAmount else 1.0
@@ -257,9 +270,10 @@ class ProductManager(context: Context) {
                 .toMutableList()
 
             // If existingItem has a different primary UPC, add old primary to alternateBarcodes
-            if (existingItem.syscoUpc.isNotBlank() && 
-                !existingItem.syscoUpc.equals(normUpc, ignoreCase = true) && 
-                !currentAlts.contains(existingItem.syscoUpc)) {
+            if (existingItem.syscoUpc.isNotBlank() &&
+                !existingItem.syscoUpc.equals(normUpc, ignoreCase = true) &&
+                !currentAlts.contains(existingItem.syscoUpc)
+            ) {
                 currentAlts.add(0, existingItem.syscoUpc)
             }
 
@@ -297,7 +311,8 @@ class ProductManager(context: Context) {
         }
     }
 
-    suspend fun searchCatalogItems(query: String): List<CatalogItem> = repository.searchCatalogItems(query)
+    suspend fun searchCatalogItems(query: String): List<CatalogItem> =
+        repository.searchCatalogItems(query)
 
     suspend fun logScanToSheets(scanRecord: ScanRecord) {
         repository.addScanRecord(scanRecord)
@@ -306,7 +321,8 @@ class ProductManager(context: Context) {
         if (url.isNotBlank()) {
             try {
                 repository.syncWithGoogleSheets(url)
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -339,7 +355,10 @@ class ProductManager(context: Context) {
 
     fun getDepartmentMismatchWarning(product: SyscoProduct, currentDepartment: String): String? {
         val isEvs = isEvsProduct(product)
-        val currentIsEvs = currentDepartment.equals("EVS", ignoreCase = true) || currentDepartment.equals("Environmental Services", ignoreCase = true)
+        val currentIsEvs = currentDepartment.equals(
+            "EVS",
+            ignoreCase = true
+        ) || currentDepartment.equals("Environmental Services", ignoreCase = true)
 
         return if (isEvs && !currentIsEvs) {
             "⚠️ Housekeeping / EVS Item — Switch department to log janitorial/PPE supplies."

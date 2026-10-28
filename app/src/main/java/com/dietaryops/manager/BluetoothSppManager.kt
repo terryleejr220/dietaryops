@@ -64,7 +64,10 @@ class BluetoothSppManager(private val context: Context) {
                 BluetoothDevice.ACTION_FOUND -> {
                     val device: BluetoothDevice? =
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                            intent.getParcelableExtra(
+                                BluetoothDevice.EXTRA_DEVICE,
+                                BluetoothDevice::class.java
+                            )
                         } else {
                             @Suppress("DEPRECATION")
                             intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
@@ -81,11 +84,23 @@ class BluetoothSppManager(private val context: Context) {
 
     fun hasBluetoothPermissions(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.BLUETOOTH_SCAN
+                    ) == PackageManager.PERMISSION_GRANTED
         } else {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_ADMIN) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH
+            ) == PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.BLUETOOTH_ADMIN
+                    ) == PackageManager.PERMISSION_GRANTED
         }
     }
 
@@ -127,12 +142,14 @@ class BluetoothSppManager(private val context: Context) {
         if (hasBluetoothPermissions() && bluetoothAdapter?.isDiscovering == true) {
             try {
                 bluetoothAdapter.cancelDiscovery()
-            } catch (_: SecurityException) {}
+            } catch (_: SecurityException) {
+            }
         }
         if (receiverRegistered) {
             try {
                 context.unregisterReceiver(receiver)
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            }
             receiverRegistered = false
         }
     }
@@ -163,52 +180,57 @@ class BluetoothSppManager(private val context: Context) {
         } catch (e: Exception) {
             disconnectInternal()
             _connectionState.value = ConnectionState.ERROR
-            val devName = try { device.name ?: device.address } catch (_: SecurityException) { device.address }
+            val devName = try {
+                device.name ?: device.address
+            } catch (_: SecurityException) {
+                device.address
+            }
             _lastError.value = "Failed to connect to $devName: ${e.localizedMessage}"
             false
         }
     }
 
-    suspend fun sendData(data: ByteArray, maxRetries: Int = 2): Boolean = withContext(Dispatchers.IO) {
-        repeat(maxRetries) { attempt ->
-            var stream = outputStream
-            if (stream == null || _connectionState.value != ConnectionState.CONNECTED) {
-                val targetDevice = _connectedDevice.value ?: lastConnectedDevice
-                if (targetDevice != null) {
-                    val reconnected = connect(targetDevice)
-                    if (reconnected) {
-                        stream = outputStream
-                    }
-                }
-            }
-
-            if (stream != null && _connectionState.value == ConnectionState.CONNECTED) {
-                try {
-                    stream.write(data)
-                    stream.flush()
-                    return@withContext true
-                } catch (e: Exception) {
-                    disconnectInternal()
-                    if (attempt < maxRetries - 1) {
-                        delay(500L * (attempt + 1))
-                        val targetDevice = lastConnectedDevice
-                        if (targetDevice != null) {
-                            connect(targetDevice)
+    suspend fun sendData(data: ByteArray, maxRetries: Int = 2): Boolean =
+        withContext(Dispatchers.IO) {
+            repeat(maxRetries) { attempt ->
+                var stream = outputStream
+                if (stream == null || _connectionState.value != ConnectionState.CONNECTED) {
+                    val targetDevice = _connectedDevice.value ?: lastConnectedDevice
+                    if (targetDevice != null) {
+                        val reconnected = connect(targetDevice)
+                        if (reconnected) {
+                            stream = outputStream
                         }
-                    } else {
-                        _connectionState.value = ConnectionState.ERROR
-                        _lastError.value = "Error sending data: ${e.localizedMessage}"
+                    }
+                }
+
+                if (stream != null && _connectionState.value == ConnectionState.CONNECTED) {
+                    try {
+                        stream.write(data)
+                        stream.flush()
+                        return@withContext true
+                    } catch (e: Exception) {
+                        disconnectInternal()
+                        if (attempt < maxRetries - 1) {
+                            delay(500L * (attempt + 1))
+                            val targetDevice = lastConnectedDevice
+                            if (targetDevice != null) {
+                                connect(targetDevice)
+                            }
+                        } else {
+                            _connectionState.value = ConnectionState.ERROR
+                            _lastError.value = "Error sending data: ${e.localizedMessage}"
+                        }
                     }
                 }
             }
-        }
 
-        if (_connectionState.value != ConnectionState.ERROR) {
-            _connectionState.value = ConnectionState.ERROR
-            _lastError.value = "Not connected to printer after retries"
+            if (_connectionState.value != ConnectionState.ERROR) {
+                _connectionState.value = ConnectionState.ERROR
+                _lastError.value = "Not connected to printer after retries"
+            }
+            return@withContext false
         }
-        return@withContext false
-    }
 
     suspend fun printZpl(zpl: String): Boolean {
         return sendData(zpl.toByteArray(Charsets.US_ASCII))
@@ -221,12 +243,14 @@ class BluetoothSppManager(private val context: Context) {
     private fun disconnectInternal() {
         try {
             outputStream?.close()
-        } catch (_: IOException) {}
+        } catch (_: IOException) {
+        }
         outputStream = null
 
         try {
             socket?.close()
-        } catch (_: IOException) {}
+        } catch (_: IOException) {
+        }
         socket = null
 
         _connectedDevice.value = null

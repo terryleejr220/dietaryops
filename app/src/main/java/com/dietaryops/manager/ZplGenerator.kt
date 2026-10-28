@@ -17,7 +17,14 @@ object ZplGenerator {
         val catLower = category.trim().lowercase()
         return when {
             catLower.contains("frozen") || catLower.contains("freezer") || catLower.contains("ice cream") -> "FREEZER"
-            catLower.contains("dairy") || catLower.contains("fresh") || catLower.contains("produce") || catLower.contains("meat") || catLower.contains("cooler") || catLower.contains("deli") || catLower.contains("egg") || catLower.contains("milk") || catLower.contains("cheese") || catLower.contains("yogurt") || catLower.contains("butter") || catLower.contains("prepared") -> "COOLER"
+            catLower.contains("dairy") || catLower.contains("fresh") || catLower.contains("produce") || catLower.contains(
+                "meat"
+            ) || catLower.contains("cooler") || catLower.contains("deli") || catLower.contains("egg") || catLower.contains(
+                "milk"
+            ) || catLower.contains("cheese") || catLower.contains("yogurt") || catLower.contains("butter") || catLower.contains(
+                "prepared"
+            ) -> "COOLER"
+
             else -> "DRY STORAGE"
         }
     }
@@ -48,7 +55,7 @@ object ZplGenerator {
     ): String {
         val location = storageLocation ?: getStorageLocationForCategory(category)
         val delivDateStr = deliveryDate.format(dateFormatter)
-        
+
         // Guarantee useByDate is strictly after deliveryDate (positive ServSafe shelf life minimum)
         val effectiveUseBy = if (!useByDate.isAfter(deliveryDate)) {
             val fallbackDays = DateCalculator.getDefaultServSafeDays(category, location)
@@ -120,7 +127,8 @@ object ZplGenerator {
             useByDate = useByDate,
             category = product.category,
             storageLocation = storageLocation,
-            onHandAmount = onHandAmount ?: if (product.lastOnHandAmount > 0) product.lastOnHandAmount else null,
+            onHandAmount = onHandAmount
+                ?: if (product.lastOnHandAmount > 0) product.lastOnHandAmount else null,
             staffInitials = staffInitials
         )
     }
@@ -141,7 +149,8 @@ object ZplGenerator {
         companyHeader: String = "DIETARY OPS SHELF LABEL",
         barcodeType: String = "BC"
     ): String {
-        val cleanUpc = if (upc.isNotBlank()) upc.trim() else if (syscoItemNumber.isNotBlank()) syscoItemNumber.trim() else "000000000000"
+        val cleanUpc =
+            if (upc.isNotBlank()) upc.trim() else if (syscoItemNumber.isNotBlank()) syscoItemNumber.trim() else "000000000000"
         val cleanItemName = itemName.trim()
         val resolvedPar = if (parLevel > 0) {
             if (parLevel % 1.0 == 0.0) parLevel.toInt().toString() else parLevel.toString()

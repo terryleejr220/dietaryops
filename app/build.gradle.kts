@@ -68,7 +68,10 @@ android {
             if (file("century_villa_release.jks").exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
             ndk {
                 debugSymbolLevel = "FULL"
             }
@@ -180,25 +183,31 @@ fun backupArtifacts(buildType: String, extension: String) {
     }
 
     if (searchDir.exists()) {
-        searchDir.walkTopDown().filter { it.isFile && it.extension == extension }.forEach { sourceFile ->
-            val destFileName = "DietaryOpsManager_v${appVersionName}_code${appVersionCode}_${timeStamp}_${buildType}.${extension}"
-            val destFile = File(backupDir, destFileName)
-            sourceFile.copyTo(destFile, overwrite = true)
-            logger.lifecycle("Successfully backed up build artifact to: ${destFile.absolutePath}")
+        searchDir.walkTopDown().filter { it.isFile && it.extension == extension }
+            .forEach { sourceFile ->
+                val destFileName =
+                    "DietaryOpsManager_v${appVersionName}_code${appVersionCode}_${timeStamp}_${buildType}.${extension}"
+                val destFile = File(backupDir, destFileName)
+                sourceFile.copyTo(destFile, overwrite = true)
+                logger.lifecycle("Successfully backed up build artifact to: ${destFile.absolutePath}")
 
-            if (extension == "apk") {
-                val rootApkFile = File(rootDir, if (buildType == "release") "DietaryOpsManager-Release.apk" else "DietaryOpsManager.apk")
-                sourceFile.copyTo(rootApkFile, overwrite = true)
-                logger.lifecycle("Successfully updated root APK at: ${rootApkFile.absolutePath}")
+                if (extension == "apk") {
+                    val rootApkFile = File(
+                        rootDir,
+                        if (buildType == "release") "DietaryOpsManager-Release.apk" else "DietaryOpsManager.apk"
+                    )
+                    sourceFile.copyTo(rootApkFile, overwrite = true)
+                    logger.lifecycle("Successfully updated root APK at: ${rootApkFile.absolutePath}")
+                }
             }
-        }
     } else {
         logger.warn("Search directory for backups does not exist: ${searchDir.absolutePath}")
     }
 }
 
 fun copyMappingFileToRoot() {
-    val mappingFile = file("${layout.buildDirectory.get().asFile}/outputs/mapping/release/mapping.txt")
+    val mappingFile =
+        file("${layout.buildDirectory.get().asFile}/outputs/mapping/release/mapping.txt")
     if (mappingFile.exists()) {
         val rootMappingFile = File(rootDir, "mapping.txt")
         mappingFile.copyTo(rootMappingFile, overwrite = true)
@@ -216,31 +225,36 @@ fun copyNativeDebugSymbolsToRoot() {
     var sourceZip: File? = candidates.firstOrNull { it.exists() }
 
     if (sourceZip == null) {
-        val dir1 = file("${layout.buildDirectory.get().asFile}/outputs/native-debug-symbols/release")
+        val dir1 =
+            file("${layout.buildDirectory.get().asFile}/outputs/native-debug-symbols/release")
         val dir2 = file("${layout.buildDirectory.get().asFile}/outputs/symbols/release")
-        sourceZip = if (dir1.exists()) dir1.walkTopDown().firstOrNull { it.isFile && it.extension == "zip" } else null
+        sourceZip = if (dir1.exists()) dir1.walkTopDown()
+            .firstOrNull { it.isFile && it.extension == "zip" } else null
         if (sourceZip == null && dir2.exists()) {
             sourceZip = dir2.walkTopDown().firstOrNull { it.isFile && it.extension == "zip" }
         }
     }
 
     if (sourceZip == null || !sourceZip.exists()) {
-        val nativeLibsDir = file("${layout.buildDirectory.get().asFile}/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib")
+        val nativeLibsDir =
+            file("${layout.buildDirectory.get().asFile}/intermediates/merged_native_libs/release/mergeReleaseNativeLibs/out/lib")
         if (nativeLibsDir.exists()) {
-            val targetDir = file("${layout.buildDirectory.get().asFile}/outputs/native-debug-symbols/release")
+            val targetDir =
+                file("${layout.buildDirectory.get().asFile}/outputs/native-debug-symbols/release")
             targetDir.mkdirs()
             val generatedZip = File(targetDir, "native-debug-symbols.zip")
 
             val fos = FileOutputStream(generatedZip)
             val zos = ZipOutputStream(BufferedOutputStream(fos))
 
-            nativeLibsDir.walkTopDown().filter { it.isFile && it.extension == "so" }.forEach { soFile ->
-                val relativePath = soFile.relativeTo(nativeLibsDir).path.replace('\\', '/')
-                val entry = ZipEntry(relativePath)
-                zos.putNextEntry(entry)
-                soFile.inputStream().use { input -> input.copyTo(zos) }
-                zos.closeEntry()
-            }
+            nativeLibsDir.walkTopDown().filter { it.isFile && it.extension == "so" }
+                .forEach { soFile ->
+                    val relativePath = soFile.relativeTo(nativeLibsDir).path.replace('\\', '/')
+                    val entry = ZipEntry(relativePath)
+                    zos.putNextEntry(entry)
+                    soFile.inputStream().use { input -> input.copyTo(zos) }
+                    zos.closeEntry()
+                }
             zos.close()
             fos.close()
 
@@ -277,11 +291,12 @@ tasks.matching { it.name == "bundleRelease" }.configureEach {
         backupArtifacts("release", "aab")
         val searchDir = file("${layout.buildDirectory.get().asFile}/outputs/bundle/release")
         if (searchDir.exists()) {
-            searchDir.walkTopDown().filter { it.isFile && it.extension == "aab" }.forEach { sourceFile ->
-                val rootAabFile = File(rootDir, "DietaryOpsManager.aab")
-                sourceFile.copyTo(rootAabFile, overwrite = true)
-                logger.lifecycle("Successfully updated root AAB at: ${rootAabFile.absolutePath}")
-            }
+            searchDir.walkTopDown().filter { it.isFile && it.extension == "aab" }
+                .forEach { sourceFile ->
+                    val rootAabFile = File(rootDir, "DietaryOpsManager.aab")
+                    sourceFile.copyTo(rootAabFile, overwrite = true)
+                    logger.lifecycle("Successfully updated root AAB at: ${rootAabFile.absolutePath}")
+                }
         }
         copyMappingFileToRoot()
         copyNativeDebugSymbolsToRoot()

@@ -57,7 +57,12 @@ fun VendorReorderSheetDialog(
         if (selectedVendorFilter == "All Vendors") {
             reorderList
         } else {
-            reorderList.filter { it.catalogItem.vendorName.contains(selectedVendorFilter, ignoreCase = true) }
+            reorderList.filter {
+                it.catalogItem.vendorName.contains(
+                    selectedVendorFilter,
+                    ignoreCase = true
+                )
+            }
         }
     }
 
@@ -164,12 +169,17 @@ fun VendorReorderSheetDialog(
                                             onClick = {
                                                 if (reorderState.adjustedQty > 1) {
                                                     reorderState.adjustedQty--
-                                                    reorderList[index] = reorderState.copy(adjustedQty = reorderState.adjustedQty)
+                                                    reorderList[index] =
+                                                        reorderState.copy(adjustedQty = reorderState.adjustedQty)
                                                 }
                                             },
                                             modifier = Modifier.size(28.dp)
                                         ) {
-                                            Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(14.dp))
+                                            Icon(
+                                                Icons.Default.Remove,
+                                                contentDescription = "Decrease",
+                                                modifier = Modifier.size(14.dp)
+                                            )
                                         }
 
                                         Text(
@@ -181,11 +191,16 @@ fun VendorReorderSheetDialog(
                                         IconButton(
                                             onClick = {
                                                 reorderState.adjustedQty++
-                                                reorderList[index] = reorderState.copy(adjustedQty = reorderState.adjustedQty)
+                                                reorderList[index] =
+                                                    reorderState.copy(adjustedQty = reorderState.adjustedQty)
                                             },
                                             modifier = Modifier.size(28.dp)
                                         ) {
-                                            Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(14.dp))
+                                            Icon(
+                                                Icons.Default.Add,
+                                                contentDescription = "Increase",
+                                                modifier = Modifier.size(14.dp)
+                                            )
                                         }
                                     }
                                 }
@@ -203,7 +218,11 @@ fun VendorReorderSheetDialog(
                         return@Button
                     }
                     val totalOrderUnits = filteredList.sumOf { it.adjustedQty }
-                    Toast.makeText(context, "Exported Reorder Sheet (${filteredList.size} items, $totalOrderUnits units) to Google Sheets!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        context,
+                        "Exported Reorder Sheet (${filteredList.size} items, $totalOrderUnits units) to Google Sheets!",
+                        Toast.LENGTH_LONG
+                    ).show()
                     onExportSuccess()
                 },
                 enabled = filteredList.isNotEmpty(),

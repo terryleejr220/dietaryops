@@ -82,9 +82,20 @@ fun LabelScannerScreen(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFFE8F5E9))
             ) {
-                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Manager Tools", fontWeight = FontWeight.Bold, color = Color(0xFF1B5E20), fontSize = 13.sp)
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        "Manager Tools",
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1B5E20),
+                        fontSize = 13.sp
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Button(
                             onClick = { viewModel.printAdminBadge() },
                             modifier = Modifier.weight(1f)
@@ -112,8 +123,15 @@ fun LabelScannerScreen(
 
         // Printer Settings
         Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Printer: ${selectedPrinter?.name ?: "No Zebra Paired"}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+            Column(
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Text(
+                    "Printer: ${selectedPrinter?.name ?: "No Zebra Paired"}",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 13.sp
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -159,7 +177,10 @@ fun LabelScannerScreen(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
-                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Column(
+                        modifier = Modifier.padding(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
                         searchSuggestions.take(4).forEach { product ->
                             Row(
                                 modifier = Modifier
@@ -174,11 +195,29 @@ fun LabelScannerScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(product.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text("UPC: ${product.upc} ${if (product.itemNumber.isNotBlank()) "• Item #${product.itemNumber}" else ""}", fontSize = 11.sp, color = Color.Gray)
+                                    Text(
+                                        product.name,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                    Text(
+                                        "UPC: ${product.upc} ${if (product.itemNumber.isNotBlank()) "• Item #${product.itemNumber}" else ""}",
+                                        fontSize = 11.sp,
+                                        color = Color.Gray
+                                    )
                                 }
-                                Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                                    Text(product.getFormattedPackInfo(), fontSize = 10.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.primaryContainer
+                                ) {
+                                    Text(
+                                        product.getFormattedPackInfo(),
+                                        fontSize = 10.sp,
+                                        modifier = Modifier.padding(
+                                            horizontal = 4.dp,
+                                            vertical = 2.dp
+                                        )
+                                    )
                                 }
                             }
                         }
@@ -208,11 +247,19 @@ fun LabelScannerScreen(
                                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                                 .build()
                                 .also {
-                                    it.setAnalyzer(Executors.newSingleThreadExecutor(), barcodeAnalyzer)
+                                    it.setAnalyzer(
+                                        Executors.newSingleThreadExecutor(),
+                                        barcodeAnalyzer
+                                    )
                                 }
                             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                             cameraProvider.unbindAll()
-                            cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
+                            cameraProvider.bindToLifecycle(
+                                lifecycleOwner,
+                                cameraSelector,
+                                preview,
+                                imageAnalysis
+                            )
                         }, ContextCompat.getMainExecutor(ctx))
                         previewView
                     },
@@ -220,14 +267,24 @@ fun LabelScannerScreen(
                 )
             }
         } else {
-            Text("Camera permission is required to scan barcodes.", color = MaterialTheme.colorScheme.error)
+            Text(
+                "Camera permission is required to scan barcodes.",
+                color = MaterialTheme.colorScheme.error
+            )
         }
 
         Text(
             text = statusMessage,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            color = if (statusMessage.contains("Unlocked", ignoreCase = true) || statusMessage.contains("success", ignoreCase = true) || statusMessage.contains("tag", ignoreCase = true)) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface
+            color = if (statusMessage.contains(
+                    "Unlocked",
+                    ignoreCase = true
+                ) || statusMessage.contains("success", ignoreCase = true) || statusMessage.contains(
+                    "tag",
+                    ignoreCase = true
+                )
+            ) Color(0xFF2E7D32) else MaterialTheme.colorScheme.onSurface
         )
 
         // Scanned Product Details Card
@@ -235,39 +292,81 @@ fun LabelScannerScreen(
             val fmt = DateTimeFormatter.ofPattern("MM/dd/yy")
             val unopenedUseBy = detectedDeliveryDate.plusDays(product.shelfLifeDays.toLong())
             val openedUseBy = detectedOpenDate.plusDays(product.openedShelfLifeDays.toLong())
-            val effectiveOpenedUseBy = if (openedUseBy.isBefore(unopenedUseBy)) openedUseBy else unopenedUseBy
+            val effectiveOpenedUseBy =
+                if (openedUseBy.isBefore(unopenedUseBy)) openedUseBy else unopenedUseBy
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text(product.name, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            product.name,
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.weight(1f)
+                        )
                         if (isFromDeliveryLabel) {
-                            Surface(shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                                Text("Unit Tag", fontSize = 11.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                Text(
+                                    "Unit Tag",
+                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                             }
                         }
                     }
-                    Text("UPC: ${product.upc} • Pack: ${product.getFormattedPackInfo()}", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        "UPC: ${product.upc} • Pack: ${product.getFormattedPackInfo()}",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Text("Delivered: ${detectedDeliveryDate.format(fmt)}", fontSize = 13.sp)
-                        Text("Unopened Exp: ${unopenedUseBy.format(fmt)}", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Unopened Exp: ${unopenedUseBy.format(fmt)}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Text("Opened: ${detectedOpenDate.format(fmt)}", fontSize = 13.sp)
-                        Text("Opened Use By: ${effectiveOpenedUseBy.format(fmt)} (+${product.openedShelfLifeDays}d)", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "Opened Use By: ${effectiveOpenedUseBy.format(fmt)} (+${product.openedShelfLifeDays}d)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(4.dp))
 
                     // UNIT COUNT & LABEL COPIES
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         OutlinedTextField(
                             value = unitCountInput,
                             onValueChange = { viewModel.setUnitCountInput(it) },
@@ -285,18 +384,32 @@ fun LabelScannerScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Labels: $labelCopies", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                Text(
+                                    "Labels: $labelCopies",
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp
+                                )
                                 Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                                     OutlinedButton(
-                                        onClick = { if (labelCopies > 1) viewModel.setLabelCopies(labelCopies - 1) },
-                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                                        onClick = {
+                                            if (labelCopies > 1) viewModel.setLabelCopies(
+                                                labelCopies - 1
+                                            )
+                                        },
+                                        contentPadding = PaddingValues(
+                                            horizontal = 6.dp,
+                                            vertical = 0.dp
+                                        ),
                                         modifier = Modifier.height(28.dp)
                                     ) {
                                         Text("-", fontSize = 14.sp)
                                     }
                                     OutlinedButton(
                                         onClick = { viewModel.setLabelCopies(labelCopies + 1) },
-                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                                        contentPadding = PaddingValues(
+                                            horizontal = 6.dp,
+                                            vertical = 0.dp
+                                        ),
                                         modifier = Modifier.height(28.dp)
                                     ) {
                                         Text("+", fontSize = 14.sp)
@@ -309,19 +422,28 @@ fun LabelScannerScreen(
                     Spacer(modifier = Modifier.height(4.dp))
 
                     // Print action buttons
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         Button(
                             onClick = { viewModel.printOpenedLabel() },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(if (labelCopies > 1) "Print $labelCopies Opened" else "Print Opened", fontSize = 12.sp)
+                            Text(
+                                if (labelCopies > 1) "Print $labelCopies Opened" else "Print Opened",
+                                fontSize = 12.sp
+                            )
                         }
 
                         FilledTonalButton(
                             onClick = { viewModel.printDeliveryLabel() },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text(if (labelCopies > 1) "Print $labelCopies Units" else "Print Delivery", fontSize = 12.sp)
+                            Text(
+                                if (labelCopies > 1) "Print $labelCopies Units" else "Print Delivery",
+                                fontSize = 12.sp
+                            )
                         }
                     }
 
@@ -376,7 +498,11 @@ fun LabelScannerScreen(
                         singleLine = true
                     )
 
-                    Text("Shelf Life Presets (Default: 3 to 14 days):", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Shelf Life Presets (Default: 3 to 14 days):",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         FilterChip(
                             selected = newShelfLife == "5",
@@ -426,7 +552,9 @@ fun LabelScannerScreen(
                     val oDays = newOpenedDays.toIntOrNull() ?: 7
                     val pSize = newPackSize.toIntOrNull() ?: 1
                     val prod = SyscoProduct(
-                        upc = newUpc.ifBlank { "SYSCO-" + System.currentTimeMillis().toString().takeLast(6) },
+                        upc = newUpc.ifBlank {
+                            "SYSCO-" + System.currentTimeMillis().toString().takeLast(6)
+                        },
                         name = newName.ifBlank { "Sysco Item ($newUpc)" },
                         shelfLifeDays = dDays,
                         openedShelfLifeDays = oDays,

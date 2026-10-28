@@ -88,8 +88,8 @@ fun SettingsScreen(
     var isAdminUnlocked by remember {
         mutableStateOf(
             settingsManager.staffRole.equals("ADMIN", ignoreCase = true) ||
-            settingsManager.staffRole.equals("SUPER_ADMIN", ignoreCase = true) ||
-            settingsManager.employeeId == SettingsManager.ADMIN_EMPLOYEE_ID
+                    settingsManager.staffRole.equals("SUPER_ADMIN", ignoreCase = true) ||
+                    settingsManager.employeeId == SettingsManager.ADMIN_EMPLOYEE_ID
         )
     }
     var showAdminPinDialog by remember { mutableStateOf(false) }
@@ -101,7 +101,13 @@ fun SettingsScreen(
                 showFacilityQrDialog = false
                 facilityQrInput = ""
             },
-            icon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            icon = {
+                Icon(
+                    Icons.Default.QrCodeScanner,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             title = { Text("1-Scan Facility Setup", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -130,9 +136,17 @@ fun SettingsScreen(
                             publishedWebUrlInput = settingsManager.publishedWebUrl
                             showFacilityQrDialog = false
                             facilityQrInput = ""
-                            Toast.makeText(context, "Configured: ${settingsManager.companyName} (${settingsManager.companyCode})", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Configured: ${settingsManager.companyName} (${settingsManager.companyCode})",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         } else {
-                            Toast.makeText(context, "Invalid QR payload. Expected format: DOPS-SETUP:<CODE>:<NAME>:<SHEET_ID>:<URL>", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                "Invalid QR payload. Expected format: DOPS-SETUP:<CODE>:<NAME>:<SHEET_ID>:<URL>",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     }
                 ) {
@@ -158,11 +172,21 @@ fun SettingsScreen(
                 showAdminPinDialog = false
                 pinInput = ""
             },
-            icon = { Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+            icon = {
+                Icon(
+                    Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             title = { Text("Admin Privilege Lock") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Enter Admin PIN to unlock system integrations, Google Sheets URLs, and facility configuration:", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        "Enter Admin PIN to unlock system integrations, Google Sheets URLs, and facility configuration:",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
                     OutlinedTextField(
                         value = pinInput,
                         onValueChange = { pinInput = it },
@@ -182,9 +206,11 @@ fun SettingsScreen(
                             isAdminUnlocked = true
                             showAdminPinDialog = false
                             pinInput = ""
-                            Toast.makeText(context, "Admin settings unlocked!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Admin settings unlocked!", Toast.LENGTH_SHORT)
+                                .show()
                         } else {
-                            Toast.makeText(context, "Incorrect Admin PIN", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Incorrect Admin PIN", Toast.LENGTH_SHORT)
+                                .show()
                         }
                     }
                 ) {
@@ -265,8 +291,17 @@ fun SettingsScreen(
                             }
                         }
                         Column {
-                            Text("Facility Identity & Cloud Isolation", fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                            Text("${settingsManager.companyName} (${settingsManager.companyCode})", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Facility Identity & Cloud Isolation",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                "${settingsManager.companyName} (${settingsManager.companyCode})",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                     }
 
@@ -299,21 +334,34 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Active Operator:", fontSize = 11.sp, color = Color.Gray)
-                            Text("${settingsManager.staffName} (${settingsManager.employeeId}) \u2022 ${settingsManager.staffRole}", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "${settingsManager.staffName} (${settingsManager.employeeId}) \u2022 ${settingsManager.staffRole}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Department Routing:", fontSize = 11.sp, color = Color.Gray)
-                            Text("${settingsManager.department} ➔ \"${settingsManager.departmentSheetTab}\"", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                            Text(
+                                "${settingsManager.department} ➔ \"${settingsManager.departmentSheetTab}\"",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text("Google Sheet ID:", fontSize = 11.sp, color = Color.Gray)
-                            Text(settingsManager.sheetId.take(18) + "...", fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                            Text(
+                                settingsManager.sheetId.take(18) + "...",
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace
+                            )
                         }
                     }
                 }
@@ -329,7 +377,11 @@ fun SettingsScreen(
                             sheetIdInput = settingsManager.sheetId
                             webAppUrlInput = settingsManager.webAppUrl
                             publishedWebUrlInput = settingsManager.publishedWebUrl
-                            Toast.makeText(context, "Loaded Century Villa Profile (CVILLA)", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Loaded Century Villa Profile (CVILLA)",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         },
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
@@ -344,7 +396,11 @@ fun SettingsScreen(
                             sheetIdInput = settingsManager.sheetId
                             webAppUrlInput = settingsManager.webAppUrl
                             publishedWebUrlInput = settingsManager.publishedWebUrl
-                            Toast.makeText(context, "Loaded DietaryOps Default (DOPS)", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Loaded DietaryOps Default (DOPS)",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         },
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
@@ -359,7 +415,11 @@ fun SettingsScreen(
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
                         modifier = Modifier.weight(1.1f)
                     ) {
-                        Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(13.dp))
+                        Icon(
+                            Icons.Default.QrCodeScanner,
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp)
+                        )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text("1-Scan Setup", fontSize = 10.sp)
                     }
@@ -377,10 +437,22 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            Icons.Default.Print,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         Column {
-                            Text("Default Label Quantity", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Labels per scan when amount isn't specified", fontSize = 11.sp, color = Color.Gray)
+                            Text(
+                                "Default Label Quantity",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "Labels per scan when amount isn't specified",
+                                fontSize = 11.sp,
+                                color = Color.Gray
+                            )
                         }
                     }
 
@@ -405,7 +477,10 @@ fun SettingsScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            ),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -421,7 +496,11 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Bluetooth, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(
+                            Icons.Default.Bluetooth,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                         Text("Zebra Label Printer", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
 
@@ -446,7 +525,11 @@ fun SettingsScreen(
                 }
 
                 connectedDevice?.let { dev ->
-                    val devName = try { dev.name ?: dev.address } catch (_: SecurityException) { dev.address }
+                    val devName = try {
+                        dev.name ?: dev.address
+                    } catch (_: SecurityException) {
+                        dev.address
+                    }
                     Surface(
                         color = MaterialTheme.colorScheme.primaryContainer,
                         shape = RoundedCornerShape(8.dp),
@@ -458,7 +541,11 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text("Active Printer: $devName", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(
+                                    "Active Printer: $devName",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
                                 Text("MAC: ${dev.address}", fontSize = 11.sp, color = Color.Gray)
                             }
                             OutlinedButton(
@@ -483,17 +570,33 @@ fun SettingsScreen(
                             val started = printerManager.sppManager.startDiscovery()
                             isDiscovering = started
                             if (started) {
-                                Toast.makeText(context, "Scanning for Bluetooth printers...", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Scanning for Bluetooth printers...",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             } else {
-                                Toast.makeText(context, "Enable Bluetooth and grant permissions", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Enable Bluetooth and grant permissions",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         },
                         enabled = !isDiscovering
                     ) {
                         if (isDiscovering) {
-                            CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
                         } else {
-                            Icon(Icons.AutoMirrored.Filled.BluetoothSearching, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.BluetoothSearching,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(if (isDiscovering) "Scanning..." else "Find Printers")
@@ -501,7 +604,8 @@ fun SettingsScreen(
 
                     OutlinedButton(
                         onClick = {
-                            val targetDevice = connectedDevice ?: printerManager.getPreferredPrinter()
+                            val targetDevice =
+                                connectedDevice ?: printerManager.getPreferredPrinter()
                             if (targetDevice != null) {
                                 val testZpl = ZplGenerator.generateLabel(
                                     itemName = "TEST LABEL - DIETARY OPS",
@@ -515,11 +619,16 @@ fun SettingsScreen(
                                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                 }
                             } else {
-                                Toast.makeText(context, "No printer paired", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "No printer paired", Toast.LENGTH_SHORT)
+                                    .show()
                             }
                         }
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Print,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Test Label")
                     }
@@ -547,9 +656,17 @@ fun SettingsScreen(
                                         val ok = printerManager.connect(dev)
                                         if (ok) {
                                             settingsManager.preferredPrinterAddress = dev.address
-                                            Toast.makeText(context, "Connected to printer!", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                "Connected to printer!",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         } else {
-                                            Toast.makeText(context, "Connection failed to ${dev.address}", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                "Connection failed to ${dev.address}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                     }
                                 }
@@ -567,7 +684,10 @@ fun SettingsScreen(
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+            ),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(
@@ -583,8 +703,16 @@ fun SettingsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.BugReport, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Text("Diagnostics & Floor Notes", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Icon(
+                            Icons.Default.BugReport,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            "Diagnostics & Floor Notes",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -603,7 +731,11 @@ fun SettingsScreen(
                         }
                     }
                 }
-                Text("App records runtime errors & floor feedback, syncing reports directly to Cloud Firestore & Google Sheets.", fontSize = 11.sp, color = Color.Gray)
+                Text(
+                    "App records runtime errors & floor feedback, syncing reports directly to Cloud Firestore & Google Sheets.",
+                    fontSize = 11.sp,
+                    color = Color.Gray
+                )
             }
         }
 
@@ -627,10 +759,15 @@ fun SettingsScreen(
                 },
                 confirmButton = {
                     Button(onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clipboard =
+                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("Floor Notes", notes)
                         clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "Floor notes copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Floor notes copied to clipboard!",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }) {
                         Text("Copy Notes")
                     }
@@ -667,10 +804,15 @@ fun SettingsScreen(
                 },
                 confirmButton = {
                     Button(onClick = {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        val clipboard =
+                            context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("Error Logs", logs)
                         clipboard.setPrimaryClip(clip)
-                        Toast.makeText(context, "Error logs copied to clipboard!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Error logs copied to clipboard!",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }) {
                         Text("Copy Logs")
                     }
@@ -700,8 +842,15 @@ fun SettingsScreen(
                     }
                 },
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, if (isAdminUnlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
-            colors = CardDefaults.cardColors(containerColor = if (isAdminUnlocked) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceVariant)
+            border = BorderStroke(
+                1.dp,
+                if (isAdminUnlocked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+            ),
+            colors = CardDefaults.cardColors(
+                containerColor = if (isAdminUnlocked) MaterialTheme.colorScheme.primaryContainer.copy(
+                    alpha = 0.4f
+                ) else MaterialTheme.colorScheme.surfaceVariant
+            )
         ) {
             Row(
                 modifier = Modifier
@@ -748,7 +897,10 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    ),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
@@ -759,8 +911,16 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Analytics, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text("Dashboard Links & Web URLs", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Icon(
+                                Icons.Default.Analytics,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                "Dashboard Links & Web URLs",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
 
                         OutlinedTextField(
@@ -793,7 +953,10 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    ),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
@@ -810,10 +973,22 @@ fun SettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Icon(
+                                    Icons.Default.VerifiedUser,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
                                 Column {
-                                    Text("Audit / Info-Only Scan Mode", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                    Text("First Scan Day Mode: Scans logged for testing & info only.", fontSize = 12.sp, color = Color.Gray)
+                                    Text(
+                                        "Audit / Info-Only Scan Mode",
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        "First Scan Day Mode: Scans logged for testing & info only.",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
                                 }
                             }
                             var auditModeChecked by remember { mutableStateOf(settingsManager.isAuditMode) }
@@ -822,12 +997,20 @@ fun SettingsScreen(
                                 onCheckedChange = { checked ->
                                     auditModeChecked = checked
                                     settingsManager.isAuditMode = checked
-                                    Toast.makeText(context, if (checked) "Audit / Info-Only Mode ENABLED" else "Audit / Info-Only Mode DISABLED", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        if (checked) "Audit / Info-Only Mode ENABLED" else "Audit / Info-Only Mode DISABLED",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             )
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                alpha = 0.5f
+                            )
+                        )
 
                         // Facility & Department Multi-Tenant Settings
                         Row(
@@ -836,8 +1019,16 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Facility / Company Code", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                Text("Facility identifier for routing (e.g. CVILLA, DOPS).", fontSize = 11.sp, color = Color.Gray)
+                                Text(
+                                    "Facility / Company Code",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    "Facility identifier for routing (e.g. CVILLA, DOPS).",
+                                    fontSize = 11.sp,
+                                    color = Color.Gray
+                                )
                             }
 
                             var companyCodeInput by remember { mutableStateOf(settingsManager.companyCode) }
@@ -858,8 +1049,16 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Facility Full Name", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                Text("Full organization name displayed in app headers.", fontSize = 11.sp, color = Color.Gray)
+                                Text(
+                                    "Facility Full Name",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    "Full organization name displayed in app headers.",
+                                    fontSize = 11.sp,
+                                    color = Color.Gray
+                                )
                             }
 
                             var companyNameInput by remember { mutableStateOf(settingsManager.companyName) }
@@ -880,8 +1079,16 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Department", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                Text("Active department for sheet tabs (e.g. Dietary, EVS).", fontSize = 11.sp, color = Color.Gray)
+                                Text(
+                                    "Department",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    "Active department for sheet tabs (e.g. Dietary, EVS).",
+                                    fontSize = 11.sp,
+                                    color = Color.Gray
+                                )
                             }
 
                             var departmentInput by remember { mutableStateOf(settingsManager.department) }
@@ -902,8 +1109,16 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("Department Sheet Tab", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                Text("Google Sheet tab for scans (e.g. Delivery Scan Log, EVS Scan Log).", fontSize = 11.sp, color = Color.Gray)
+                                Text(
+                                    "Department Sheet Tab",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    "Google Sheet tab for scans (e.g. Delivery Scan Log, EVS Scan Log).",
+                                    fontSize = 11.sp,
+                                    color = Color.Gray
+                                )
                             }
 
                             var departmentSheetTabInput by remember { mutableStateOf(settingsManager.departmentSheetTab) }
@@ -924,7 +1139,10 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    ),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
@@ -935,8 +1153,16 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text("Google Sheets Webhook Integration", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Icon(
+                                Icons.Default.TableChart,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                "Google Sheets Webhook Integration",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
 
                         OutlinedTextField(
@@ -975,11 +1201,19 @@ fun SettingsScreen(
                                     settingsManager.webAppUrl = webAppUrlInput
                                     settingsManager.sheetId = sheetIdInput
                                     settingsManager.publishedWebUrl = publishedWebUrlInput
-                                    Toast.makeText(context, "Saved Google Sheets config!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Saved Google Sheets config!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 },
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Default.Save,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Save Config")
                             }
@@ -987,17 +1221,30 @@ fun SettingsScreen(
                             OutlinedButton(
                                 onClick = {
                                     if (webAppUrlInput.isBlank()) {
-                                        Toast.makeText(context, "Enter Web App URL first", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Enter Web App URL first",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     } else {
                                         isTestingSync = true
                                         coroutineScope.launch(Dispatchers.IO) {
-                                            val res = repository.syncWithGoogleSheets(webAppUrlInput)
+                                            val res =
+                                                repository.syncWithGoogleSheets(webAppUrlInput)
                                             withContext(Dispatchers.Main) {
                                                 isTestingSync = false
                                                 res.onSuccess { count ->
-                                                    Toast.makeText(context, "Sheets endpoint reachable! ($count records synced)", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Sheets endpoint reachable! ($count records synced)",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }.onFailure { err ->
-                                                    Toast.makeText(context, "Connection result: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Connection result: ${err.localizedMessage}",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
                                                 }
                                             }
                                         }
@@ -1006,9 +1253,16 @@ fun SettingsScreen(
                                 modifier = Modifier.weight(1f)
                             ) {
                                 if (isTestingSync) {
-                                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp
+                                    )
                                 } else {
-                                    Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Icon(
+                                        Icons.Default.CloudSync,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                 }
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text("Test Sync")
@@ -1024,12 +1278,20 @@ fun SettingsScreen(
                                     )
                                     context.startActivity(intent)
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "Error opening link: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Error opening link: ${e.localizedMessage}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("View Published Web Sheet")
                         }
@@ -1040,7 +1302,10 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    ),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
@@ -1051,8 +1316,16 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Cloud, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text("Firebase Cloud Backend", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Icon(
+                                Icons.Default.Cloud,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                "Firebase Cloud Backend",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
 
                         if (currentUser != null) {
@@ -1061,15 +1334,29 @@ fun SettingsScreen(
                                 shape = RoundedCornerShape(8.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(Icons.Default.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                            Text("Logged in as: ${currentUser?.email ?: "User"}", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                Icons.Default.AccountCircle,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Text(
+                                                "Logged in as: ${currentUser?.email ?: "User"}",
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 13.sp
+                                            )
                                         }
                                         OutlinedButton(
                                             onClick = { authManager.signOut() },
@@ -1078,11 +1365,19 @@ fun SettingsScreen(
                                             Text("Sign Out", fontSize = 11.sp)
                                         }
                                     }
-                                    Text("Cloud Firestore offline persistence enabled. Scanned items sync automatically.", fontSize = 11.sp, color = Color.Gray)
+                                    Text(
+                                        "Cloud Firestore offline persistence enabled. Scanned items sync automatically.",
+                                        fontSize = 11.sp,
+                                        color = Color.Gray
+                                    )
                                 }
                             }
                         } else {
-                            Text("Sign in or create an account to sync inventory catalog & delivery scan logs across devices.", fontSize = 12.sp, color = Color.Gray)
+                            Text(
+                                "Sign in or create an account to sync inventory catalog & delivery scan logs across devices.",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
 
                             OutlinedTextField(
                                 value = emailInput,
@@ -1110,16 +1405,29 @@ fun SettingsScreen(
                                 Button(
                                     onClick = {
                                         if (emailInput.isBlank() || passwordInput.isBlank()) {
-                                            Toast.makeText(context, "Enter email and password", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                "Enter email and password",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         } else {
                                             isAuthLoading = true
                                             coroutineScope.launch {
-                                                val result = authManager.signIn(emailInput, passwordInput)
+                                                val result =
+                                                    authManager.signIn(emailInput, passwordInput)
                                                 isAuthLoading = false
                                                 result.onSuccess { user ->
-                                                    Toast.makeText(context, "Welcome back, ${user.email}!", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Welcome back, ${user.email}!",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }.onFailure { err ->
-                                                    Toast.makeText(context, "Sign in failed: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Sign in failed: ${err.localizedMessage}",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
                                                 }
                                             }
                                         }
@@ -1128,9 +1436,17 @@ fun SettingsScreen(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     if (isAuthLoading) {
-                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(16.dp),
+                                            strokeWidth = 2.dp,
+                                            color = Color.White
+                                        )
                                     } else {
-                                        Icon(Icons.Default.Login, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Icon(
+                                            Icons.Default.Login,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text("Sign In")
                                     }
@@ -1139,16 +1455,29 @@ fun SettingsScreen(
                                 OutlinedButton(
                                     onClick = {
                                         if (emailInput.isBlank() || passwordInput.isBlank()) {
-                                            Toast.makeText(context, "Enter email and password", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                "Enter email and password",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         } else {
                                             isAuthLoading = true
                                             coroutineScope.launch {
-                                                val result = authManager.signUp(emailInput, passwordInput)
+                                                val result =
+                                                    authManager.signUp(emailInput, passwordInput)
                                                 isAuthLoading = false
                                                 result.onSuccess { user ->
-                                                    Toast.makeText(context, "Account created: ${user.email}!", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Account created: ${user.email}!",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }.onFailure { err ->
-                                                    Toast.makeText(context, "Sign up failed: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Sign up failed: ${err.localizedMessage}",
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
                                                 }
                                             }
                                         }
@@ -1156,14 +1485,22 @@ fun SettingsScreen(
                                     enabled = !isAuthLoading,
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Icon(
+                                        Icons.Default.PersonAdd,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("Sign Up")
                                 }
                             }
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        HorizontalDivider(
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                alpha = 0.5f
+                            )
+                        )
 
                         OutlinedButton(
                             onClick = {
@@ -1172,18 +1509,33 @@ fun SettingsScreen(
                                     val res = repository.syncFromFirestore()
                                     isFirestoreSyncing = false
                                     res.onSuccess {
-                                        Toast.makeText(context, "Firestore sync complete!", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Firestore sync complete!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }.onFailure { err ->
-                                        Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Sync error: ${err.localizedMessage}",
+                                            Toast.LENGTH_LONG
+                                        ).show()
                                     }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             if (isFirestoreSyncing) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp
+                                )
                             } else {
-                                Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Default.Sync,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Sync Local Database with Firestore")
@@ -1195,7 +1547,10 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    ),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
@@ -1211,8 +1566,16 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.Tune, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Text("Firebase Remote Config", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                Icon(
+                                    Icons.Default.Tune,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    "Firebase Remote Config",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
 
                             Surface(
@@ -1238,13 +1601,25 @@ fun SettingsScreen(
                                 modifier = Modifier.padding(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text("Welcome Message: $remoteWelcomeMsg", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "Welcome Message: $remoteWelcomeMsg",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
                                 Text("Configured Admin PIN: $remoteAdminPin", fontSize = 12.sp)
                                 Text("Sheet Webhook URL: $remoteWebhookUrl", fontSize = 12.sp)
                                 Text("Min Required Version: $remoteMinVersion", fontSize = 12.sp)
-                                Text("Feature Flag (enable_new_feature): ${if (isRemoteFeatureEnabled) "ENABLED" else "DISABLED"}", fontSize = 12.sp)
+                                Text(
+                                    "Feature Flag (enable_new_feature): ${if (isRemoteFeatureEnabled) "ENABLED" else "DISABLED"}",
+                                    fontSize = 12.sp
+                                )
                                 if (remoteBannerMsg.isNotBlank()) {
-                                    Text("Banner Message: $remoteBannerMsg", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        "Banner Message: $remoteBannerMsg",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
                         }
@@ -1256,18 +1631,33 @@ fun SettingsScreen(
                                 RemoteConfigManager.fetchAndActivate { success ->
                                     isFetchingConfig = false
                                     if (success) {
-                                        Toast.makeText(context, "Remote Config updated!", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Remote Config updated!",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     } else {
-                                        Toast.makeText(context, "Using default or cached Remote Config", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(
+                                            context,
+                                            "Using default or cached Remote Config",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
                                     }
                                 }
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             if (isFetchingConfig) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    strokeWidth = 2.dp
+                                )
                             } else {
-                                Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Fetch & Refresh Remote Config")
@@ -1279,7 +1669,10 @@ fun SettingsScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    ),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(
@@ -1290,8 +1683,16 @@ fun SettingsScreen(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Text("Default Expiration & Retention Rules", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Icon(
+                                Icons.Default.DateRange,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                "Default Expiration & Retention Rules",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
 
                         Text(
@@ -1301,7 +1702,11 @@ fun SettingsScreen(
                         )
 
                         if (expirationRules.isEmpty()) {
-                            Text("No custom rules found. Default ServSafe rules apply.", fontSize = 12.sp, color = Color.Gray)
+                            Text(
+                                "No custom rules found. Default ServSafe rules apply.",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
                         } else {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 expirationRules.forEach { rule ->
@@ -1316,8 +1721,16 @@ fun SettingsScreen(
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(rule.category, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                                Text(rule.description.ifBlank { "ServSafe default retention" }, fontSize = 11.sp, color = Color.Gray)
+                                                Text(
+                                                    rule.category,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 14.sp
+                                                )
+                                                Text(
+                                                    rule.description.ifBlank { "ServSafe default retention" },
+                                                    fontSize = 11.sp,
+                                                    color = Color.Gray
+                                                )
                                             }
 
                                             Row(
@@ -1326,10 +1739,19 @@ fun SettingsScreen(
                                             ) {
                                                 SuggestionChip(
                                                     onClick = {},
-                                                    label = { Text("+${rule.daysOffset} days", fontWeight = FontWeight.Bold) }
+                                                    label = {
+                                                        Text(
+                                                            "+${rule.daysOffset} days",
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                    }
                                                 )
                                                 IconButton(onClick = { editingRule = rule }) {
-                                                    Icon(Icons.Default.Edit, contentDescription = "Edit Rule", tint = MaterialTheme.colorScheme.primary)
+                                                    Icon(
+                                                        Icons.Default.Edit,
+                                                        contentDescription = "Edit Rule",
+                                                        tint = MaterialTheme.colorScheme.primary
+                                                    )
                                                 }
                                             }
                                         }
@@ -1353,7 +1775,11 @@ fun SettingsScreen(
             title = { Text("Edit ${rule.category} Shelf-Life Rule") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Select quick preset or enter custom ServSafe retention days offset:", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        "Select quick preset or enter custom ServSafe retention days offset:",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1397,7 +1823,11 @@ fun SettingsScreen(
                         coroutineScope.launch {
                             repository.saveExpirationRule(updatedRule)
                             editingRule = null
-                            Toast.makeText(context, "Saved rule for ${rule.category}!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Saved rule for ${rule.category}!",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 ) {
@@ -1420,7 +1850,11 @@ fun BluetoothDeviceRow(
     isConnected: Boolean,
     onConnect: () -> Unit
 ) {
-    val devName = try { device.name ?: device.address } catch (_: SecurityException) { device.address }
+    val devName = try {
+        device.name ?: device.address
+    } catch (_: SecurityException) {
+        device.address
+    }
 
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
@@ -1440,7 +1874,14 @@ fun BluetoothDeviceRow(
             if (isConnected) {
                 SuggestionChip(
                     onClick = {},
-                    label = { Text("Connected", color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold, fontSize = 11.sp) }
+                    label = {
+                        Text(
+                            "Connected",
+                            color = Color(0xFF2E7D32),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
                 )
             } else {
                 OutlinedButton(

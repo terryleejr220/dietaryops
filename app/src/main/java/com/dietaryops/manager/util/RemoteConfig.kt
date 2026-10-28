@@ -20,10 +20,13 @@ object RemoteConfig {
     private const val KEY_ACTIVE_WEEK = "active_week"
     private const val KEY_STAFF_ROSTER_JSON = "staff_roster_json"
 
-    private const val DEFAULT_RECIPE_URL = "https://docs.google.com/spreadsheets/d/16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY/edit#gid=0"
-    private const val DEFAULT_TEMP_LOG_URL = "https://docs.google.com/spreadsheets/d/16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY/edit#gid=0"
+    private const val DEFAULT_RECIPE_URL =
+        "https://docs.google.com/spreadsheets/d/16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY/edit#gid=0"
+    private const val DEFAULT_TEMP_LOG_URL =
+        "https://docs.google.com/spreadsheets/d/16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY/edit#gid=0"
     private const val DEFAULT_ACTIVE_WEEK = "Week 5"
-    private const val DEFAULT_STAFF_ROSTER = """[{"name":"Terry Little Jr.","id":"TL01","role":"RECEIVER"},{"name":"Andy Tygart","id":"AT01","role":"MANAGER"}]"""
+    private const val DEFAULT_STAFF_ROSTER =
+        """[{"name":"Terry Little Jr.","id":"TL01","role":"RECEIVER"},{"name":"Andy Tygart","id":"AT01","role":"MANAGER"}]"""
 
     private val httpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -69,28 +72,45 @@ object RemoteConfig {
             ?: DEFAULT_STAFF_ROSTER
     }
 
-    suspend fun syncConfig(context: Context, targetUrl: String = getScriptUrl(context)) = withContext(Dispatchers.IO) {
-        try {
-            val cleanUrl = targetUrl.ifBlank { SettingsManager.DEFAULT_WEB_APP_URL }
-            val configUrl = if (cleanUrl.contains("?")) "$cleanUrl&action=get_remote_config" else "$cleanUrl?action=get_remote_config"
-            
-            val request = Request.Builder().url(configUrl).build()
-            val response = httpClient.newCall(request).execute()
-            
-            if (response.isSuccessful) {
-                val bodyStr = response.body?.string() ?: return@withContext
-                val jsonObj = JsonParser.parseString(bodyStr).asJsonObject
-                
-                val editor = getPrefs(context).edit()
-                if (jsonObj.has("script_url")) editor.putString(KEY_SCRIPT_URL, jsonObj.get("script_url").asString)
-                if (jsonObj.has("recipe_url")) editor.putString(KEY_RECIPE_URL, jsonObj.get("recipe_url").asString)
-                if (jsonObj.has("temp_log_url")) editor.putString(KEY_TEMP_LOG_URL, jsonObj.get("temp_log_url").asString)
-                if (jsonObj.has("active_week")) editor.putString(KEY_ACTIVE_WEEK, jsonObj.get("active_week").asString)
-                if (jsonObj.has("staff_roster_json")) editor.putString(KEY_STAFF_ROSTER_JSON, jsonObj.get("staff_roster_json").asString)
-                editor.apply()
+    suspend fun syncConfig(context: Context, targetUrl: String = getScriptUrl(context)) =
+        withContext(Dispatchers.IO) {
+            try {
+                val cleanUrl = targetUrl.ifBlank { SettingsManager.DEFAULT_WEB_APP_URL }
+                val configUrl =
+                    if (cleanUrl.contains("?")) "$cleanUrl&action=get_remote_config" else "$cleanUrl?action=get_remote_config"
+
+                val request = Request.Builder().url(configUrl).build()
+                val response = httpClient.newCall(request).execute()
+
+                if (response.isSuccessful) {
+                    val bodyStr = response.body?.string() ?: return@withContext
+                    val jsonObj = JsonParser.parseString(bodyStr).asJsonObject
+
+                    val editor = getPrefs(context).edit()
+                    if (jsonObj.has("script_url")) editor.putString(
+                        KEY_SCRIPT_URL,
+                        jsonObj.get("script_url").asString
+                    )
+                    if (jsonObj.has("recipe_url")) editor.putString(
+                        KEY_RECIPE_URL,
+                        jsonObj.get("recipe_url").asString
+                    )
+                    if (jsonObj.has("temp_log_url")) editor.putString(
+                        KEY_TEMP_LOG_URL,
+                        jsonObj.get("temp_log_url").asString
+                    )
+                    if (jsonObj.has("active_week")) editor.putString(
+                        KEY_ACTIVE_WEEK,
+                        jsonObj.get("active_week").asString
+                    )
+                    if (jsonObj.has("staff_roster_json")) editor.putString(
+                        KEY_STAFF_ROSTER_JSON,
+                        jsonObj.get("staff_roster_json").asString
+                    )
+                    editor.apply()
+                }
+            } catch (_: Exception) {
+                // Offline dock fallback: retains cached/default values seamlessly
             }
-        } catch (_: Exception) {
-            // Offline dock fallback: retains cached/default values seamlessly
         }
-    }
 }

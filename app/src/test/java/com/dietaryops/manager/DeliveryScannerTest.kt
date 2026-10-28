@@ -125,14 +125,16 @@ class DeliveryScannerTest {
 
     @Test
     fun testDefaultWebAppUrlConfiguration() {
-        val expectedUrl = "https://script.google.com/macros/s/AKfycbwvHRDz_7_635MtPnq_ac4gRscE4F_G5N72prO4g4oKheo8kYVUM0XD76jEwoQYHm-H9w/exec"
+        val expectedUrl =
+            "https://script.google.com/macros/s/AKfycbwvHRDz_7_635MtPnq_ac4gRscE4F_G5N72prO4g4oKheo8kYVUM0XD76jEwoQYHm-H9w/exec"
         assertEquals(expectedUrl, SettingsManager.DEFAULT_WEB_APP_URL)
         assertEquals(expectedUrl, GoogleSheetsApiService.DEFAULT_WEB_APP_URL)
     }
 
     @Test
     fun testPublishedSheetUrlConfiguration() {
-        val expectedPublishedUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=1819479005&single=true"
+        val expectedPublishedUrl =
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=1819479005&single=true"
         assertEquals(expectedPublishedUrl, SettingsManager.DEFAULT_PUBLISHED_WEB_URL)
     }
 
@@ -140,21 +142,33 @@ class DeliveryScannerTest {
     fun testHeaderRowDetectionForProductNames() {
         val headerLineTokens = listOf("Dairy & Fresh", "", "", "", "", "")
         val isHeader = headerLineTokens.drop(1).all { it.isBlank() }
-        assertTrue("Category header line with blank quantity columns should be identified as header", isHeader)
+        assertTrue(
+            "Category header line with blank quantity columns should be identified as header",
+            isHeader
+        )
 
         val productLineTokens = listOf("Strawberry Fresh", "0", "0", "", "", "")
         val isProductHeader = productLineTokens.drop(1).all { it.isBlank() }
-        assertFalse("Product item row with quantity data should NOT be identified as header", isProductHeader)
+        assertFalse(
+            "Product item row with quantity data should NOT be identified as header",
+            isProductHeader
+        )
     }
 
     @Test
     fun testCategoryNormalization() {
-        assertEquals("Proteins & Frozen", DeliveryRepository.normalizeCategory("Proteins and Frozen"))
+        assertEquals(
+            "Proteins & Frozen",
+            DeliveryRepository.normalizeCategory("Proteins and Frozen")
+        )
         assertEquals("Proteins & Frozen", DeliveryRepository.normalizeCategory("proteins & frozen"))
         assertEquals("Dry Storage", DeliveryRepository.normalizeCategory("dry storage"))
         assertEquals("Canned Goods", DeliveryRepository.normalizeCategory("Canned"))
         assertEquals("Dairy & Fresh", DeliveryRepository.normalizeCategory("Dairy and Fresh"))
-        assertEquals("Condiments & Sauces", DeliveryRepository.normalizeCategory("Condiments & Sauces"))
+        assertEquals(
+            "Condiments & Sauces",
+            DeliveryRepository.normalizeCategory("Condiments & Sauces")
+        )
         assertEquals("Supplement", DeliveryRepository.normalizeCategory("Thickened Beverages"))
         assertEquals("General", DeliveryRepository.normalizeCategory(null))
         assertEquals("General", DeliveryRepository.normalizeCategory("   "))
@@ -473,8 +487,10 @@ class DeliveryScannerTest {
         val scanned2 = SyscoUpcNormalizer.normalize("074865027138")
         val scanned3 = SyscoUpcNormalizer.normalize("074865027139")
 
-        val syscoParts = catalogItem.syscoUpc.split(",").map { SyscoUpcNormalizer.normalize(it.trim()) }
-        val altParts = catalogItem.alternateBarcodes.split(",").map { SyscoUpcNormalizer.normalize(it.trim()) }
+        val syscoParts =
+            catalogItem.syscoUpc.split(",").map { SyscoUpcNormalizer.normalize(it.trim()) }
+        val altParts =
+            catalogItem.alternateBarcodes.split(",").map { SyscoUpcNormalizer.normalize(it.trim()) }
 
         assertTrue(syscoParts.contains(scanned1))
         assertTrue(syscoParts.contains(scanned2))
@@ -660,12 +676,20 @@ class DeliveryScannerTest {
         // Unopened commercial standard: 365 days
         val unopenedDays = DateCalculator.getShelfLifeDaysForCategory(category)
         assertEquals(365, unopenedDays)
-        val unopenedCalc = DateCalculator.calculate(scanDate = scanDate, shelfLifeDays = unopenedDays, category = category)
+        val unopenedCalc = DateCalculator.calculate(
+            scanDate = scanDate,
+            shelfLifeDays = unopenedDays,
+            category = category
+        )
         assertEquals("2027-09-24", unopenedCalc.useByDateIso)
 
         // Opened in-use standard: 14 days
         val openedDays = 14
-        val openedCalc = DateCalculator.calculate(scanDate = scanDate, shelfLifeDays = openedDays, category = category)
+        val openedCalc = DateCalculator.calculate(
+            scanDate = scanDate,
+            shelfLifeDays = openedDays,
+            category = category
+        )
         assertEquals("2026-10-08", openedCalc.useByDateIso)
     }
 
@@ -681,18 +705,21 @@ class DeliveryScannerTest {
         assertEquals("TL01", terryParsed!!.second)
 
         // Zebra printed format: COMPANY-EMPID-ROLE
-        val zebraTerry = com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("CV-TL01-ADMIN")
+        val zebraTerry =
+            com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("CV-TL01-ADMIN")
         assertNotNull(zebraTerry)
         assertEquals("CV", zebraTerry!!.first)
         assertEquals("TL01", zebraTerry.second)
 
-        val zebraAdmin = com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("DOPS-AD99-SUPER_ADMIN")
+        val zebraAdmin =
+            com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("DOPS-AD99-SUPER_ADMIN")
         assertNotNull(zebraAdmin)
         assertEquals("DOPS", zebraAdmin!!.first)
         assertEquals("AD99", zebraAdmin.second)
 
         // DOPS-AUTH:COMPANY:EMPID:TOKEN
-        val authQr = com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("DOPS-AUTH:CVILLA:TL01:secretToken123")
+        val authQr =
+            com.dietaryops.manager.data.model.StaffUser.parseBadgePayload("DOPS-AUTH:CVILLA:TL01:secretToken123")
         assertNotNull(authQr)
         assertEquals("CVILLA", authQr!!.first)
         assertEquals("TL01", authQr.second)
@@ -709,7 +736,10 @@ class DeliveryScannerTest {
 
         assertEquals("CVILLA", SettingsManager.CVILLA_COMPANY_CODE)
         assertEquals("Century Villa Healthcare", SettingsManager.CVILLA_COMPANY_NAME)
-        assertEquals("16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY", SettingsManager.CVILLA_SHEET_ID)
+        assertEquals(
+            "16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY",
+            SettingsManager.CVILLA_SHEET_ID
+        )
     }
 }
 

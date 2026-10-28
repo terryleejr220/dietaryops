@@ -29,7 +29,9 @@ object SyscoUpcNormalizer {
 
         return when {
             // GTIN-14 / ITF-14 with 2 leading zeros ("00") or indicator "10" -> 12-digit UPC
-            digits.length == 14 && (digits.startsWith("00") || digits.startsWith("10")) -> digits.substring(2)
+            digits.length == 14 && (digits.startsWith("00") || digits.startsWith("10")) -> digits.substring(
+                2
+            )
 
             // GTIN-14 / ITF-14 case code (e.g. 10074865027134) -> extract inner 12-digit UPC (drop indicator & check digit)
             digits.length == 14 -> digits.substring(1, 13)

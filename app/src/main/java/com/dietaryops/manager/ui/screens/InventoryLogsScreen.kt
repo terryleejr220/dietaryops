@@ -101,24 +101,25 @@ fun InventoryLogsScreen(
     }
 
     // Filtered scan records list
-    val filteredScanRecords = remember(scanRecords, searchQuery, selectedCategoryFilter, selectedSyncFilter) {
-        scanRecords.filter { record ->
-            val matchesSearch = searchQuery.isBlank() ||
-                    record.itemName.contains(searchQuery, ignoreCase = true) ||
-                    record.syscoUpc.contains(searchQuery, ignoreCase = true)
+    val filteredScanRecords =
+        remember(scanRecords, searchQuery, selectedCategoryFilter, selectedSyncFilter) {
+            scanRecords.filter { record ->
+                val matchesSearch = searchQuery.isBlank() ||
+                        record.itemName.contains(searchQuery, ignoreCase = true) ||
+                        record.syscoUpc.contains(searchQuery, ignoreCase = true)
 
-            val matchesCategory = selectedCategoryFilter == "All" ||
-                    record.category.equals(selectedCategoryFilter, ignoreCase = true)
+                val matchesCategory = selectedCategoryFilter == "All" ||
+                        record.category.equals(selectedCategoryFilter, ignoreCase = true)
 
-            val matchesSync = when (selectedSyncFilter) {
-                "Synced" -> record.syncedToSheets
-                "Pending" -> !record.syncedToSheets
-                else -> true
+                val matchesSync = when (selectedSyncFilter) {
+                    "Synced" -> record.syncedToSheets
+                    "Pending" -> !record.syncedToSheets
+                    else -> true
+                }
+
+                matchesSearch && matchesCategory && matchesSync
             }
-
-            matchesSearch && matchesCategory && matchesSync
         }
-    }
 
     val recentlyScannedUpcs = remember(scanRecords) {
         scanRecords.map { it.syscoUpc }.toSet()
@@ -127,7 +128,14 @@ fun InventoryLogsScreen(
     var sortMode by remember { mutableStateOf("Shelf Layout") } // "Shelf Layout", "Alphabetical", "Category"
 
     // Filtered master catalog items list
-    val filteredCatalogItems = remember(catalogItems, searchQuery, activeTab, sortMode, selectedCatalogFilter, recentlyScannedUpcs) {
+    val filteredCatalogItems = remember(
+        catalogItems,
+        searchQuery,
+        activeTab,
+        sortMode,
+        selectedCatalogFilter,
+        recentlyScannedUpcs
+    ) {
         val categoryHeaders = setOf(
             "canned goods", "dry storage", "condiments & sauces", "misc dry & cereal",
             "dairy & fresh", "proteins & frozen", "supplement", "general",
@@ -138,10 +146,10 @@ fun InventoryLogsScreen(
         val filtered = catalogItems.filter { item ->
             val isCategoryHeader = categoryHeaders.contains(item.name.trim().lowercase())
             val isValidCatalogItem = !isCategoryHeader &&
-                                     !item.name.startsWith("Unrecognized", ignoreCase = true) &&
-                                     !item.name.startsWith("Item (", ignoreCase = true) &&
-                                     !item.syscoUpc.startsWith("DOPS-AUTH", ignoreCase = true) &&
-                                     !item.syscoUpc.startsWith("CV-", ignoreCase = true)
+                    !item.name.startsWith("Unrecognized", ignoreCase = true) &&
+                    !item.name.startsWith("Item (", ignoreCase = true) &&
+                    !item.syscoUpc.startsWith("DOPS-AUTH", ignoreCase = true) &&
+                    !item.syscoUpc.startsWith("CV-", ignoreCase = true)
 
             if (!isValidCatalogItem) return@filter false
 
@@ -150,7 +158,7 @@ fun InventoryLogsScreen(
                     item.syscoUpc.contains(searchQuery, ignoreCase = true) ||
                     item.syscoItemNumber.contains(searchQuery, ignoreCase = true) ||
                     item.piazzaItemNumber.contains(searchQuery, ignoreCase = true)
-                    
+
             val matchesCatalogFilter = when (selectedCatalogFilter) {
                 "Out of Stock" -> item.lastOnHandAmount <= 0
                 "Below Par", "Low Stock" -> item.parLevel > 0 && item.lastOnHandAmount < item.parLevel
@@ -158,20 +166,26 @@ fun InventoryLogsScreen(
                 "Recently Scanned" -> recentlyScannedUpcs.contains(item.syscoUpc)
                 else -> true
             }
-            
+
             matchesSearch && matchesCatalogFilter
         }
 
         // Apply sorting: "Shelf Layout" preserves exact row order from the Printable Count Sheet
         val sorted = when (sortMode) {
             "Alphabetical" -> filtered.sortedBy { it.name }
-            "Category" -> filtered.sortedWith(compareBy({ it.category }, { it.shelfOrderIndex }, { it.name }))
+            "Category" -> filtered.sortedWith(
+                compareBy(
+                    { it.category },
+                    { it.shelfOrderIndex },
+                    { it.name })
+            )
+
             else -> {
                 // "Shelf Layout": Physical shelf order from Printable Count Sheet (new items at bottom)
                 filtered.sortedBy { it.shelfOrderIndex }
             }
         }
-        
+
         // "Shelf Layout" preserves exact row position from Google Sheets / Count Walk (never rearrange when counts change)
         sorted
     }
@@ -180,7 +194,11 @@ fun InventoryLogsScreen(
     val triggerManualSync: () -> Unit = {
         val webAppUrl = settingsManager.webAppUrl
         if (webAppUrl.isBlank()) {
-            Toast.makeText(context, "Configure Google Sheets Web App URL in Settings!", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                context,
+                "Configure Google Sheets Web App URL in Settings!",
+                Toast.LENGTH_LONG
+            ).show()
         } else {
             isSyncing = true
             syncStatusText = "Syncing $unsyncedCount pending records..."
@@ -190,10 +208,18 @@ fun InventoryLogsScreen(
                     isSyncing = false
                     result.onSuccess { count ->
                         syncStatusText = "Successfully synced $count records!"
-                        Toast.makeText(context, "Synced $count records to Google Sheets!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Synced $count records to Google Sheets!",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }.onFailure { err ->
                         syncStatusText = "Sync failed: ${err.localizedMessage}"
-                        Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            "Sync error: ${err.localizedMessage}",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             }
@@ -257,14 +283,20 @@ fun InventoryLogsScreen(
                 }
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 IconButton(
                     onClick = triggerManualSync,
                     enabled = !isSyncing,
                     modifier = Modifier.size(28.dp)
                 ) {
                     if (isSyncing) {
-                        CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp),
+                            strokeWidth = 2.dp
+                        )
                     } else {
                         Icon(
                             Icons.Default.Sync,
@@ -278,10 +310,17 @@ fun InventoryLogsScreen(
                 IconButton(
                     onClick = {
                         try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(settingsManager.publishedWebUrl))
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse(settingsManager.publishedWebUrl)
+                            )
                             context.startActivity(intent)
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Error opening web sheet: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Error opening web sheet: ${e.localizedMessage}",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     },
                     modifier = Modifier.size(28.dp)
@@ -299,7 +338,10 @@ fun InventoryLogsScreen(
         // 2. Compact Tab Row
         Surface(
             shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+            ),
             color = MaterialTheme.colorScheme.surface
         ) {
             PrimaryTabRow(
@@ -310,17 +352,35 @@ fun InventoryLogsScreen(
                 Tab(
                     selected = activeTab == 0,
                     onClick = { activeTab = 0 },
-                    text = { Text("Scan Logs (${scanRecords.size})", fontSize = 11.sp, fontWeight = if (activeTab == 0) FontWeight.Bold else FontWeight.Medium) }
+                    text = {
+                        Text(
+                            "Scan Logs (${scanRecords.size})",
+                            fontSize = 11.sp,
+                            fontWeight = if (activeTab == 0) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
                 )
                 Tab(
                     selected = activeTab == 1,
                     onClick = { activeTab = 1 },
-                    text = { Text("Catalog (${catalogItems.size})", fontSize = 11.sp, fontWeight = if (activeTab == 1) FontWeight.Bold else FontWeight.Medium) }
+                    text = {
+                        Text(
+                            "Catalog (${catalogItems.size})",
+                            fontSize = 11.sp,
+                            fontWeight = if (activeTab == 1) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
                 )
                 Tab(
                     selected = activeTab == 2,
                     onClick = { activeTab = 2 },
-                    text = { Text("Count Walk", fontSize = 11.sp, fontWeight = if (activeTab == 2) FontWeight.Bold else FontWeight.Medium) }
+                    text = {
+                        Text(
+                            "Count Walk",
+                            fontSize = 11.sp,
+                            fontWeight = if (activeTab == 2) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
                 )
             }
         }
@@ -339,11 +399,22 @@ fun InventoryLogsScreen(
                     fontSize = 12.sp
                 )
             },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary) },
+            leadingIcon = {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
             trailingIcon = {
                 if (searchQuery.isNotEmpty()) {
                     IconButton(onClick = { searchQuery = "" }, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Clear, contentDescription = "Clear", modifier = Modifier.size(14.dp))
+                        Icon(
+                            Icons.Default.Clear,
+                            contentDescription = "Clear",
+                            modifier = Modifier.size(14.dp)
+                        )
                     }
                 }
             },
@@ -367,7 +438,10 @@ fun InventoryLogsScreen(
                         fontSize = 13.sp
                     )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         listOf("All", "Synced", "Pending").forEach { filter ->
                             FilterChip(
                                 selected = selectedSyncFilter == filter,
@@ -377,8 +451,16 @@ fun InventoryLogsScreen(
                         }
 
                         if (scanRecords.isNotEmpty()) {
-                            IconButton(onClick = { showClearAllConfirm = true }, modifier = Modifier.size(28.dp)) {
-                                Icon(Icons.Default.DeleteSweep, contentDescription = "Clear All", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                            IconButton(
+                                onClick = { showClearAllConfirm = true },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.DeleteSweep,
+                                    contentDescription = "Clear All",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(16.dp)
+                                )
                             }
                         }
                     }
@@ -418,8 +500,15 @@ fun InventoryLogsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(msg, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                            IconButton(onClick = { syncStatusText = null }, modifier = Modifier.size(20.dp)) {
-                                Icon(Icons.Default.Close, contentDescription = "Close", modifier = Modifier.size(12.dp))
+                            IconButton(
+                                onClick = { syncStatusText = null },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    modifier = Modifier.size(12.dp)
+                                )
                             }
                         }
                     }
@@ -434,7 +523,12 @@ fun InventoryLogsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Inbox, contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Gray)
+                            Icon(
+                                Icons.Default.Inbox,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = Color.Gray
+                            )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("No scan log entries found", fontSize = 12.sp, color = Color.Gray)
                         }
@@ -473,15 +567,26 @@ fun InventoryLogsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Catalog (${filteredCatalogItems.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(
+                        "Catalog (${filteredCatalogItems.size})",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         OutlinedButton(
                             onClick = { showMassPrintDialog = true },
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Icon(
+                                Icons.Default.Print,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp)
+                            )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text("Labels", fontSize = 11.sp)
                         }
@@ -490,7 +595,11 @@ fun InventoryLogsScreen(
                             onClick = {
                                 val pubUrl = settingsManager.publishedWebUrl
                                 if (pubUrl.isBlank()) {
-                                    Toast.makeText(context, "Configure Published Web Sheet URL in Settings first!", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Configure Published Web Sheet URL in Settings first!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 } else {
                                     isImportingCatalog = true
                                     coroutineScope.launch(Dispatchers.IO) {
@@ -498,9 +607,17 @@ fun InventoryLogsScreen(
                                         withContext(Dispatchers.Main) {
                                             isImportingCatalog = false
                                             res.onSuccess { count ->
-                                                Toast.makeText(context, "Synced $count catalog items!", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    "Synced $count catalog items!",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
                                             }.onFailure { err ->
-                                                Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    "Sync error: ${err.localizedMessage}",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
                                             }
                                         }
                                     }
@@ -511,9 +628,16 @@ fun InventoryLogsScreen(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             if (isImportingCatalog) {
-                                CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp)
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    strokeWidth = 2.dp
+                                )
                             } else {
-                                Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Icon(
+                                    Icons.Default.CloudDownload,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp)
+                                )
                             }
                             Spacer(modifier = Modifier.width(3.dp))
                             Text("Sync", fontSize = 11.sp)
@@ -525,7 +649,11 @@ fun InventoryLogsScreen(
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.ShoppingCart, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Icon(
+                                Icons.Default.ShoppingCart,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp)
+                            )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text("Reorder Sheet", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
@@ -536,7 +664,11 @@ fun InventoryLogsScreen(
                                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Icon(
+                                    Icons.Default.Add,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp)
+                                )
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text("Add", fontSize = 11.sp)
                             }
@@ -545,9 +677,12 @@ fun InventoryLogsScreen(
                 }
 
                 // KPI Status Badges Row
-                val outOfStockCount = remember(catalogItems) { catalogItems.count { it.lastOnHandAmount <= 0 } }
-                val belowParCount = remember(catalogItems) { catalogItems.count { it.parLevel > 0 && it.lastOnHandAmount < it.parLevel } }
-                val inStockCount = remember(catalogItems) { catalogItems.count { it.lastOnHandAmount >= it.parLevel || it.parLevel == 0.0 } }
+                val outOfStockCount =
+                    remember(catalogItems) { catalogItems.count { it.lastOnHandAmount <= 0 } }
+                val belowParCount =
+                    remember(catalogItems) { catalogItems.count { it.parLevel > 0 && it.lastOnHandAmount < it.parLevel } }
+                val inStockCount =
+                    remember(catalogItems) { catalogItems.count { it.lastOnHandAmount >= it.parLevel || it.parLevel == 0.0 } }
 
                 Row(
                     modifier = Modifier
@@ -567,7 +702,13 @@ fun InventoryLogsScreen(
                             selectedContainerColor = MaterialTheme.colorScheme.errorContainer,
                             selectedLabelColor = MaterialTheme.colorScheme.onErrorContainer
                         ),
-                        label = { Text("🔴 Out of Stock ($outOfStockCount)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        label = {
+                            Text(
+                                "🔴 Out of Stock ($outOfStockCount)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     )
                     FilterChip(
                         selected = selectedCatalogFilter == "Below Par",
@@ -576,7 +717,13 @@ fun InventoryLogsScreen(
                             selectedContainerColor = ExpiringSoonAmber.copy(alpha = 0.2f),
                             selectedLabelColor = ExpiringSoonAmber
                         ),
-                        label = { Text("🟠 Below Par ($belowParCount)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        label = {
+                            Text(
+                                "🟠 Below Par ($belowParCount)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     )
                     FilterChip(
                         selected = selectedCatalogFilter == "In Stock",
@@ -585,7 +732,13 @@ fun InventoryLogsScreen(
                             selectedContainerColor = Color(0xFF10B981).copy(alpha = 0.2f),
                             selectedLabelColor = Color(0xFF10B981)
                         ),
-                        label = { Text("🟢 In Stock ($inStockCount)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        label = {
+                            Text(
+                                "🟢 In Stock ($inStockCount)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     )
                 }
 
@@ -607,7 +760,10 @@ fun InventoryLogsScreen(
                     item {
                         FilterChip(
                             selected = selectedCatalogFilter == "Low Stock",
-                            onClick = { selectedCatalogFilter = if (selectedCatalogFilter == "Low Stock") "All" else "Low Stock" },
+                            onClick = {
+                                selectedCatalogFilter =
+                                    if (selectedCatalogFilter == "Low Stock") "All" else "Low Stock"
+                            },
                             label = { Text("âš ï¸ Low Stock", fontSize = 10.sp) }
                         )
                     }
@@ -621,9 +777,18 @@ fun InventoryLogsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.AutoMirrored.Filled.ListAlt, contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Gray)
+                            Icon(
+                                Icons.AutoMirrored.Filled.ListAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = Color.Gray
+                            )
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text("No catalog items match search", fontSize = 12.sp, color = Color.Gray)
+                            Text(
+                                "No catalog items match search",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
                         }
                     }
                 } else {
@@ -634,9 +799,12 @@ fun InventoryLogsScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         if (sortMode == "Shelf Layout") {
-                            val grouped = filteredCatalogItems.groupBy { ZplGenerator.getStorageLocationForCategory(it.category) }
+                            val grouped = filteredCatalogItems.groupBy {
+                                ZplGenerator.getStorageLocationForCategory(it.category)
+                            }
                             val orderedLocations = listOf("COOLER", "FREEZER", "DRY STORAGE")
-                            val allLocs = orderedLocations + grouped.keys.filter { it !in orderedLocations }
+                            val allLocs =
+                                orderedLocations + grouped.keys.filter { it !in orderedLocations }
 
                             for (loc in allLocs) {
                                 val itemsInLoc = grouped[loc] ?: emptyList()
@@ -645,18 +813,24 @@ fun InventoryLogsScreen(
                                         Surface(
                                             color = MaterialTheme.colorScheme.secondaryContainer,
                                             shape = RoundedCornerShape(6.dp),
-                                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 2.dp)
+                                            modifier = Modifier.fillMaxWidth()
+                                                .padding(top = 4.dp, bottom = 2.dp)
                                         ) {
                                             Text(
                                                 text = "ðŸ“¦ $loc (${itemsInLoc.size})",
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 12.sp,
                                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                                                modifier = Modifier.padding(
+                                                    horizontal = 10.dp,
+                                                    vertical = 3.dp
+                                                )
                                             )
                                         }
                                     }
-                                    items(itemsInLoc, key = { it.syscoUpc.ifBlank { "${it.name}_${it.syscoItemNumber}" } }) { catalogItem ->
+                                    items(
+                                        itemsInLoc,
+                                        key = { it.syscoUpc.ifBlank { "${it.name}_${it.syscoItemNumber}" } }) { catalogItem ->
                                         CatalogItemCard(
                                             item = catalogItem,
                                             printerManager = printerManager,
@@ -666,7 +840,8 @@ fun InventoryLogsScreen(
                                                         scanDate = LocalDate.now(),
                                                         shelfLifeDays = itemToLog.defaultShelfLifeDays
                                                     )
-                                                    val effectiveOnHand = if (itemToLog.lastOnHandAmount > 0.0) itemToLog.lastOnHandAmount else 1.0
+                                                    val effectiveOnHand =
+                                                        if (itemToLog.lastOnHandAmount > 0.0) itemToLog.lastOnHandAmount else 1.0
                                                     val record = ScanRecord(
                                                         syscoUpc = itemToLog.syscoUpc,
                                                         itemName = itemToLog.name,
@@ -678,16 +853,28 @@ fun InventoryLogsScreen(
                                                         onHandAmount = effectiveOnHand
                                                     )
                                                     repository.addScanRecord(record)
-                                                    Toast.makeText(context, "Logged: ${itemToLog.name}", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Logged: ${itemToLog.name}",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }
                                             },
                                             onUpdate = { updated ->
-                                                coroutineScope.launch { repository.saveCatalogItem(updated) }
+                                                coroutineScope.launch {
+                                                    repository.saveCatalogItem(
+                                                        updated
+                                                    )
+                                                }
                                             },
                                             onDelete = {
                                                 coroutineScope.launch {
                                                     repository.deleteCatalogItem(catalogItem.syscoUpc)
-                                                    Toast.makeText(context, "Deleted from catalog", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Deleted from catalog",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }
                                             }
                                         )
@@ -695,7 +882,9 @@ fun InventoryLogsScreen(
                                 }
                             }
                         } else {
-                            items(filteredCatalogItems, key = { it.syscoUpc.ifBlank { "${it.name}_${it.syscoItemNumber}" } }) { catalogItem ->
+                            items(
+                                filteredCatalogItems,
+                                key = { it.syscoUpc.ifBlank { "${it.name}_${it.syscoItemNumber}" } }) { catalogItem ->
                                 CatalogItemCard(
                                     item = catalogItem,
                                     printerManager = printerManager,
@@ -705,7 +894,8 @@ fun InventoryLogsScreen(
                                                 scanDate = LocalDate.now(),
                                                 shelfLifeDays = itemToLog.defaultShelfLifeDays
                                             )
-                                            val effectiveOnHand = if (itemToLog.lastOnHandAmount > 0.0) itemToLog.lastOnHandAmount else 1.0
+                                            val effectiveOnHand =
+                                                if (itemToLog.lastOnHandAmount > 0.0) itemToLog.lastOnHandAmount else 1.0
                                             val record = ScanRecord(
                                                 syscoUpc = itemToLog.syscoUpc,
                                                 itemName = itemToLog.name,
@@ -717,7 +907,11 @@ fun InventoryLogsScreen(
                                                 onHandAmount = effectiveOnHand
                                             )
                                             repository.addScanRecord(record)
-                                            Toast.makeText(context, "Logged: ${itemToLog.name}", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                "Logged: ${itemToLog.name}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                     },
                                     onUpdate = { updated ->
@@ -726,7 +920,11 @@ fun InventoryLogsScreen(
                                     onDelete = {
                                         coroutineScope.launch {
                                             repository.deleteCatalogItem(catalogItem.syscoUpc)
-                                            Toast.makeText(context, "Deleted from catalog", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(
+                                                context,
+                                                "Deleted from catalog",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                     }
                                 )
@@ -745,7 +943,10 @@ fun InventoryLogsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
                         Text(
                             text = if (settingsManager.isEvsDepartment()) "EVS Count Sheet" else "Dietary Count Sheet",
                             fontWeight = FontWeight.Bold,
@@ -765,13 +966,20 @@ fun InventoryLogsScreen(
                         }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         OutlinedButton(
                             onClick = { showMassPrintDialog = true },
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(13.dp))
+                            Icon(
+                                Icons.Default.Print,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp)
+                            )
                             Spacer(modifier = Modifier.width(3.dp))
                             Text("Labels", fontSize = 11.sp)
                         }
@@ -780,7 +988,11 @@ fun InventoryLogsScreen(
                             onClick = {
                                 val webAppUrl = settingsManager.webAppUrl
                                 if (webAppUrl.isBlank()) {
-                                    Toast.makeText(context, "Configure Google Sheets Web App URL in Settings!", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Configure Google Sheets Web App URL in Settings!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 } else {
                                     isSyncingCountSheet = true
                                     coroutineScope.launch(Dispatchers.IO) {
@@ -791,8 +1003,12 @@ fun InventoryLogsScreen(
                                                 itemNumber = it.syscoItemNumber,
                                                 name = it.name,
                                                 deliveryDate = LocalDate.now().toString(),
-                                                useByDate = LocalDate.now().plusDays(it.defaultShelfLifeDays.toLong()).toString(),
-                                                storageArea = ZplGenerator.getStorageLocationForCategory(it.category),
+                                                useByDate = LocalDate.now()
+                                                    .plusDays(it.defaultShelfLifeDays.toLong())
+                                                    .toString(),
+                                                storageArea = ZplGenerator.getStorageLocationForCategory(
+                                                    it.category
+                                                ),
                                                 receivedBy = settingsManager.staffName,
                                                 onHandQty = it.lastOnHandAmount,
                                                 category = it.category,
@@ -801,7 +1017,8 @@ fun InventoryLogsScreen(
                                                 scanTimestamp = System.currentTimeMillis()
                                             )
                                         }
-                                        val targetTab = if (settingsManager.isEvsDepartment()) "EVS Inventory" else "Inventory Raw"
+                                        val targetTab =
+                                            if (settingsManager.isEvsDepartment()) "EVS Inventory" else "Inventory Raw"
                                         val payload = SheetSyncPayload(
                                             spreadsheetId = settingsManager.sheetId,
                                             sheetTab = targetTab,
@@ -810,15 +1027,27 @@ fun InventoryLogsScreen(
                                             records = countDtos
                                         )
                                         // 1. Update Column B On-Hand counts via update_inventory
-                                        repository.updateInventoryCountsOnSheets(webAppUrl, catalogItems)
+                                        repository.updateInventoryCountsOnSheets(
+                                            webAppUrl,
+                                            catalogItems
+                                        )
                                         // 2. Sync full catalog records to Inventory Raw
-                                        val res = repository.syncCatalogWithPayload(webAppUrl, payload)
+                                        val res =
+                                            repository.syncCatalogWithPayload(webAppUrl, payload)
                                         withContext(Dispatchers.Main) {
                                             isSyncingCountSheet = false
                                             res.onSuccess {
-                                                Toast.makeText(context, "Synced On-Hand Counts to $targetTab in Google Sheets!", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    "Synced On-Hand Counts to $targetTab in Google Sheets!",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
                                             }.onFailure { err ->
-                                                Toast.makeText(context, "Sync error: ${err.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                Toast.makeText(
+                                                    context,
+                                                    "Sync error: ${err.localizedMessage}",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
                                             }
                                         }
                                     }
@@ -829,9 +1058,17 @@ fun InventoryLogsScreen(
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             if (isSyncingCountSheet) {
-                                CircularProgressIndicator(modifier = Modifier.size(12.dp), color = Color.White, strokeWidth = 2.dp)
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
                             } else {
-                                Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(13.dp))
+                                Icon(
+                                    Icons.Default.CloudUpload,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp)
+                                )
                             }
                             Spacer(modifier = Modifier.width(3.dp))
                             Text("Sync", fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -852,7 +1089,8 @@ fun InventoryLogsScreen(
                         )
                     }
                     items(DEFAULT_CATEGORIES) { cat ->
-                        val catCount = catalogItems.count { it.category.equals(cat, ignoreCase = true) }
+                        val catCount =
+                            catalogItems.count { it.category.equals(cat, ignoreCase = true) }
                         if (catCount > 0) {
                             FilterChip(
                                 selected = selectedCategoryFilter == cat,
@@ -864,7 +1102,10 @@ fun InventoryLogsScreen(
                 }
 
                 val walkItems = filteredCatalogItems.filter {
-                    selectedCategoryFilter == "All" || it.category.equals(selectedCategoryFilter, ignoreCase = true)
+                    selectedCategoryFilter == "All" || it.category.equals(
+                        selectedCategoryFilter,
+                        ignoreCase = true
+                    )
                 }
 
                 if (walkItems.isEmpty()) {
@@ -875,7 +1116,12 @@ fun InventoryLogsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.Inventory2, contentDescription = null, modifier = Modifier.size(40.dp), tint = Color.Gray)
+                            Icon(
+                                Icons.Default.Inventory2,
+                                contentDescription = null,
+                                modifier = Modifier.size(40.dp),
+                                tint = Color.Gray
+                            )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("No items for count sheet", fontSize = 12.sp, color = Color.Gray)
                         }
@@ -888,12 +1134,17 @@ fun InventoryLogsScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         contentPadding = PaddingValues(bottom = 16.dp)
                     ) {
-                        items(walkItems, key = { it.syscoUpc.ifBlank { "${it.name}_${it.syscoItemNumber}" } }) { item ->
+                        items(
+                            walkItems,
+                            key = { it.syscoUpc.ifBlank { "${it.name}_${it.syscoItemNumber}" } }) { item ->
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                border = BorderStroke(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                )
                             ) {
                                 Row(
                                     modifier = Modifier.padding(10.dp).fillMaxWidth(),
@@ -901,7 +1152,12 @@ fun InventoryLogsScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(item.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 2)
+                                        Text(
+                                            item.name,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp,
+                                            maxLines = 2
+                                        )
                                         Row(
                                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                                             verticalAlignment = Alignment.CenterVertically,
@@ -909,7 +1165,9 @@ fun InventoryLogsScreen(
                                         ) {
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),
-                                                color = when (ZplGenerator.getStorageLocationForCategory(item.category)) {
+                                                color = when (ZplGenerator.getStorageLocationForCategory(
+                                                    item.category
+                                                )) {
                                                     "COOLER" -> Color(0xFF1E88E5).copy(alpha = 0.15f)
                                                     "FREEZER" -> Color(0xFF00ACC1).copy(alpha = 0.15f)
                                                     else -> Color(0xFFFB8C00).copy(alpha = 0.15f)
@@ -919,12 +1177,17 @@ fun InventoryLogsScreen(
                                                     ZplGenerator.getStorageLocationForCategory(item.category),
                                                     fontSize = 9.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = when (ZplGenerator.getStorageLocationForCategory(item.category)) {
+                                                    color = when (ZplGenerator.getStorageLocationForCategory(
+                                                        item.category
+                                                    )) {
                                                         "COOLER" -> Color(0xFF1E88E5)
                                                         "FREEZER" -> Color(0xFF00ACC1)
                                                         else -> Color(0xFFFB8C00)
                                                     },
-                                                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                                    modifier = Modifier.padding(
+                                                        horizontal = 5.dp,
+                                                        vertical = 1.dp
+                                                    )
                                                 )
                                             }
                                             Text(
@@ -941,13 +1204,22 @@ fun InventoryLogsScreen(
                                     ) {
                                         OutlinedIconButton(
                                             onClick = {
-                                                val newQty = (item.lastOnHandAmount - 1.0).coerceAtLeast(0.0)
+                                                val newQty =
+                                                    (item.lastOnHandAmount - 1.0).coerceAtLeast(0.0)
                                                 val updated = item.copy(lastOnHandAmount = newQty)
-                                                coroutineScope.launch(Dispatchers.IO) { repository.saveCatalogItem(updated) }
+                                                coroutineScope.launch(Dispatchers.IO) {
+                                                    repository.saveCatalogItem(
+                                                        updated
+                                                    )
+                                                }
                                             },
                                             modifier = Modifier.size(34.dp)
                                         ) {
-                                            Text("-", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                            Text(
+                                                "-",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 18.sp
+                                            )
                                         }
 
                                         Surface(
@@ -959,7 +1231,10 @@ fun InventoryLogsScreen(
                                                 text = if (item.lastOnHandAmount % 1.0 == 0.0) "${item.lastOnHandAmount.toInt()}" else "${item.lastOnHandAmount}",
                                                 fontWeight = FontWeight.ExtraBold,
                                                 fontSize = 15.sp,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                                modifier = Modifier.padding(
+                                                    horizontal = 8.dp,
+                                                    vertical = 4.dp
+                                                )
                                             )
                                         }
 
@@ -967,28 +1242,55 @@ fun InventoryLogsScreen(
                                             onClick = {
                                                 val newQty = item.lastOnHandAmount + 1.0
                                                 val updated = item.copy(lastOnHandAmount = newQty)
-                                                coroutineScope.launch(Dispatchers.IO) { repository.saveCatalogItem(updated) }
+                                                coroutineScope.launch(Dispatchers.IO) {
+                                                    repository.saveCatalogItem(
+                                                        updated
+                                                    )
+                                                }
                                             },
                                             modifier = Modifier.size(34.dp)
                                         ) {
-                                            Text("+", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                            Text(
+                                                "+",
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 18.sp
+                                            )
                                         }
 
                                         IconButton(
                                             onClick = {
-                                                val printer = printerManager.connectedDevice.value ?: printerManager.getPreferredPrinter()
+                                                val printer = printerManager.connectedDevice.value
+                                                    ?: printerManager.getPreferredPrinter()
                                                 if (printer != null) {
-                                                    val zpl = ZplGenerator.generateShelfLabelZpl(item)
-                                                    printerManager.printDirect(printer, zpl, quantity = 1) { success, msg ->
-                                                        Toast.makeText(context, if (success) "Printed shelf label: ${item.name}" else "Print failed: $msg", Toast.LENGTH_SHORT).show()
+                                                    val zpl =
+                                                        ZplGenerator.generateShelfLabelZpl(item)
+                                                    printerManager.printDirect(
+                                                        printer,
+                                                        zpl,
+                                                        quantity = 1
+                                                    ) { success, msg ->
+                                                        Toast.makeText(
+                                                            context,
+                                                            if (success) "Printed shelf label: ${item.name}" else "Print failed: $msg",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
                                                     }
                                                 } else {
-                                                    Toast.makeText(context, "Pair Zebra printer first in Settings", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Pair Zebra printer first in Settings",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
                                                 }
                                             },
                                             modifier = Modifier.size(32.dp)
                                         ) {
-                                            Icon(Icons.Default.Print, contentDescription = "Print Shelf Label", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                            Icon(
+                                                Icons.Default.Print,
+                                                contentDescription = "Print Shelf Label",
+                                                modifier = Modifier.size(16.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
                                         }
                                     }
                                 }
@@ -1005,14 +1307,23 @@ fun InventoryLogsScreen(
         var selectedUpcs by remember { mutableStateOf(catalogItems.map { it.syscoUpc }.toSet()) }
 
         val dialogItems = remember(catalogItems, selectedCategory) {
-            if (selectedCategory == "All") catalogItems else catalogItems.filter { it.category.equals(selectedCategory, ignoreCase = true) }
+            if (selectedCategory == "All") catalogItems else catalogItems.filter {
+                it.category.equals(
+                    selectedCategory,
+                    ignoreCase = true
+                )
+            }
         }
 
         AlertDialog(
             onDismissRequest = { showMassPrintDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Print, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Default.Print,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Mass Print Shelf Labels", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
@@ -1022,7 +1333,11 @@ fun InventoryLogsScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Select category or items to stream ZPL shelf labels to Zebra printer:", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        "Select category or items to stream ZPL shelf labels to Zebra printer:",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
 
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         item {
@@ -1036,12 +1351,18 @@ fun InventoryLogsScreen(
                             )
                         }
                         items(DEFAULT_CATEGORIES) { cat ->
-                            val count = catalogItems.count { it.category.equals(cat, ignoreCase = true) }
+                            val count =
+                                catalogItems.count { it.category.equals(cat, ignoreCase = true) }
                             FilterChip(
                                 selected = selectedCategory == cat,
                                 onClick = {
                                     selectedCategory = cat
-                                    selectedUpcs = catalogItems.filter { it.category.equals(cat, ignoreCase = true) }.map { it.syscoUpc }.toSet()
+                                    selectedUpcs = catalogItems.filter {
+                                        it.category.equals(
+                                            cat,
+                                            ignoreCase = true
+                                        )
+                                    }.map { it.syscoUpc }.toSet()
                                 },
                                 label = { Text("$cat ($count)", fontSize = 10.sp) }
                             )
@@ -1053,7 +1374,11 @@ fun InventoryLogsScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Selected: ${selectedUpcs.size} item(s)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(
+                            "Selected: ${selectedUpcs.size} item(s)",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
                         TextButton(onClick = {
                             if (selectedUpcs.size == dialogItems.size) {
                                 selectedUpcs = emptySet()
@@ -1061,7 +1386,10 @@ fun InventoryLogsScreen(
                                 selectedUpcs = dialogItems.map { it.syscoUpc }.toSet()
                             }
                         }) {
-                            Text(if (selectedUpcs.size == dialogItems.size) "Deselect All" else "Select All", fontSize = 11.sp)
+                            Text(
+                                if (selectedUpcs.size == dialogItems.size) "Deselect All" else "Select All",
+                                fontSize = 11.sp
+                            )
                         }
                     }
 
@@ -1077,7 +1405,8 @@ fun InventoryLogsScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        selectedUpcs = if (isChecked) selectedUpcs - item.syscoUpc else selectedUpcs + item.syscoUpc
+                                        selectedUpcs =
+                                            if (isChecked) selectedUpcs - item.syscoUpc else selectedUpcs + item.syscoUpc
                                     }
                                     .padding(horizontal = 4.dp, vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically
@@ -1085,13 +1414,22 @@ fun InventoryLogsScreen(
                                 Checkbox(
                                     checked = isChecked,
                                     onCheckedChange = { checked ->
-                                        selectedUpcs = if (checked == true) selectedUpcs + item.syscoUpc else selectedUpcs - item.syscoUpc
+                                        selectedUpcs =
+                                            if (checked == true) selectedUpcs + item.syscoUpc else selectedUpcs - item.syscoUpc
                                     }
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Column {
-                                    Text(item.name, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-                                    Text("${item.category} \u2022 ${item.syscoUpc}", fontSize = 10.sp, color = Color.Gray)
+                                    Text(
+                                        item.name,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        "${item.category} \u2022 ${item.syscoUpc}",
+                                        fontSize = 10.sp,
+                                        color = Color.Gray
+                                    )
                                 }
                             }
                         }
@@ -1103,13 +1441,26 @@ fun InventoryLogsScreen(
                     onClick = {
                         val targetPrinter = printerManager.getPreferredPrinter()
                         if (targetPrinter == null) {
-                            Toast.makeText(context, "Pair or connect a Zebra printer first!", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                "Pair or connect a Zebra printer first!",
+                                Toast.LENGTH_LONG
+                            ).show()
                         } else if (selectedUpcs.isEmpty()) {
-                            Toast.makeText(context, "Select at least one item to print", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Select at least one item to print",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         } else {
-                            val itemsToPrint = catalogItems.filter { selectedUpcs.contains(it.syscoUpc) }
+                            val itemsToPrint =
+                                catalogItems.filter { selectedUpcs.contains(it.syscoUpc) }
                             showMassPrintDialog = false
-                            Toast.makeText(context, "Streaming ${itemsToPrint.size} shelf label(s) to Zebra...", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Streaming ${itemsToPrint.size} shelf label(s) to Zebra...",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             coroutineScope.launch(Dispatchers.IO) {
                                 itemsToPrint.forEach { catItem ->
                                     val zpl = ZplGenerator.generateShelfLabelZpl(catItem)
@@ -1117,14 +1468,22 @@ fun InventoryLogsScreen(
                                     delay(400)
                                 }
                                 withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "Printed ${itemsToPrint.size} shelf label(s)!", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Printed ${itemsToPrint.size} shelf label(s)!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             }
                         }
                     },
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.Print,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Print ${selectedUpcs.size} Labels", fontWeight = FontWeight.Bold)
                 }
@@ -1148,7 +1507,8 @@ fun InventoryLogsScreen(
                     coroutineScope.launch {
                         repository.clearAllScanRecords()
                         showClearAllConfirm = false
-                        Toast.makeText(context, "Cleared all inventory logs", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Cleared all inventory logs", Toast.LENGTH_SHORT)
+                            .show()
                     }
                 }) {
                     Text("Clear All", color = MaterialTheme.colorScheme.error)
@@ -1250,7 +1610,8 @@ fun InventoryLogsScreen(
                                     text = { Text(cat) },
                                     onClick = {
                                         newCategory = cat
-                                        newDaysStr = DateCalculator.getShelfLifeDaysForCategory(cat).toString()
+                                        newDaysStr = DateCalculator.getShelfLifeDaysForCategory(cat)
+                                            .toString()
                                         isCategoryExpanded = false
                                     }
                                 )
@@ -1277,7 +1638,16 @@ fun InventoryLogsScreen(
                             expanded = isUnitExpanded,
                             onDismissRequest = { isUnitExpanded = false }
                         ) {
-                            listOf("EA", "LB", "CS", "CTN", "GAL", "BLK", "BOX", "PK").forEach { unitOpt ->
+                            listOf(
+                                "EA",
+                                "LB",
+                                "CS",
+                                "CTN",
+                                "GAL",
+                                "BLK",
+                                "BOX",
+                                "PK"
+                            ).forEach { unitOpt ->
                                 DropdownMenuItem(
                                     text = { Text(unitOpt) },
                                     onClick = {
@@ -1301,7 +1671,8 @@ fun InventoryLogsScreen(
             confirmButton = {
                 Button(onClick = {
                     if (newUpc.isBlank() || newName.isBlank()) {
-                        Toast.makeText(context, "Enter UPC and Product Name", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Enter UPC and Product Name", Toast.LENGTH_SHORT)
+                            .show()
                     } else {
                         val cleanUpc = SyscoUpcNormalizer.normalize(newUpc)
                         val daysInt = newDaysStr.toIntOrNull() ?: 7
@@ -1320,7 +1691,11 @@ fun InventoryLogsScreen(
                         coroutineScope.launch {
                             repository.saveCatalogItem(item)
                             showAddCatalogDialog = false
-                            Toast.makeText(context, "Added '${item.displayNameForLabel}' to catalog!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Added '${item.displayNameForLabel}' to catalog!",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 }) {
@@ -1403,8 +1778,18 @@ fun ScanRecordCard(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(Icons.Default.VerifiedUser, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
-                                Text("AUDIT / INFO-ONLY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                Icon(
+                                    Icons.Default.VerifiedUser,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(12.dp),
+                                    tint = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Text(
+                                    "AUDIT / INFO-ONLY",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
                             }
                         }
                     }
@@ -1412,7 +1797,9 @@ fun ScanRecordCard(
 
                 // Sync Badge
                 Surface(
-                    color = if (record.syncedToSheets) SyncSuccessColor.copy(alpha = 0.15f) else SyncPendingColor.copy(alpha = 0.15f),
+                    color = if (record.syncedToSheets) SyncSuccessColor.copy(alpha = 0.15f) else SyncPendingColor.copy(
+                        alpha = 0.15f
+                    ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -1458,7 +1845,12 @@ fun ScanRecordCard(
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Delivered: ${record.deliveryDate}", fontSize = 10.sp, color = Color.Gray)
-                    Text("Use By: ${record.useByDate}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        "Use By: ${record.useByDate}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 
@@ -1475,28 +1867,48 @@ fun ScanRecordCard(
                 Surface(
                     color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Text("Qty:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
+                        Text(
+                            "Qty:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Gray
+                        )
                         IconButton(
                             onClick = {
                                 if (displayOnHand > 0.5) {
                                     val newQty = (displayOnHand - 1.0).coerceAtLeast(0.5)
-                                    onUpdate(record.copy(onHandAmount = newQty, syncedToSheets = false))
+                                    onUpdate(
+                                        record.copy(
+                                            onHandAmount = newQty,
+                                            syncedToSheets = false
+                                        )
+                                    )
                                 }
                             },
                             modifier = Modifier.size(28.dp),
                             enabled = displayOnHand > 0.5
                         ) {
-                            Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(14.dp))
+                            Icon(
+                                Icons.Default.Remove,
+                                contentDescription = "Decrease",
+                                modifier = Modifier.size(14.dp)
+                            )
                         }
                         Text(
-                            text = "${if (displayOnHand % 1.0 == 0.0) displayOnHand.toInt().toString() else displayOnHand} ${record.unit}",
+                            text = "${
+                                if (displayOnHand % 1.0 == 0.0) displayOnHand.toInt()
+                                    .toString() else displayOnHand
+                            } ${record.unit}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.primary
@@ -1508,19 +1920,29 @@ fun ScanRecordCard(
                             },
                             modifier = Modifier.size(28.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(14.dp))
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Increase",
+                                modifier = Modifier.size(14.dp)
+                            )
                         }
                     }
                 }
 
                 // Edit, Delete and Print action buttons on the exact same row
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     IconButton(
                         onClick = {
-                            val printer = printerManager.connectedDevice.value ?: printerManager.getPreferredPrinter()
+                            val printer = printerManager.connectedDevice.value
+                                ?: printerManager.getPreferredPrinter()
                             if (printer != null) {
-                                val parsedDeliv = DateCalculator.parseDate(record.deliveryDate) ?: LocalDate.now()
-                                val parsedUseBy = DateCalculator.parseDate(record.useByDate) ?: parsedDeliv.plusDays(record.shelfLifeDays.toLong())
+                                val parsedDeliv =
+                                    DateCalculator.parseDate(record.deliveryDate) ?: LocalDate.now()
+                                val parsedUseBy = DateCalculator.parseDate(record.useByDate)
+                                    ?: parsedDeliv.plusDays(record.shelfLifeDays.toLong())
                                 val staffInitials = SettingsManager(context).staffInitials
                                 val zpl = ZplGenerator.generateLabel(
                                     itemName = record.itemName,
@@ -1531,30 +1953,50 @@ fun ScanRecordCard(
                                     onHandAmount = record.onHandAmount,
                                     staffInitials = staffInitials
                                 )
-                                printerManager.printDirect(printer, zpl, quantity = displayOnHand.toInt().coerceAtLeast(1)) { _, msg ->
+                                printerManager.printDirect(
+                                    printer,
+                                    zpl,
+                                    quantity = displayOnHand.toInt().coerceAtLeast(1)
+                                ) { _, msg ->
                                     Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                 }
                             } else {
-                                Toast.makeText(context, "No printer connected", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "No printer connected", Toast.LENGTH_SHORT)
+                                    .show()
                             }
                         },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = "Re-print Label", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Print,
+                            contentDescription = "Re-print Label",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
 
                     IconButton(
                         onClick = { showEditDialog = true },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit Record", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit Record",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
 
                     IconButton(
                         onClick = { showDeleteConfirm = true },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = "Delete Record", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete Record",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
@@ -1587,7 +2029,12 @@ fun ScanRecordCard(
         var editCategory by remember { mutableStateOf(record.category) }
         var editUnit by remember { mutableStateOf(record.unit) }
         val initialOnHand = if (record.onHandAmount > 0.0) record.onHandAmount else 1.0
-        var editOnHandStr by remember { mutableStateOf(if (initialOnHand % 1.0 == 0.0) initialOnHand.toInt().toString() else initialOnHand.toString()) }
+        var editOnHandStr by remember {
+            mutableStateOf(
+                if (initialOnHand % 1.0 == 0.0) initialOnHand.toInt()
+                    .toString() else initialOnHand.toString()
+            )
+        }
         var editDaysStr by remember { mutableStateOf(record.shelfLifeDays.toString()) }
         var editDeliveryDateStr by remember { mutableStateOf(record.deliveryDate) }
 
@@ -1650,7 +2097,9 @@ fun ScanRecordCard(
                                     text = { Text(cat) },
                                     onClick = {
                                         editCategory = cat
-                                        editDaysStr = DateCalculator.getShelfLifeDaysForCategory(cat).toString()
+                                        editDaysStr =
+                                            DateCalculator.getShelfLifeDaysForCategory(cat)
+                                                .toString()
                                         isCategoryExpanded = false
                                     }
                                 )
@@ -1677,7 +2126,16 @@ fun ScanRecordCard(
                             expanded = isUnitExpanded,
                             onDismissRequest = { isUnitExpanded = false }
                         ) {
-                            listOf("EA", "LB", "CS", "CTN", "GAL", "BLK", "BOX", "PK").forEach { unitOpt ->
+                            listOf(
+                                "EA",
+                                "LB",
+                                "CS",
+                                "CTN",
+                                "GAL",
+                                "BLK",
+                                "BOX",
+                                "PK"
+                            ).forEach { unitOpt ->
                                 DropdownMenuItem(
                                     text = { Text(unitOpt) },
                                     onClick = {
@@ -1710,8 +2168,15 @@ fun ScanRecordCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
-                            Text("Preview Calculated Dates:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Delivery: ${calculatedPreview.deliveryDateFormatted}", fontSize = 13.sp)
+                            Text(
+                                "Preview Calculated Dates:",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "Delivery: ${calculatedPreview.deliveryDateFormatted}",
+                                fontSize = 13.sp
+                            )
                             Text(
                                 "Use By: ${calculatedPreview.useByDateFormatted} (+${calculatedPreview.shelfLifeDays}d)",
                                 fontSize = 14.sp,
@@ -1726,7 +2191,8 @@ fun ScanRecordCard(
                 Button(onClick = {
                     val validDays = DateCalculator.clampShelfLifeDays(editDaysInt)
                     val parsedOnHand = editOnHandStr.toDoubleOrNull()
-                    val editOnHand = if (parsedOnHand != null && parsedOnHand > 0.0) parsedOnHand else initialOnHand
+                    val editOnHand =
+                        if (parsedOnHand != null && parsedOnHand > 0.0) parsedOnHand else initialOnHand
                     val updatedRecord = record.copy(
                         itemName = editName.ifBlank { record.itemName },
                         category = editCategory,
@@ -1810,7 +2276,11 @@ fun CatalogItemCard(
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     modifier = Modifier.height(32.dp)
                 ) {
-                    Icon(Icons.Default.PostAdd, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(
+                        Icons.Default.PostAdd,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Log Delivery", fontSize = 12.sp)
                 }
@@ -1833,14 +2303,22 @@ fun CatalogItemCard(
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant,
                     shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Text("On Hand:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
+                        Text(
+                            "On Hand:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Gray
+                        )
                         IconButton(
                             onClick = {
                                 if (displayOnHand > 0.5) {
@@ -1851,10 +2329,17 @@ fun CatalogItemCard(
                             modifier = Modifier.size(28.dp),
                             enabled = displayOnHand > 0.5
                         ) {
-                            Icon(Icons.Default.Remove, contentDescription = "Decrease", modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Remove,
+                                contentDescription = "Decrease",
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                         Text(
-                            text = "${if (displayOnHand % 1.0 == 0.0) displayOnHand.toInt().toString() else displayOnHand} ${item.unit}",
+                            text = "${
+                                if (displayOnHand % 1.0 == 0.0) displayOnHand.toInt()
+                                    .toString() else displayOnHand
+                            } ${item.unit}",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.primary
@@ -1866,7 +2351,11 @@ fun CatalogItemCard(
                             },
                             modifier = Modifier.size(28.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = "Increase", modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = "Increase",
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                 }
@@ -1887,7 +2376,8 @@ fun CatalogItemCard(
             ) {
                 TextButton(
                     onClick = {
-                        val printer = printerManager.connectedDevice.value ?: printerManager.getPreferredPrinter()
+                        val printer = printerManager.connectedDevice.value
+                            ?: printerManager.getPreferredPrinter()
                         if (printer != null) {
                             coroutineScope.launch {
                                 productManager.saveProduct(item)
@@ -1895,7 +2385,8 @@ fun CatalogItemCard(
                                     syscoUpc = item.syscoUpc,
                                     itemName = "Shelf Label: ${item.name}",
                                     deliveryDate = LocalDate.now().toString(),
-                                    useByDate = LocalDate.now().plusDays(item.defaultShelfLifeDays.toLong()).toString(),
+                                    useByDate = LocalDate.now()
+                                        .plusDays(item.defaultShelfLifeDays.toLong()).toString(),
                                     category = item.category,
                                     shelfLifeDays = item.defaultShelfLifeDays,
                                     unit = item.unit,
@@ -1906,19 +2397,29 @@ fun CatalogItemCard(
                             val zpl = ZplGenerator.generateShelfLabelZpl(item)
                             printerManager.printDirect(printer, zpl, quantity = 1) { success, msg ->
                                 if (success) {
-                                    Toast.makeText(context, "Printed shelf label for ${item.name}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Printed shelf label for ${item.name}",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 } else {
-                                    Toast.makeText(context, "Print failed: $msg", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, "Print failed: $msg", Toast.LENGTH_LONG)
+                                        .show()
                                 }
                             }
                         } else {
-                            Toast.makeText(context, "No printer connected", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "No printer connected", Toast.LENGTH_SHORT)
+                                .show()
                         }
                     },
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                     modifier = Modifier.height(30.dp)
                 ) {
-                    Icon(Icons.Default.LocalOffer, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(
+                        Icons.Default.LocalOffer,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Shelf Label", fontSize = 12.sp)
                 }
@@ -1928,7 +2429,11 @@ fun CatalogItemCard(
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                     modifier = Modifier.height(30.dp)
                 ) {
-                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Edit Item", fontSize = 12.sp)
                 }
@@ -1938,7 +2443,12 @@ fun CatalogItemCard(
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                     modifier = Modifier.height(30.dp)
                 ) {
-                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.error)
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Delete", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
                 }
@@ -1972,7 +2482,12 @@ fun CatalogItemCard(
         var editCategory by remember { mutableStateOf(item.category) }
         var editUnit by remember { mutableStateOf(item.unit) }
         val initialOnHand = if (item.lastOnHandAmount > 0.0) item.lastOnHandAmount else 1.0
-        var editOnHandStr by remember { mutableStateOf(if (initialOnHand % 1.0 == 0.0) initialOnHand.toInt().toString() else initialOnHand.toString()) }
+        var editOnHandStr by remember {
+            mutableStateOf(
+                if (initialOnHand % 1.0 == 0.0) initialOnHand.toInt()
+                    .toString() else initialOnHand.toString()
+            )
+        }
         var editDaysStr by remember { mutableStateOf(item.defaultShelfLifeDays.toString()) }
 
         var isCategoryExpanded by remember { mutableStateOf(false) }
@@ -2027,7 +2542,9 @@ fun CatalogItemCard(
                                     text = { Text(cat) },
                                     onClick = {
                                         editCategory = cat
-                                        editDaysStr = DateCalculator.getShelfLifeDaysForCategory(cat).toString()
+                                        editDaysStr =
+                                            DateCalculator.getShelfLifeDaysForCategory(cat)
+                                                .toString()
                                         isCategoryExpanded = false
                                     }
                                 )
@@ -2054,7 +2571,16 @@ fun CatalogItemCard(
                             expanded = isUnitExpanded,
                             onDismissRequest = { isUnitExpanded = false }
                         ) {
-                            listOf("EA", "LB", "CS", "CTN", "GAL", "BLK", "BOX", "PK").forEach { unitOpt ->
+                            listOf(
+                                "EA",
+                                "LB",
+                                "CS",
+                                "CTN",
+                                "GAL",
+                                "BLK",
+                                "BOX",
+                                "PK"
+                            ).forEach { unitOpt ->
                                 DropdownMenuItem(
                                     text = { Text(unitOpt) },
                                     onClick = {
@@ -2079,7 +2605,8 @@ fun CatalogItemCard(
                 Button(onClick = {
                     val daysInt = editDaysStr.toIntOrNull() ?: item.defaultShelfLifeDays
                     val parsedOnHand = editOnHandStr.toDoubleOrNull()
-                    val onHandVal = if (parsedOnHand != null && parsedOnHand > 0.0) parsedOnHand else initialOnHand
+                    val onHandVal =
+                        if (parsedOnHand != null && parsedOnHand > 0.0) parsedOnHand else initialOnHand
                     val updatedItem = item.copy(
                         name = editName.ifBlank { item.name },
                         category = editCategory,

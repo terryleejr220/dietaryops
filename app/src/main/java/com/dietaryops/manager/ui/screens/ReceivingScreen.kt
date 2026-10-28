@@ -74,11 +74,16 @@ fun ReceivingScreen(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    
+
     val allCatalogItems by productManager.getAllCatalogItems().collectAsState(initial = emptyList())
 
     var hasCameraPermission by remember {
-        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        )
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -197,8 +202,8 @@ fun ReceivingScreen(
 
             // Auto-print if enabled and printer selected (Prevent auto-printing Unrecognized Items)
             val isKnownItem = state.isKnownCatalog &&
-                              !state.product.name.startsWith("Unrecognized", ignoreCase = true) &&
-                              !state.product.name.startsWith("Item (", ignoreCase = true)
+                    !state.product.name.startsWith("Unrecognized", ignoreCase = true) &&
+                    !state.product.name.startsWith("Item (", ignoreCase = true)
 
             val activePrinter = connectedDevice ?: selectedPrinter
             val casePack = state.product.casePackQty.coerceAtLeast(1)
@@ -209,15 +214,19 @@ fun ReceivingScreen(
             }
 
             if (autoPrint && activePrinter != null && isKnownItem) {
-                val zpl = if (settingsManager.department.equals("Environmental Services", ignoreCase = true) || settingsManager.department.equals("EVS", ignoreCase = true)) {
+                val zpl = if (settingsManager.department.equals(
+                        "Environmental Services",
+                        ignoreCase = true
+                    ) || settingsManager.department.equals("EVS", ignoreCase = true)
+                ) {
                     ZplGenerator.generateShelfLabelZpl(
                         item = state.product,
                         companyHeader = "EVS SHELF LABEL"
                     )
                 } else {
                     ZplGenerator.generateLabel(
-                        state.product, 
-                        state.dateCalculation.deliveryDate, 
+                        state.product,
+                        state.dateCalculation.deliveryDate,
                         staffInitials = settingsManager.staffInitials
                     )
                 }
@@ -234,7 +243,8 @@ fun ReceivingScreen(
                 withContext(Dispatchers.Main) {
                     unmappedBarcodeForLearning = normUpc
                     showLearnOnScanSheet = true
-                    statusMessage = "⚠️ Unrecognized Item ($normUpc) — Select matching item in Learn on Scan."
+                    statusMessage =
+                        "⚠️ Unrecognized Item ($normUpc) — Select matching item in Learn on Scan."
                 }
             }
         }
@@ -258,7 +268,13 @@ fun ReceivingScreen(
         val (quantity, zpl) = pair
         AlertDialog(
             onDismissRequest = { pendingHighQtyJob = null },
-            icon = { Icon(Icons.Default.Warning, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+            icon = {
+                Icon(
+                    Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
             title = { Text("⚠️ High Print Quantity Warning", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
@@ -271,7 +287,11 @@ fun ReceivingScreen(
                     onClick = {
                         val activePrinter = connectedDevice ?: selectedPrinter
                         if (activePrinter != null) {
-                            printerManager.printDirect(activePrinter, zpl, quantity = quantity) { _, msg ->
+                            printerManager.printDirect(
+                                activePrinter,
+                                zpl,
+                                quantity = quantity
+                            ) { _, msg ->
                                 statusMessage = msg
                             }
                         }
@@ -303,7 +323,7 @@ fun ReceivingScreen(
                 connectedDevice = connectedDevice,
                 pairedPrinters = pairedPrinters,
                 selectedPrinter = selectedPrinter,
-                onPrinterSelected = { 
+                onPrinterSelected = {
                     selectedPrinter = it
                     settingsManager.preferredPrinterAddress = it.address
                 },
@@ -337,939 +357,1274 @@ fun ReceivingScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-        if (remoteBannerMessage.isNotBlank()) {
-            Surface(
-                color = MaterialTheme.colorScheme.primaryContainer,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Campaign,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = remoteBannerMessage,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        if (settingsManager.isAuditMode) {
-            Surface(
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        Icons.Default.VerifiedUser,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer
-                    )
-                    Text(
-                        text = "🔍 AUDIT / FIRST SCAN MODE: Scans logged for testing & info only",
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        // Open Admin Drawer Button
-        if (settingsManager.currentStaffUser.hasPermission(AppPermission.PRINTER_SETTINGS) ||
-            settingsManager.currentStaffUser.hasPermission(AppPermission.BASIC_ADMIN_SETTINGS)) {
-            Button(
-                onClick = { coroutineScope.launch { drawerState.open() } },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(Icons.Default.Settings, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Admin Options", fontWeight = FontWeight.Bold)
-            }
-        }
-
-        // Action Row 1: Primary Scanner Button (Full Width, Spacious)
-        Button(
-            onClick = {
-                isCameraActive = true
-                isScanningEnabled = true
-                scannedState = null
-                currentScanRecord = null
-                statusMessage = "Ready to scan barcode..."
-            },
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(
-                imageVector = if (isCameraActive) Icons.Default.QrCodeScanner else Icons.Default.CameraAlt,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = if (isCameraActive) "Scan Next Barcode" else "Start Scanner",
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp
-            )
-        }
-
-        // Action Row 2: Secondary Quick Buttons (Manual Lookup & Prep Sticker)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OutlinedButton(
-                onClick = {
-                    val nextShowState = !showManualInputCard
-                    showManualInputCard = nextShowState
-                    if (nextShowState) {
-                        isCameraActive = false
-                    } else {
-                        isCameraActive = true
-                    }
-                },
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(Icons.Default.Keyboard, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Manual UPC", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
-            }
-
-            Button(
-                onClick = {
-                    showPrepStickerDialog = true
-                },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("Prep Sticker", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            }
-        }
-
-        // Manual UPC Search & Live Autocomplete Card
-        if (showManualInputCard) {
-            var searchResults by remember { mutableStateOf<List<CatalogItem>>(emptyList()) }
-
-            LaunchedEffect(manualUpcInput) {
-                if (manualUpcInput.isNotBlank()) {
-                    searchResults = productManager.searchCatalogItems(manualUpcInput)
-                } else {
-                    searchResults = emptyList()
-                }
-            }
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Text("🔍 Manual UPC or Sysco Item # Keypad", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-
-                    OutlinedTextField(
-                        value = manualUpcInput,
-                        onValueChange = { manualUpcInput = it },
-                        label = { Text("Type UPC, 6-7 Digit Sysco Item #, or Name") },
-                        placeholder = { Text("e.g. 4455648 for Quaker Oats or 074865027137") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
-                        trailingIcon = {
-                            if (manualUpcInput.isNotEmpty()) {
-                                IconButton(onClick = { manualUpcInput = "" }) {
-                                    Icon(Icons.Default.Clear, contentDescription = "Clear")
-                                }
-                            }
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(
-                            onSearch = {
-                                if (manualUpcInput.isNotBlank()) {
-                                    processUpcScan(manualUpcInput)
-                                    showManualInputCard = false
-                                    isCameraActive = true
-                                }
-                            }
-                        ),
-                        shape = RoundedCornerShape(12.dp),
+                if (remoteBannerMessage.isNotBlank()) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
-                    )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Campaign,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = remoteBannerMessage,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
 
+                if (settingsManager.isAuditMode) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.VerifiedUser,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                            Text(
+                                text = "🔍 AUDIT / FIRST SCAN MODE: Scans logged for testing & info only",
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // Open Admin Drawer Button
+                if (settingsManager.currentStaffUser.hasPermission(AppPermission.PRINTER_SETTINGS) ||
+                    settingsManager.currentStaffUser.hasPermission(AppPermission.BASIC_ADMIN_SETTINGS)
+                ) {
                     Button(
+                        onClick = { coroutineScope.launch { drawerState.open() } },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Settings, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Admin Options", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Action Row 1: Primary Scanner Button (Full Width, Spacious)
+                Button(
+                    onClick = {
+                        isCameraActive = true
+                        isScanningEnabled = true
+                        scannedState = null
+                        currentScanRecord = null
+                        statusMessage = "Ready to scan barcode..."
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = if (isCameraActive) Icons.Default.QrCodeScanner else Icons.Default.CameraAlt,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (isCameraActive) "Scan Next Barcode" else "Start Scanner",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
+
+                // Action Row 2: Secondary Quick Buttons (Manual Lookup & Prep Sticker)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
                         onClick = {
-                            if (manualUpcInput.isNotBlank()) {
-                                processUpcScan(manualUpcInput)
-                                showManualInputCard = false
+                            val nextShowState = !showManualInputCard
+                            showManualInputCard = nextShowState
+                            if (nextShowState) {
+                                isCameraActive = false
+                            } else {
                                 isCameraActive = true
                             }
                         },
-                        enabled = manualUpcInput.isNotBlank(),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Lookup & Process Item", fontWeight = FontWeight.Bold)
+                        Icon(
+                            Icons.Default.Keyboard,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Manual UPC", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                     }
 
-                    if (searchResults.isNotEmpty()) {
-                        Text("Matching Catalog Items (${searchResults.size}):", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                    Button(
+                        onClick = {
+                            showPrepStickerDialog = true
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            Icons.Default.Restaurant,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Prep Sticker", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+
+                // Manual UPC Search & Live Autocomplete Card
+                if (showManualInputCard) {
+                    var searchResults by remember { mutableStateOf<List<CatalogItem>>(emptyList()) }
+
+                    LaunchedEffect(manualUpcInput) {
+                        if (manualUpcInput.isNotBlank()) {
+                            searchResults = productManager.searchCatalogItems(manualUpcInput)
+                        } else {
+                            searchResults = emptyList()
+                        }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(
+                            1.5.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                        ),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
                         Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            searchResults.forEach { matchItem ->
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                    shape = RoundedCornerShape(8.dp),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            processUpcScan(matchItem.syscoUpc)
+                            Text(
+                                "🔍 Manual UPC or Sysco Item # Keypad",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+
+                            OutlinedTextField(
+                                value = manualUpcInput,
+                                onValueChange = { manualUpcInput = it },
+                                label = { Text("Type UPC, 6-7 Digit Sysco Item #, or Name") },
+                                placeholder = { Text("e.g. 4455648 for Quaker Oats or 074865027137") },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Search,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                },
+                                trailingIcon = {
+                                    if (manualUpcInput.isNotEmpty()) {
+                                        IconButton(onClick = { manualUpcInput = "" }) {
+                                            Icon(Icons.Default.Clear, contentDescription = "Clear")
+                                        }
+                                    }
+                                },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    imeAction = ImeAction.Search
+                                ),
+                                keyboardActions = KeyboardActions(
+                                    onSearch = {
+                                        if (manualUpcInput.isNotBlank()) {
+                                            processUpcScan(manualUpcInput)
                                             showManualInputCard = false
                                             isCameraActive = true
                                         }
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column {
-                                            Text(matchItem.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                            Text("UPC: ${matchItem.syscoUpc} \u2022 ${matchItem.category}", fontSize = 10.sp, color = Color.Gray)
-                                        }
-                                        Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                                     }
-                                }
-                            }
-                        }
-                    } else if (manualUpcInput.isNotBlank()) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
                             Button(
                                 onClick = {
-                                    processUpcScan(manualUpcInput)
-                                    showManualInputCard = false
-                                    isCameraActive = true
+                                    if (manualUpcInput.isNotBlank()) {
+                                        processUpcScan(manualUpcInput)
+                                        showManualInputCard = false
+                                        isCameraActive = true
+                                    }
                                 },
+                                enabled = manualUpcInput.isNotBlank(),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Default.Search,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Lookup '$manualUpcInput'", fontSize = 12.sp)
+                                Text("Lookup & Process Item", fontWeight = FontWeight.Bold)
                             }
-                        }
-                    }
-                }
-            }
-        }
 
-        // Camera Preview Area with High-Tech Scanner HUD Reticle Overlay
-        if (hasCameraPermission) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(220.dp),
-                shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
-                colors = CardDefaults.cardColors(containerColor = Color.Black)
-            ) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    CameraXBarcodeScanner(
-                        modifier = Modifier.fillMaxSize(),
-                        isScanningEnabled = isScanningEnabled,
-                        isCameraActive = isCameraActive,
-                        onResumeCamera = {
-                            isCameraActive = true
-                            isScanningEnabled = true
-                            statusMessage = "Ready to scan barcode..."
-                        },
-                        onBarcodeFound = { rawUpc, _ ->
-                            processUpcScan(rawUpc)
-                        }
-                    )
-
-                    // Futuristic HUD Laser Reticle Overlay
-                    ScannerOverlay(
-                        isScanningActive = isCameraActive && isScanningEnabled,
-                        isCameraActive = isCameraActive,
-                        onResumeCamera = {
-                            isCameraActive = true
-                            isScanningEnabled = true
-                            statusMessage = "Ready to scan barcode..."
-                        }
-                    )
-                }
-            }
-        } else {
-            Surface(
-                color = MaterialTheme.colorScheme.errorContainer,
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = MaterialTheme.colorScheme.onErrorContainer)
-                    Text("Camera permission required to scan barcodes.", color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Medium)
-                }
-            }
-        }
-
-        // Status Indicator Message Banner
-        Surface(
-            color = if (statusMessage.contains("error", ignoreCase = true) || statusMessage.contains("failed", ignoreCase = true))
-                MaterialTheme.colorScheme.errorContainer
-            else if (isSyncing)
-                MaterialTheme.colorScheme.tertiaryContainer
-            else
-                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                if (isSyncing) {
-                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                } else {
-                    Icon(Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                }
-                Text(
-                    text = statusMessage,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-
-        // Scanned Product Details Card (UPC, Name, Category, Unit, Delivery Date, Use-By Date)
-        scannedState?.let { state ->
-            val prod = state.product
-            val dateCalc = state.dateCalculation
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Title & Catalog Status Badge
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = prod.name,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
+                            if (searchResults.isNotEmpty()) {
                                 Text(
-                                    text = "UPC: ${prod.upc}",
-                                    style = MonospaceBarcodeStyle,
+                                    "Matching Catalog Items (${searchResults.size}):",
                                     fontSize = 11.sp,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        Surface(
-                            color = if (state.isKnownCatalog) FreshGreen.copy(alpha = 0.15f) else ExpiringSoonAmber.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, if (state.isKnownCatalog) FreshGreen.copy(alpha = 0.4f) else ExpiringSoonAmber.copy(alpha = 0.4f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (state.isKnownCatalog) Icons.Default.CheckCircle else Icons.Default.Help,
-                                    contentDescription = null,
-                                    tint = if (state.isKnownCatalog) FreshGreen else ExpiringSoonAmber,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Text(
-                                    text = if (state.isKnownCatalog) "CATALOG" else "NEW ITEM",
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (state.isKnownCatalog) FreshGreen else ExpiringSoonAmber
-                                )
-                            }
-                        }
-                    }
-
-                    if (!state.isKnownCatalog) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(10.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Unrecognized Item",
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
-                                    Text(
-                                        text = "Select from catalog dropdown via Edit.",
-                                        color = MaterialTheme.colorScheme.onErrorContainer,
-                                        fontSize = 11.sp
-                                    )
-                                }
-                                TextButton(onClick = { showEditDialog = true }) {
-                                    Text("Match Catalog", color = MaterialTheme.colorScheme.onErrorContainer, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                }
-                            }
-                        }
-                    }
-
-                    // Metadata row: Category chip + Inline On Hand Quantity Controller
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Category Pill
-                        Surface(
-                            color = MaterialTheme.colorScheme.secondaryContainer,
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Icon(Icons.Default.Category, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                                Text(
-                                    text = prod.category,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            }
-                        }
-
-                        // Inline On Hand quantity controller badge with tactile circular buttons
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                val displayOnHand = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
-                                Text("On Hand:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surface,
-                                    modifier = Modifier
-                                        .size(26.dp)
-                                        .clickable(enabled = displayOnHand > 0.5) {
-                                            val current = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
-                                            if (current > 0.5) {
-                                                val newQty = (current - 1.0).coerceAtLeast(0.5)
-                                                scannedState = state.copy(onHandAmount = newQty)
-                                                currentScanRecord = currentScanRecord?.copy(onHandAmount = newQty)
-                                                coroutineScope.launch {
-                                                    currentScanRecord?.let { rec ->
-                                                        productManager.updateOnHandAmount(rec.id, state.normalizedUpc, newQty)
-                                                    }
-                                                    val cat = productManager.getCatalogItem(state.normalizedUpc)
-                                                    if (cat.name != "Unrecognized Item") {
-                                                        productManager.saveCatalogItem(cat.copy(lastOnHandAmount = newQty))
-                                                    }
-                                                }
-                                            }
-                                        }
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Remove, contentDescription = "Decrease On Hand", modifier = Modifier.size(14.dp))
-                                    }
-                                }
-
-                                Text(
-                                    text = "${if (displayOnHand % 1.0 == 0.0) displayOnHand.toInt().toString() else displayOnHand} ${prod.unit}",
-                                    style = MonospaceQuantityStyle,
-                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
-
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surface,
-                                    modifier = Modifier
-                                        .size(26.dp)
-                                        .clickable {
-                                            val current = if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
-                                            val newQty = current + 1.0
-                                            scannedState = state.copy(onHandAmount = newQty)
-                                            currentScanRecord = currentScanRecord?.copy(onHandAmount = newQty)
-                                            coroutineScope.launch {
-                                                currentScanRecord?.let { rec ->
-                                                    productManager.updateOnHandAmount(rec.id, state.normalizedUpc, newQty)
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    searchResults.forEach { matchItem ->
+                                        Surface(
+                                            color = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                alpha = 0.6f
+                                            ),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    processUpcScan(matchItem.syscoUpc)
+                                                    showManualInputCard = false
+                                                    isCameraActive = true
                                                 }
-                                                val cat = productManager.getCatalogItem(state.normalizedUpc)
-                                                if (cat.name != "Unrecognized Item") {
-                                                    productManager.saveCatalogItem(cat.copy(lastOnHandAmount = newQty))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(
+                                                    horizontal = 10.dp,
+                                                    vertical = 6.dp
+                                                ),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column {
+                                                    Text(
+                                                        matchItem.name,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 13.sp
+                                                    )
+                                                    Text(
+                                                        "UPC: ${matchItem.syscoUpc} \u2022 ${matchItem.category}",
+                                                        fontSize = 10.sp,
+                                                        color = Color.Gray
+                                                    )
                                                 }
+                                                Icon(
+                                                    Icons.Default.ArrowForward,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
                                             }
                                         }
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Add, contentDescription = "Increase On Hand", modifier = Modifier.size(14.dp))
                                     }
                                 }
-                            }
-                        }
-                    }
-
-                    // Side-by-Side Visual Date Boxes
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Received Date Box
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(Icons.Default.CalendarToday, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text("RECEIVED", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.5.sp)
-                                }
-                                Spacer(modifier = Modifier.height(3.dp))
-                                Text(dateCalc.deliveryDateFormatted, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            }
-                        }
-
-                        // Use-By Expiration Box with Freshness Indicator
-                        Surface(
-                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
-                            modifier = Modifier.weight(1.3f)
-                        ) {
-                            Column(modifier = Modifier.padding(10.dp)) {
+                            } else if (manualUpcInput.isNotBlank()) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    Button(
+                                        onClick = {
+                                            processUpcScan(manualUpcInput)
+                                            showManualInputCard = false
+                                            isCameraActive = true
+                                        },
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.primary)
-                                        Text("USE BY", fontSize = 10.sp, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.5.sp)
-                                    }
-
-                                    Surface(
-                                        color = MaterialTheme.colorScheme.primary,
-                                        shape = RoundedCornerShape(6.dp)
-                                    ) {
-                                        Text(
-                                            text = "+${prod.shelfLifeDays}d",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onPrimary,
-                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp)
+                                        Icon(
+                                            Icons.Default.Search,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
                                         )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(3.dp))
-                                Text(
-                                    text = dateCalc.useByDateFormatted,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-
-                    // Package Condition: Unopened vs Opened / In-Use (ServSafe standard: 365d unopened vs 14d opened)
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Package Condition:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            FilterChip(
-                                selected = !isPackageOpened,
-                                onClick = {
-                                    if (isPackageOpened) {
-                                        isPackageOpened = false
-                                        recordHasUnsyncedChanges = true
-                                        val unopenedDays = DateCalculator.getShelfLifeDaysForCategory(prod.category)
-                                        val newCalc = DateCalculator.calculate(
-                                            scanDate = dateCalc.deliveryDate,
-                                            shelfLifeDays = unopenedDays,
-                                            category = prod.category
-                                        )
-                                        val updatedState = state.copy(
-                                            product = prod.copy(shelfLifeDays = unopenedDays),
-                                            dateCalculation = newCalc
-                                        )
-                                        scannedState = updatedState
-                                        currentScanRecord = currentScanRecord?.copy(
-                                            shelfLifeDays = unopenedDays,
-                                            useByDate = newCalc.useByDateIso
-                                        )
-                                        coroutineScope.launch {
-                                            currentScanRecord?.let { rec ->
-                                                productManager.addScanRecord(rec.copy(shelfLifeDays = unopenedDays, useByDate = newCalc.useByDateIso))
-                                            }
-                                        }
-                                    }
-                                },
-                                label = { Text("📦 Unopened Commercial (+365d)", fontSize = 11.sp, fontWeight = if (!isPackageOpened) FontWeight.Bold else FontWeight.Normal) },
-                                modifier = Modifier.height(32.dp)
-                            )
-
-                            FilterChip(
-                                selected = isPackageOpened,
-                                onClick = {
-                                    if (!isPackageOpened) {
-                                        isPackageOpened = true
-                                        recordHasUnsyncedChanges = true
-                                        val openedDays = 14
-                                        val newCalc = DateCalculator.calculate(
-                                            scanDate = dateCalc.deliveryDate,
-                                            shelfLifeDays = openedDays,
-                                            category = prod.category
-                                        )
-                                        val updatedState = state.copy(
-                                            product = prod.copy(shelfLifeDays = openedDays),
-                                            dateCalculation = newCalc
-                                        )
-                                        scannedState = updatedState
-                                        currentScanRecord = currentScanRecord?.copy(
-                                            shelfLifeDays = openedDays,
-                                            useByDate = newCalc.useByDateIso
-                                        )
-                                        coroutineScope.launch {
-                                            currentScanRecord?.let { rec ->
-                                                productManager.addScanRecord(rec.copy(shelfLifeDays = openedDays, useByDate = newCalc.useByDateIso))
-                                            }
-                                        }
-                                    }
-                                },
-                                label = { Text("🔓 Opened / In-Use (+14d)", fontSize = 11.sp, fontWeight = if (isPackageOpened) FontWeight.Bold else FontWeight.Normal) },
-                                modifier = Modifier.height(32.dp)
-                            )
-                        }
-                    }
-
-                    // Quick Shelf Life Chips Selector
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Quick Shelf Life Preset:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            listOf(
-                                "+3d" to 3,
-                                "+7d" to 7,
-                                "+14d" to 14,
-                                "+30d" to 30,
-                                "+90d" to 90,
-                                "+180d" to 180,
-                                "+365d" to 365
-                            ).forEach { (label, days) ->
-                                val isSelected = prod.shelfLifeDays == days
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        val newCalc = DateCalculator.calculate(
-                                            scanDate = dateCalc.deliveryDate,
-                                            shelfLifeDays = days,
-                                            category = prod.category
-                                        )
-                                        val updatedState = state.copy(
-                                            product = prod.copy(shelfLifeDays = days),
-                                            dateCalculation = newCalc
-                                        )
-                                        scannedState = updatedState
-                                        currentScanRecord = currentScanRecord?.copy(
-                                            shelfLifeDays = days,
-                                            useByDate = newCalc.useByDateIso
-                                        )
-                                        coroutineScope.launch {
-                                            currentScanRecord?.let { rec ->
-                                                productManager.addScanRecord(rec.copy(shelfLifeDays = days, useByDate = newCalc.useByDateIso))
-                                            }
-                                        }
-                                    },
-                                    label = { Text(label, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
-                                    modifier = Modifier.height(28.dp)
-                                )
-                            }
-                            AssistChip(
-                                onClick = { showCustomDaysDialog = true },
-                                label = { Text("+Custom", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                                modifier = Modifier.height(28.dp)
-                            )
-                        }
-                    }
-
-                    // Label Quantity Stepper
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Number of Labels:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surface,
-                                    modifier = Modifier
-                                        .size(26.dp)
-                                        .clickable(enabled = labelQuantity > 1) {
-                                            if (labelQuantity > 1) labelQuantity--
-                                        }
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Remove, contentDescription = "Decrease labels", modifier = Modifier.size(14.dp))
-                                    }
-                                }
-                                Text(
-                                    text = "$labelQuantity",
-                                    style = MonospaceQuantityStyle,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Surface(
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surface,
-                                    modifier = Modifier
-                                        .size(26.dp)
-                                        .clickable {
-                                            labelQuantity++
-                                        }
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Add, contentDescription = "Increase labels", modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Lookup '$manualUpcInput'", fontSize = 12.sp)
                                     }
                                 }
                             }
-                        }
-                    }
-
-                    // Actions Row: Print Label & Save & Sync
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = {
-                                val activePrinter = connectedDevice ?: selectedPrinter
-                                if (activePrinter != null) {
-                                    val zpl = if (settingsManager.department.equals("Environmental Services", ignoreCase = true) || settingsManager.department.equals("EVS", ignoreCase = true)) {
-                                        ZplGenerator.generateShelfLabelZpl(
-                                            item = prod,
-                                            companyHeader = "EVS SHELF LABEL"
-                                        )
-                                    } else {
-                                        ZplGenerator.generateLabel(
-                                            itemName = prod.name,
-                                            upc = prod.upc,
-                                            deliveryDate = dateCalc.deliveryDate,
-                                            useByDate = dateCalc.useByDate,
-                                            category = prod.category,
-                                            onHandAmount = state.onHandAmount,
-                                            staffInitials = settingsManager.staffInitials
-                                        )
-                                    }
-                                    printerManager.printDirect(activePrinter, zpl, quantity = labelQuantity) { _, msg ->
-                                        statusMessage = msg
-                                    }
-                                } else {
-                                    Toast.makeText(context, "Select or connect printer first!", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1.1f),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text("Print ($labelQuantity)", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                val activePrinter = connectedDevice ?: selectedPrinter
-                                if (activePrinter != null) {
-                                    val zpl = ZplGenerator.generateUseFirstLabelZpl(
-                                        itemName = prod.name,
-                                        printDate = LocalDate.now(),
-                                        staffInitials = settingsManager.staffInitials
-                                    )
-                                    printerManager.printDirect(activePrinter, zpl, quantity = labelQuantity) { _, msg ->
-                                        statusMessage = msg
-                                    }
-                                } else {
-                                    Toast.makeText(context, "Select or connect printer first!", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
-                        ) {
-                            Text("⚠️ Use First", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
-                        }
-
-                        Button(
-                            onClick = {
-                                val current = currentScanRecord
-                                if (!recordHasUnsyncedChanges && current != null && current.id == lastSyncedRecordId && current.syncedToSheets) {
-                                    Toast.makeText(context, "Scan record is already synced to Google Sheets!", Toast.LENGTH_SHORT).show()
-                                    statusMessage = "Already synced to Google Sheets."
-                                    return@Button
-                                }
-                                coroutineScope.launch {
-                                    val recordToSave = (currentScanRecord ?: ScanRecord(
-                                        syscoUpc = state.normalizedUpc,
-                                        itemName = state.product.name,
-                                        deliveryDate = state.dateCalculation.deliveryDateIso,
-                                        useByDate = state.dateCalculation.useByDateIso,
-                                        category = state.product.category,
-                                        shelfLifeDays = state.product.shelfLifeDays,
-                                        unit = state.product.unit,
-                                        onHandAmount = state.onHandAmount,
-                                        isAudit = settingsManager.isAuditMode,
-                                        receivedBy = currentStaffAttribution
-                                    )).copy(
-                                        itemName = state.product.name,
-                                        deliveryDate = state.dateCalculation.deliveryDateIso,
-                                        useByDate = state.dateCalculation.useByDateIso,
-                                        category = state.product.category,
-                                        shelfLifeDays = state.product.shelfLifeDays,
-                                        unit = state.product.unit,
-                                        onHandAmount = state.onHandAmount,
-                                        isAudit = settingsManager.isAuditMode,
-                                        receivedBy = currentStaffAttribution
-                                    )
-                                    productManager.addScanRecord(recordToSave)
-                                    currentScanRecord = recordToSave
-
-                                    isSyncing = true
-                                    statusMessage = "Syncing with Google Sheets..."
-                                    productManager.logScanAsync(recordToSave, coroutineScope) { res ->
-                                        isSyncing = false
-                                        res.onSuccess {
-                                            lastSyncedRecordId = recordToSave.id
-                                            recordHasUnsyncedChanges = false
-                                            statusMessage = "Saved & Synced to Google Sheets!"
-                                            Toast.makeText(context, "Saved & Synced to Google Sheets!", Toast.LENGTH_SHORT).show()
-                                        }.onFailure { err ->
-                                            statusMessage = "Saved locally. Sync error: ${err.localizedMessage}"
-                                        }
-                                    }
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1.1f),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(5.dp))
-                            Text("Save & Sync", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-
-                        OutlinedButton(
-                            onClick = { showEditDialog = true },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(0.8f),
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Edit", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
-            }
-        }
 
-    } // End of Column
-    } // End of Scaffold
+                // Camera Preview Area with High-Tech Scanner HUD Reticle Overlay
+                if (hasCameraPermission) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(
+                            1.5.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                        ),
+                        colors = CardDefaults.cardColors(containerColor = Color.Black)
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            CameraXBarcodeScanner(
+                                modifier = Modifier.fillMaxSize(),
+                                isScanningEnabled = isScanningEnabled,
+                                isCameraActive = isCameraActive,
+                                onResumeCamera = {
+                                    isCameraActive = true
+                                    isScanningEnabled = true
+                                    statusMessage = "Ready to scan barcode..."
+                                },
+                                onBarcodeFound = { rawUpc, _ ->
+                                    processUpcScan(rawUpc)
+                                }
+                            )
+
+                            // Futuristic HUD Laser Reticle Overlay
+                            ScannerOverlay(
+                                isScanningActive = isCameraActive && isScanningEnabled,
+                                isCameraActive = isCameraActive,
+                                onResumeCamera = {
+                                    isCameraActive = true
+                                    isScanningEnabled = true
+                                    statusMessage = "Ready to scan barcode..."
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = RoundedCornerShape(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                            Text(
+                                "Camera permission required to scan barcodes.",
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
+                // Status Indicator Message Banner
+                Surface(
+                    color = if (statusMessage.contains(
+                            "error",
+                            ignoreCase = true
+                        ) || statusMessage.contains("failed", ignoreCase = true)
+                    )
+                        MaterialTheme.colorScheme.errorContainer
+                    else if (isSyncing)
+                        MaterialTheme.colorScheme.tertiaryContainer
+                    else
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.7f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        if (isSyncing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Text(
+                            text = statusMessage,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                // Scanned Product Details Card (UPC, Name, Category, Unit, Delivery Date, Use-By Date)
+                scannedState?.let { state ->
+                    val prod = state.product
+                    val dateCalc = state.dateCalculation
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                        ),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Title & Catalog Status Badge
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = prod.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "UPC: ${prod.upc}",
+                                            style = MonospaceBarcodeStyle,
+                                            fontSize = 11.sp,
+                                            modifier = Modifier.padding(
+                                                horizontal = 6.dp,
+                                                vertical = 2.dp
+                                            ),
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    color = if (state.isKnownCatalog) FreshGreen.copy(alpha = 0.15f) else ExpiringSoonAmber.copy(
+                                        alpha = 0.15f
+                                    ),
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (state.isKnownCatalog) FreshGreen.copy(alpha = 0.4f) else ExpiringSoonAmber.copy(
+                                            alpha = 0.4f
+                                        )
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = 8.dp,
+                                            vertical = 4.dp
+                                        ),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (state.isKnownCatalog) Icons.Default.CheckCircle else Icons.Default.Help,
+                                            contentDescription = null,
+                                            tint = if (state.isKnownCatalog) FreshGreen else ExpiringSoonAmber,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Text(
+                                            text = if (state.isKnownCatalog) "CATALOG" else "NEW ITEM",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (state.isKnownCatalog) FreshGreen else ExpiringSoonAmber
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (!state.isKnownCatalog) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onErrorContainer
+                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "Unrecognized Item",
+                                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp
+                                            )
+                                            Text(
+                                                text = "Select from catalog dropdown via Edit.",
+                                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                        TextButton(onClick = { showEditDialog = true }) {
+                                            Text(
+                                                "Match Catalog",
+                                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Metadata row: Category chip + Inline On Hand Quantity Controller
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Category Pill
+                                Surface(
+                                    color = MaterialTheme.colorScheme.secondaryContainer,
+                                    shape = RoundedCornerShape(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = 8.dp,
+                                            vertical = 4.dp
+                                        ),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Category,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(12.dp),
+                                            tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                        Text(
+                                            text = prod.category,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        )
+                                    }
+                                }
+
+                                // Inline On Hand quantity controller badge with tactile circular buttons
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = 8.dp,
+                                            vertical = 3.dp
+                                        ),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        val displayOnHand =
+                                            if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
+                                        Text(
+                                            "On Hand:",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.surface,
+                                            modifier = Modifier
+                                                .size(26.dp)
+                                                .clickable(enabled = displayOnHand > 0.5) {
+                                                    val current =
+                                                        if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
+                                                    if (current > 0.5) {
+                                                        val newQty =
+                                                            (current - 1.0).coerceAtLeast(0.5)
+                                                        scannedState =
+                                                            state.copy(onHandAmount = newQty)
+                                                        currentScanRecord =
+                                                            currentScanRecord?.copy(onHandAmount = newQty)
+                                                        coroutineScope.launch {
+                                                            currentScanRecord?.let { rec ->
+                                                                productManager.updateOnHandAmount(
+                                                                    rec.id,
+                                                                    state.normalizedUpc,
+                                                                    newQty
+                                                                )
+                                                            }
+                                                            val cat =
+                                                                productManager.getCatalogItem(state.normalizedUpc)
+                                                            if (cat.name != "Unrecognized Item") {
+                                                                productManager.saveCatalogItem(
+                                                                    cat.copy(
+                                                                        lastOnHandAmount = newQty
+                                                                    )
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    Icons.Default.Remove,
+                                                    contentDescription = "Decrease On Hand",
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Text(
+                                            text = "${
+                                                if (displayOnHand % 1.0 == 0.0) displayOnHand.toInt()
+                                                    .toString() else displayOnHand
+                                            } ${prod.unit}",
+                                            style = MonospaceQuantityStyle,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.surface,
+                                            modifier = Modifier
+                                                .size(26.dp)
+                                                .clickable {
+                                                    val current =
+                                                        if (state.onHandAmount > 0.0) state.onHandAmount else 1.0
+                                                    val newQty = current + 1.0
+                                                    scannedState = state.copy(onHandAmount = newQty)
+                                                    currentScanRecord =
+                                                        currentScanRecord?.copy(onHandAmount = newQty)
+                                                    coroutineScope.launch {
+                                                        currentScanRecord?.let { rec ->
+                                                            productManager.updateOnHandAmount(
+                                                                rec.id,
+                                                                state.normalizedUpc,
+                                                                newQty
+                                                            )
+                                                        }
+                                                        val cat =
+                                                            productManager.getCatalogItem(state.normalizedUpc)
+                                                        if (cat.name != "Unrecognized Item") {
+                                                            productManager.saveCatalogItem(
+                                                                cat.copy(
+                                                                    lastOnHandAmount = newQty
+                                                                )
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    Icons.Default.Add,
+                                                    contentDescription = "Increase On Hand",
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Side-by-Side Visual Date Boxes
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // Received Date Box
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                                    ),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.CalendarToday,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(12.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                "RECEIVED",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                letterSpacing = 0.5.sp
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(3.dp))
+                                        Text(
+                                            dateCalc.deliveryDateFormatted,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp
+                                        )
+                                    }
+                                }
+
+                                // Use-By Expiration Box with Freshness Indicator
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                    ),
+                                    modifier = Modifier.weight(1.3f)
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Icon(
+                                                    Icons.Default.Timer,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(12.dp),
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                                Text(
+                                                    "USE BY",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    letterSpacing = 0.5.sp
+                                                )
+                                            }
+
+                                            Surface(
+                                                color = MaterialTheme.colorScheme.primary,
+                                                shape = RoundedCornerShape(6.dp)
+                                            ) {
+                                                Text(
+                                                    text = "+${prod.shelfLifeDays}d",
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onPrimary,
+                                                    modifier = Modifier.padding(
+                                                        horizontal = 5.dp,
+                                                        vertical = 1.dp
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(3.dp))
+                                        Text(
+                                            text = dateCalc.useByDateFormatted,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 14.sp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Package Condition: Unopened vs Opened / In-Use (ServSafe standard: 365d unopened vs 14d opened)
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    "Package Condition:",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    FilterChip(
+                                        selected = !isPackageOpened,
+                                        onClick = {
+                                            if (isPackageOpened) {
+                                                isPackageOpened = false
+                                                recordHasUnsyncedChanges = true
+                                                val unopenedDays =
+                                                    DateCalculator.getShelfLifeDaysForCategory(prod.category)
+                                                val newCalc = DateCalculator.calculate(
+                                                    scanDate = dateCalc.deliveryDate,
+                                                    shelfLifeDays = unopenedDays,
+                                                    category = prod.category
+                                                )
+                                                val updatedState = state.copy(
+                                                    product = prod.copy(shelfLifeDays = unopenedDays),
+                                                    dateCalculation = newCalc
+                                                )
+                                                scannedState = updatedState
+                                                currentScanRecord = currentScanRecord?.copy(
+                                                    shelfLifeDays = unopenedDays,
+                                                    useByDate = newCalc.useByDateIso
+                                                )
+                                                coroutineScope.launch {
+                                                    currentScanRecord?.let { rec ->
+                                                        productManager.addScanRecord(
+                                                            rec.copy(
+                                                                shelfLifeDays = unopenedDays,
+                                                                useByDate = newCalc.useByDateIso
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        label = {
+                                            Text(
+                                                "📦 Unopened Commercial (+365d)",
+                                                fontSize = 11.sp,
+                                                fontWeight = if (!isPackageOpened) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        },
+                                        modifier = Modifier.height(32.dp)
+                                    )
+
+                                    FilterChip(
+                                        selected = isPackageOpened,
+                                        onClick = {
+                                            if (!isPackageOpened) {
+                                                isPackageOpened = true
+                                                recordHasUnsyncedChanges = true
+                                                val openedDays = 14
+                                                val newCalc = DateCalculator.calculate(
+                                                    scanDate = dateCalc.deliveryDate,
+                                                    shelfLifeDays = openedDays,
+                                                    category = prod.category
+                                                )
+                                                val updatedState = state.copy(
+                                                    product = prod.copy(shelfLifeDays = openedDays),
+                                                    dateCalculation = newCalc
+                                                )
+                                                scannedState = updatedState
+                                                currentScanRecord = currentScanRecord?.copy(
+                                                    shelfLifeDays = openedDays,
+                                                    useByDate = newCalc.useByDateIso
+                                                )
+                                                coroutineScope.launch {
+                                                    currentScanRecord?.let { rec ->
+                                                        productManager.addScanRecord(
+                                                            rec.copy(
+                                                                shelfLifeDays = openedDays,
+                                                                useByDate = newCalc.useByDateIso
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        label = {
+                                            Text(
+                                                "🔓 Opened / In-Use (+14d)",
+                                                fontSize = 11.sp,
+                                                fontWeight = if (isPackageOpened) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        },
+                                        modifier = Modifier.height(32.dp)
+                                    )
+                                }
+                            }
+
+                            // Quick Shelf Life Chips Selector
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    "Quick Shelf Life Preset:",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    listOf(
+                                        "+3d" to 3,
+                                        "+7d" to 7,
+                                        "+14d" to 14,
+                                        "+30d" to 30,
+                                        "+90d" to 90,
+                                        "+180d" to 180,
+                                        "+365d" to 365
+                                    ).forEach { (label, days) ->
+                                        val isSelected = prod.shelfLifeDays == days
+                                        FilterChip(
+                                            selected = isSelected,
+                                            onClick = {
+                                                val newCalc = DateCalculator.calculate(
+                                                    scanDate = dateCalc.deliveryDate,
+                                                    shelfLifeDays = days,
+                                                    category = prod.category
+                                                )
+                                                val updatedState = state.copy(
+                                                    product = prod.copy(shelfLifeDays = days),
+                                                    dateCalculation = newCalc
+                                                )
+                                                scannedState = updatedState
+                                                currentScanRecord = currentScanRecord?.copy(
+                                                    shelfLifeDays = days,
+                                                    useByDate = newCalc.useByDateIso
+                                                )
+                                                coroutineScope.launch {
+                                                    currentScanRecord?.let { rec ->
+                                                        productManager.addScanRecord(
+                                                            rec.copy(
+                                                                shelfLifeDays = days,
+                                                                useByDate = newCalc.useByDateIso
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                            },
+                                            label = {
+                                                Text(
+                                                    label,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                            },
+                                            modifier = Modifier.height(28.dp)
+                                        )
+                                    }
+                                    AssistChip(
+                                        onClick = { showCustomDaysDialog = true },
+                                        label = {
+                                            Text(
+                                                "+Custom",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        },
+                                        modifier = Modifier.height(28.dp)
+                                    )
+                                }
+                            }
+
+                            // Label Quantity Stepper
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Number of Labels:",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Surface(
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                    )
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(
+                                            horizontal = 8.dp,
+                                            vertical = 3.dp
+                                        ),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.surface,
+                                            modifier = Modifier
+                                                .size(26.dp)
+                                                .clickable(enabled = labelQuantity > 1) {
+                                                    if (labelQuantity > 1) labelQuantity--
+                                                }
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    Icons.Default.Remove,
+                                                    contentDescription = "Decrease labels",
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            text = "$labelQuantity",
+                                            style = MonospaceQuantityStyle,
+                                            fontSize = 13.sp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = MaterialTheme.colorScheme.surface,
+                                            modifier = Modifier
+                                                .size(26.dp)
+                                                .clickable {
+                                                    labelQuantity++
+                                                }
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Icon(
+                                                    Icons.Default.Add,
+                                                    contentDescription = "Increase labels",
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Actions Row: Print Label & Save & Sync
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        val activePrinter = connectedDevice ?: selectedPrinter
+                                        if (activePrinter != null) {
+                                            val zpl = if (settingsManager.department.equals(
+                                                    "Environmental Services",
+                                                    ignoreCase = true
+                                                ) || settingsManager.department.equals(
+                                                    "EVS",
+                                                    ignoreCase = true
+                                                )
+                                            ) {
+                                                ZplGenerator.generateShelfLabelZpl(
+                                                    item = prod,
+                                                    companyHeader = "EVS SHELF LABEL"
+                                                )
+                                            } else {
+                                                ZplGenerator.generateLabel(
+                                                    itemName = prod.name,
+                                                    upc = prod.upc,
+                                                    deliveryDate = dateCalc.deliveryDate,
+                                                    useByDate = dateCalc.useByDate,
+                                                    category = prod.category,
+                                                    onHandAmount = state.onHandAmount,
+                                                    staffInitials = settingsManager.staffInitials
+                                                )
+                                            }
+                                            printerManager.printDirect(
+                                                activePrinter,
+                                                zpl,
+                                                quantity = labelQuantity
+                                            ) { _, msg ->
+                                                statusMessage = msg
+                                            }
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "Select or connect printer first!",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.weight(1.1f),
+                                    contentPadding = PaddingValues(
+                                        horizontal = 10.dp,
+                                        vertical = 6.dp
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Print,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text(
+                                        "Print ($labelQuantity)",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        val activePrinter = connectedDevice ?: selectedPrinter
+                                        if (activePrinter != null) {
+                                            val zpl = ZplGenerator.generateUseFirstLabelZpl(
+                                                itemName = prod.name,
+                                                printDate = LocalDate.now(),
+                                                staffInitials = settingsManager.staffInitials
+                                            )
+                                            printerManager.printDirect(
+                                                activePrinter,
+                                                zpl,
+                                                quantity = labelQuantity
+                                            ) { _, msg ->
+                                                statusMessage = msg
+                                            }
+                                        } else {
+                                            Toast.makeText(
+                                                context,
+                                                "Select or connect printer first!",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(
+                                        horizontal = 8.dp,
+                                        vertical = 6.dp
+                                    )
+                                ) {
+                                    Text(
+                                        "⚠️ Use First",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        val current = currentScanRecord
+                                        if (!recordHasUnsyncedChanges && current != null && current.id == lastSyncedRecordId && current.syncedToSheets) {
+                                            Toast.makeText(
+                                                context,
+                                                "Scan record is already synced to Google Sheets!",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            statusMessage = "Already synced to Google Sheets."
+                                            return@Button
+                                        }
+                                        coroutineScope.launch {
+                                            val recordToSave = (currentScanRecord ?: ScanRecord(
+                                                syscoUpc = state.normalizedUpc,
+                                                itemName = state.product.name,
+                                                deliveryDate = state.dateCalculation.deliveryDateIso,
+                                                useByDate = state.dateCalculation.useByDateIso,
+                                                category = state.product.category,
+                                                shelfLifeDays = state.product.shelfLifeDays,
+                                                unit = state.product.unit,
+                                                onHandAmount = state.onHandAmount,
+                                                isAudit = settingsManager.isAuditMode,
+                                                receivedBy = currentStaffAttribution
+                                            )).copy(
+                                                itemName = state.product.name,
+                                                deliveryDate = state.dateCalculation.deliveryDateIso,
+                                                useByDate = state.dateCalculation.useByDateIso,
+                                                category = state.product.category,
+                                                shelfLifeDays = state.product.shelfLifeDays,
+                                                unit = state.product.unit,
+                                                onHandAmount = state.onHandAmount,
+                                                isAudit = settingsManager.isAuditMode,
+                                                receivedBy = currentStaffAttribution
+                                            )
+                                            productManager.addScanRecord(recordToSave)
+                                            currentScanRecord = recordToSave
+
+                                            isSyncing = true
+                                            statusMessage = "Syncing with Google Sheets..."
+                                            productManager.logScanAsync(
+                                                recordToSave,
+                                                coroutineScope
+                                            ) { res ->
+                                                isSyncing = false
+                                                res.onSuccess {
+                                                    lastSyncedRecordId = recordToSave.id
+                                                    recordHasUnsyncedChanges = false
+                                                    statusMessage =
+                                                        "Saved & Synced to Google Sheets!"
+                                                    Toast.makeText(
+                                                        context,
+                                                        "Saved & Synced to Google Sheets!",
+                                                        Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }.onFailure { err ->
+                                                    statusMessage =
+                                                        "Saved locally. Sync error: ${err.localizedMessage}"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.weight(1.1f),
+                                    contentPadding = PaddingValues(
+                                        horizontal = 10.dp,
+                                        vertical = 6.dp
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.CloudUpload,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                    Text(
+                                        "Save & Sync",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = { showEditDialog = true },
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.weight(0.8f),
+                                    contentPadding = PaddingValues(
+                                        horizontal = 6.dp,
+                                        vertical = 6.dp
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Edit", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+                }
+
+            } // End of Column
+        } // End of Scaffold
     } // End of ModalNavigationDrawer
 
     // Manual Edit / Override Dialog
@@ -1281,7 +1636,12 @@ fun ReceivingScreen(
         var editCategory by remember { mutableStateOf(currentState.product.category) }
         var editUnit by remember { mutableStateOf(currentState.product.unit) }
         val initialOnHand = if (currentState.onHandAmount > 0.0) currentState.onHandAmount else 1.0
-        var editOnHandStr by remember { mutableStateOf(if (initialOnHand % 1.0 == 0.0) initialOnHand.toInt().toString() else initialOnHand.toString()) }
+        var editOnHandStr by remember {
+            mutableStateOf(
+                if (initialOnHand % 1.0 == 0.0) initialOnHand.toInt()
+                    .toString() else initialOnHand.toString()
+            )
+        }
         var editDaysStr by remember { mutableStateOf(currentState.product.shelfLifeDays.toString()) }
         var editDeliveryDateStr by remember { mutableStateOf(currentState.dateCalculation.deliveryDateIso) }
 
@@ -1303,10 +1663,19 @@ fun ReceivingScreen(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text("Item Barcode: ${currentState.normalizedUpc}", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        "Item Barcode: ${currentState.normalizedUpc}",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
 
                     var nameDropdownExpanded by remember { mutableStateOf(false) }
-                    val filteredNames = allCatalogItems.filter { it.name.contains(editName, ignoreCase = true) && it.name.isNotBlank() && !it.name.startsWith("Item (") }
+                    val filteredNames = allCatalogItems.filter {
+                        it.name.contains(
+                            editName,
+                            ignoreCase = true
+                        ) && it.name.isNotBlank() && !it.name.startsWith("Item (")
+                    }
 
                     ExposedDropdownMenuBox(
                         expanded = nameDropdownExpanded,
@@ -1314,7 +1683,7 @@ fun ReceivingScreen(
                     ) {
                         OutlinedTextField(
                             value = editName,
-                            onValueChange = { 
+                            onValueChange = {
                                 editName = it
                                 nameDropdownExpanded = true
                             },
@@ -1394,7 +1763,9 @@ fun ReceivingScreen(
                                     text = { Text(cat) },
                                     onClick = {
                                         editCategory = cat
-                                        editDaysStr = DateCalculator.getShelfLifeDaysForCategory(cat).toString()
+                                        editDaysStr =
+                                            DateCalculator.getShelfLifeDaysForCategory(cat)
+                                                .toString()
                                         isCategoryExpanded = false
                                     }
                                 )
@@ -1442,7 +1813,12 @@ fun ReceivingScreen(
 
                     // Quick Shelf Life Chips in Edit Dialog
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Quick Shelf Life Preset:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color.Gray)
+                        Text(
+                            "Quick Shelf Life Preset:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color.Gray
+                        )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -1472,8 +1848,15 @@ fun ReceivingScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp)) {
-                            Text("Preview Calculated Dates:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Delivery: ${calculatedPreview.deliveryDateFormatted}", fontSize = 13.sp)
+                            Text(
+                                "Preview Calculated Dates:",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "Delivery: ${calculatedPreview.deliveryDateFormatted}",
+                                fontSize = 13.sp
+                            )
                             Text(
                                 "Use By: ${calculatedPreview.useByDateFormatted} (+${calculatedPreview.shelfLifeDays}d)",
                                 fontSize = 14.sp,
@@ -1489,8 +1872,10 @@ fun ReceivingScreen(
                     coroutineScope.launch {
                         val validDays = DateCalculator.clampShelfLifeDays(editDaysInt)
                         val parsedOnHand = editOnHandStr.toDoubleOrNull()
-                        val editOnHand = if (parsedOnHand != null && parsedOnHand > 0.0) parsedOnHand else initialOnHand
-                        val scannedUpc = currentState.normalizedUpc.ifBlank { currentState.rawUpc.trim() }
+                        val editOnHand =
+                            if (parsedOnHand != null && parsedOnHand > 0.0) parsedOnHand else initialOnHand
+                        val scannedUpc =
+                            currentState.normalizedUpc.ifBlank { currentState.rawUpc.trim() }
                         val cleanName = editName.ifBlank { "Unrecognized Item" }
 
                         val editCasePackInt = editCasePackStr.toIntOrNull()?.coerceAtLeast(1) ?: 1
@@ -1559,7 +1944,11 @@ fun ReceivingScreen(
 
                         showEditDialog = false
                         statusMessage = "Saved product & date override!"
-                        Toast.makeText(context, "Saved product & date override!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Saved product & date override!",
+                            Toast.LENGTH_SHORT
+                        ).show()
 
                         isSyncing = true
                         productManager.logScanAsync(updatedScanRecord, coroutineScope) { res ->
@@ -1596,7 +1985,11 @@ fun ReceivingScreen(
             title = { Text("Enter Custom Shelf-Life Days") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Set custom retention shelf life in days for ${currentState.product.name}:", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        "Set custom retention shelf life in days for ${currentState.product.name}:",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
                     OutlinedTextField(
                         value = customDaysInput,
                         onValueChange = { customDaysInput = it },
@@ -1612,7 +2005,10 @@ fun ReceivingScreen(
                     onClick = {
                         val days = customDaysInput.toIntOrNull()
                         if (days != null && days > 0) {
-                            val validDays = DateCalculator.clampShelfLifeDays(days, currentState.product.category)
+                            val validDays = DateCalculator.clampShelfLifeDays(
+                                days,
+                                currentState.product.category
+                            )
                             val newCalc = DateCalculator.calculate(
                                 scanDate = currentState.dateCalculation.deliveryDate,
                                 shelfLifeDays = validDays,
@@ -1629,14 +2025,27 @@ fun ReceivingScreen(
                             )
                             coroutineScope.launch {
                                 currentScanRecord?.let { rec ->
-                                    productManager.addScanRecord(rec.copy(shelfLifeDays = validDays, useByDate = newCalc.useByDateIso))
+                                    productManager.addScanRecord(
+                                        rec.copy(
+                                            shelfLifeDays = validDays,
+                                            useByDate = newCalc.useByDateIso
+                                        )
+                                    )
                                 }
                             }
                             showCustomDaysDialog = false
                             customDaysInput = ""
-                            Toast.makeText(context, "Set custom shelf life to +${validDays}d!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Set custom shelf life to +${validDays}d!",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         } else {
-                            Toast.makeText(context, "Enter a valid positive number of days", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Enter a valid positive number of days",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                     }
                 ) {
@@ -1701,14 +2110,27 @@ fun ReceivingScreen(
                     )
 
                     // Quick Food Dish Preset Chips
-                    Text("Quick Dish Presets:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Quick Dish Presets:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        listOf("Tuna Salad", "Sliced Turkey", "Chicken Salad", "Cooked Soup", "Sliced Cheese", "Cut Fruit", "Portioned Dessert").forEach { preset ->
+                        listOf(
+                            "Tuna Salad",
+                            "Sliced Turkey",
+                            "Chicken Salad",
+                            "Cooked Soup",
+                            "Sliced Cheese",
+                            "Cut Fruit",
+                            "Portioned Dessert"
+                        ).forEach { preset ->
                             FilterChip(
                                 selected = prepItemNameInput.equals(preset, ignoreCase = true),
                                 onClick = { prepItemNameInput = preset },
@@ -1719,7 +2141,12 @@ fun ReceivingScreen(
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
 
-                    Text("Prep Category & ServSafe Rule:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Prep Category & ServSafe Rule:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1732,7 +2159,13 @@ fun ReceivingScreen(
                                 prepCategoryInput = "PREPARED"
                                 prepRetentionDaysInput = 7
                             },
-                            label = { Text("🥗 Prepared (+7d TCS)", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                            label = {
+                                Text(
+                                    "🥗 Prepared (+7d TCS)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         )
                         FilterChip(
                             selected = prepCategoryInput == "USE_FIRST",
@@ -1740,7 +2173,13 @@ fun ReceivingScreen(
                                 prepCategoryInput = "USE_FIRST"
                                 prepRetentionDaysInput = 0
                             },
-                            label = { Text("⚠️ Use First", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                            label = {
+                                Text(
+                                    "⚠️ Use First",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         )
                         FilterChip(
                             selected = prepCategoryInput == "THAW",
@@ -1780,7 +2219,8 @@ fun ReceivingScreen(
 
                     val calculatedDiscardDate = remember(prepRetentionDaysInput) {
                         LocalDate.now().plusDays(prepRetentionDaysInput.toLong()).format(
-                            DateTimeFormatter.ofPattern("MM/dd/yy"))
+                            DateTimeFormatter.ofPattern("MM/dd/yy")
+                        )
                     }
                     Surface(
                         color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
@@ -1792,8 +2232,17 @@ fun ReceivingScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Discard Date:", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
-                            Text(calculatedDiscardDate, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                            Text(
+                                "Discard Date:",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Text(
+                                calculatedDiscardDate,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         }
                     }
 
@@ -1804,14 +2253,21 @@ fun ReceivingScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("Sticker Quantity:", fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
                             IconButton(
                                 onClick = { if (prepLabelQuantity > 1) prepLabelQuantity-- },
                                 modifier = Modifier.size(32.dp)
                             ) {
                                 Icon(Icons.Default.Remove, contentDescription = "Decrease")
                             }
-                            Text("$prepLabelQuantity", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(
+                                "$prepLabelQuantity",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
                             IconButton(
                                 onClick = { prepLabelQuantity++ },
                                 modifier = Modifier.size(32.dp)
@@ -1827,11 +2283,19 @@ fun ReceivingScreen(
                     onClick = {
                         val activePrinter = connectedDevice ?: selectedPrinter
                         if (prepItemNameInput.isBlank()) {
-                            Toast.makeText(context, "Please enter item / dish name", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                "Please enter item / dish name",
+                                Toast.LENGTH_SHORT
+                            ).show()
                             return@Button
                         }
                         if (activePrinter == null) {
-                            Toast.makeText(context, "Pair Zebra printer first in Settings", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                "Pair Zebra printer first in Settings",
+                                Toast.LENGTH_LONG
+                            ).show()
                             return@Button
                         }
 
@@ -1841,18 +2305,21 @@ fun ReceivingScreen(
                                 printDate = LocalDate.now(),
                                 staffInitials = settingsManager.staffInitials
                             )
+
                             "THAW" -> ZplGenerator.generateThawLabelZpl(
                                 itemName = prepItemNameInput,
                                 upc = "000000000000",
                                 thawDate = LocalDate.now(),
                                 staffInitials = settingsManager.staffInitials
                             )
+
                             "OPENED" -> ZplGenerator.generateOpenedContainerZpl(
                                 itemName = prepItemNameInput,
                                 upc = "000000000000",
                                 openedDate = LocalDate.now(),
                                 staffInitials = settingsManager.staffInitials
                             )
+
                             else -> ZplGenerator.generatePrepLabelZpl(
                                 prepItemName = prepItemNameInput,
                                 prepDate = LocalDate.now(),
@@ -1863,7 +2330,11 @@ fun ReceivingScreen(
                             )
                         }
 
-                        printerManager.printDirect(activePrinter, zpl, quantity = prepLabelQuantity) { success, msg ->
+                        printerManager.printDirect(
+                            activePrinter,
+                            zpl,
+                            quantity = prepLabelQuantity
+                        ) { success, msg ->
                             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                             if (success) {
                                 showPrepStickerDialog = false
@@ -1873,7 +2344,11 @@ fun ReceivingScreen(
                     },
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.Print,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Print ($prepLabelQuantity)")
                 }

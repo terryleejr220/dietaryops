@@ -61,7 +61,10 @@ class DataAuditAndAnalysisTest {
 
         // Verify all items belong to one of the 8 canonical categories
         val nonCanonical = defaultCatalogItems.filter { it.category !in categories }
-        assertTrue("All catalog items should be mapped to the 8 canonical categories", nonCanonical.isEmpty())
+        assertTrue(
+            "All catalog items should be mapped to the 8 canonical categories",
+            nonCanonical.isEmpty()
+        )
 
         // 2. Storage Locations & ServSafe Expiration Rules (+7d, +14d, +365d)
         println("\n--- Storage Locations & ServSafe Rule Mappings ---")
@@ -89,7 +92,8 @@ class DataAuditAndAnalysisTest {
         assertEquals(8, defaultExpirationRules.size)
 
         // 3. Multi-Vendor Coverage (Sysco SUPCs vs Piazza Item #s vs 12-digit UPCs)
-        val upcCount = defaultCatalogItems.count { it.syscoUpc.length == 12 && it.syscoUpc.all { c -> c.isDigit() } }
+        val upcCount =
+            defaultCatalogItems.count { it.syscoUpc.length == 12 && it.syscoUpc.all { c -> c.isDigit() } }
         val syscoItemNumCount = defaultCatalogItems.count { it.syscoItemNumber.isNotBlank() }
         val piazzaItemNumCount = defaultCatalogItems.count { it.piazzaItemNumber.isNotBlank() }
         val vendorItemNumCount = defaultCatalogItems.count { it.vendorItemNumber.isNotBlank() }
@@ -114,7 +118,10 @@ class DataAuditAndAnalysisTest {
 
         // 5. Test fetching CSV from Google Sheets backend if reachable
         try {
-            val csvUrl = if (publishedUrl.contains("/pubhtml")) publishedUrl.replace("/pubhtml", "/pub?output=csv") else "$publishedUrl&output=csv"
+            val csvUrl = if (publishedUrl.contains("/pubhtml")) publishedUrl.replace(
+                "/pubhtml",
+                "/pub?output=csv"
+            ) else "$publishedUrl&output=csv"
             val conn = URL(csvUrl).openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.connectTimeout = 5000
@@ -136,7 +143,8 @@ class DataAuditAndAnalysisTest {
 
         // 6. Verify Build Artifacts (skipped if not yet compiled)
         val userDir = System.getProperty("user.dir") ?: "."
-        val rootDir = File(userDir).canonicalFile.let { if (it.name == "app") it.parentFile else it }
+        val rootDir =
+            File(userDir).canonicalFile.let { if (it.name == "app") it.parentFile else it }
         val debugApk = File(rootDir, "DietaryOpsManager.apk")
         val releaseApk = File(rootDir, "DietaryOpsManager-Release.apk")
         val releaseAab = File(rootDir, "DietaryOpsManager.aab")
@@ -172,16 +180,19 @@ class DataAuditAndAnalysisTest {
             override fun catalogItemDao(): CatalogItemDao = dummyCatalogDao
             override fun scanRecordDao(): ScanRecordDao = dummyScanRecordDao
             override fun expirationRuleDao(): ExpirationRuleDao = dummyExpirationRuleDao
+
             @Suppress("OVERRIDE_DEPRECATION")
             override fun createOpenHelper(config: DatabaseConfiguration): SupportSQLiteOpenHelper {
                 throw UnsupportedOperationException("Not implemented for mock DB")
             }
+
             override fun createInvalidationTracker(): InvalidationTracker {
                 return Proxy.newProxyInstance(
                     InvalidationTracker::class.java.classLoader,
                     arrayOf(InvalidationTracker::class.java)
                 ) { _, _, _ -> null } as InvalidationTracker
             }
+
             override fun clearAllTables() {}
         }
 
@@ -205,7 +216,8 @@ class DataAuditAndAnalysisTest {
 
         return object : ContextWrapper(null) {
             override fun getApplicationContext(): Context = this
-            override fun getSharedPreferences(name: String?, mode: Int): SharedPreferences = dummyPrefs
+            override fun getSharedPreferences(name: String?, mode: Int): SharedPreferences =
+                dummyPrefs
         }
     }
 }

@@ -45,7 +45,11 @@ fun PinDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (pinError) {
-                    Text("Incorrect PIN. Please try again.", color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
+                    Text(
+                        "Incorrect PIN. Please try again.",
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp
+                    )
                 }
             }
         },
@@ -164,7 +168,11 @@ fun EditProductDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text("Shelf Life Presets (Default: 3 to 14 days):", fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Shelf Life Presets (Default: 3 to 14 days):",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     FilterChip(
                         selected = editDeliveryDays == "5",

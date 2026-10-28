@@ -21,9 +21,9 @@ interface ScanRecordDao {
      */
     @Query(
         "SELECT * FROM scan_records " +
-        "WHERE (syncedToSheets = 0 OR syncedToFirestore = 0) " +
-        "AND syncRetryCount < :maxRetries " +
-        "ORDER BY scanTimestamp ASC"
+                "WHERE (syncedToSheets = 0 OR syncedToFirestore = 0) " +
+                "AND syncRetryCount < :maxRetries " +
+                "ORDER BY scanTimestamp ASC"
     )
     suspend fun getFailedSyncRecords(maxRetries: Int = 5): List<ScanRecord>
 

@@ -71,10 +71,18 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(Unit) {
                         val permsToRequest = mutableListOf(Manifest.permission.CAMERA)
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                            if (ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.BLUETOOTH_CONNECT
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
                                 permsToRequest.add(Manifest.permission.BLUETOOTH_CONNECT)
                             }
-                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+                            if (ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.BLUETOOTH_SCAN
+                                ) != PackageManager.PERMISSION_GRANTED
+                            ) {
                                 permsToRequest.add(Manifest.permission.BLUETOOTH_SCAN)
                             }
                         }

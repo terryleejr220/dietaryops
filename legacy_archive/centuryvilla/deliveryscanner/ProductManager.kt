@@ -13,27 +13,120 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class ProductManager(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("sysco_products", Context.MODE_PRIVATE)
-    private val invPrefs: SharedPreferences = context.getSharedPreferences("cv_inventory", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("sysco_products", Context.MODE_PRIVATE)
+    private val invPrefs: SharedPreferences =
+        context.getSharedPreferences("cv_inventory", Context.MODE_PRIVATE)
 
     companion object {
         const val ADMIN_BADGE_CODE = "CV-ADMIN-AUTH"
         const val DEFAULT_PIN = "2200"
-        const val SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY/edit"
+        const val SPREADSHEET_URL =
+            "https://docs.google.com/spreadsheets/d/16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY/edit"
     }
 
     // Pre-seeded Sysco dietary items
     private val defaultProducts = mapOf(
-        "074865123401" to SyscoProduct("074865123401", "Sysco Sliced Roast Beef", 5, 3, 4, "123401", "4 / 5# CS", "COOLER"),
-        "074865123402" to SyscoProduct("074865123402", "Sysco Classic Liquid Eggs", 5, 3, 2, "123402", "2 / 20# CS", "COOLER"),
-        "074865123403" to SyscoProduct("074865123403", "Sysco Imperial Cheddar Cheese", 14, 7, 4, "123403", "4 / 5# CS", "COOLER"),
-        "074865123404" to SyscoProduct("074865123404", "Sysco Classic Romaine Lettuce", 4, 3, 1, "123404", "24# CS", "COOLER"),
-        "074865123405" to SyscoProduct("074865123405", "Sysco Sliced Turkey Breast", 5, 3, 4, "123405", "4 / 5# CS", "COOLER"),
-        "074865123406" to SyscoProduct("074865123406", "Sysco Heavy Whipping Cream", 10, 7, 12, "123406", "12 / 1 QT CS", "COOLER"),
-        "074865123407" to SyscoProduct("074865123407", "Sysco White Whole Milk (Gallon)", 7, 7, 4, "123407", "4 / 1 GAL CS", "COOLER"),
-        "074865123408" to SyscoProduct("074865123408", "Sysco Classic Tomato Sauce #10", 365, 5, 6, "123408", "6 / #10 CS (6 Cans/Case)", "DRY STORAGE"),
-        "074865123409" to SyscoProduct("074865123409", "Sysco Diced Peaches #10", 365, 5, 6, "123409", "6 / #10 CS (6 Cans/Case)", "DRY STORAGE"),
-        "074865123410" to SyscoProduct("074865123410", "Sysco Green Beans #10", 365, 5, 6, "123410", "6 / #10 CS (6 Cans/Case)", "DRY STORAGE")
+        "074865123401" to SyscoProduct(
+            "074865123401",
+            "Sysco Sliced Roast Beef",
+            5,
+            3,
+            4,
+            "123401",
+            "4 / 5# CS",
+            "COOLER"
+        ),
+        "074865123402" to SyscoProduct(
+            "074865123402",
+            "Sysco Classic Liquid Eggs",
+            5,
+            3,
+            2,
+            "123402",
+            "2 / 20# CS",
+            "COOLER"
+        ),
+        "074865123403" to SyscoProduct(
+            "074865123403",
+            "Sysco Imperial Cheddar Cheese",
+            14,
+            7,
+            4,
+            "123403",
+            "4 / 5# CS",
+            "COOLER"
+        ),
+        "074865123404" to SyscoProduct(
+            "074865123404",
+            "Sysco Classic Romaine Lettuce",
+            4,
+            3,
+            1,
+            "123404",
+            "24# CS",
+            "COOLER"
+        ),
+        "074865123405" to SyscoProduct(
+            "074865123405",
+            "Sysco Sliced Turkey Breast",
+            5,
+            3,
+            4,
+            "123405",
+            "4 / 5# CS",
+            "COOLER"
+        ),
+        "074865123406" to SyscoProduct(
+            "074865123406",
+            "Sysco Heavy Whipping Cream",
+            10,
+            7,
+            12,
+            "123406",
+            "12 / 1 QT CS",
+            "COOLER"
+        ),
+        "074865123407" to SyscoProduct(
+            "074865123407",
+            "Sysco White Whole Milk (Gallon)",
+            7,
+            7,
+            4,
+            "123407",
+            "4 / 1 GAL CS",
+            "COOLER"
+        ),
+        "074865123408" to SyscoProduct(
+            "074865123408",
+            "Sysco Classic Tomato Sauce #10",
+            365,
+            5,
+            6,
+            "123408",
+            "6 / #10 CS (6 Cans/Case)",
+            "DRY STORAGE"
+        ),
+        "074865123409" to SyscoProduct(
+            "074865123409",
+            "Sysco Diced Peaches #10",
+            365,
+            5,
+            6,
+            "123409",
+            "6 / #10 CS (6 Cans/Case)",
+            "DRY STORAGE"
+        ),
+        "074865123410" to SyscoProduct(
+            "074865123410",
+            "Sysco Green Beans #10",
+            365,
+            5,
+            6,
+            "123410",
+            "6 / #10 CS (6 Cans/Case)",
+            "DRY STORAGE"
+        )
     )
 
     fun normalizeBarcode(raw: String): String {
@@ -63,7 +156,8 @@ class ProductManager(context: Context) {
                 location = json.optString("location", "COOLER")
             )
         }
-        val match = defaultProducts[cleanUpc] ?: defaultProducts.values.firstOrNull { it.itemNumber == cleanUpc }
+        val match = defaultProducts[cleanUpc]
+            ?: defaultProducts.values.firstOrNull { it.itemNumber == cleanUpc }
         return match ?: SyscoProduct(
             upc = cleanUpc,
             name = "Sysco Item ($cleanUpc)",
@@ -117,8 +211,8 @@ class ProductManager(context: Context) {
 
         return allProducts.distinctBy { it.upc }.filter { prod ->
             prod.name.lowercase().contains(q) ||
-            prod.upc.lowercase().contains(q) ||
-            prod.itemNumber.lowercase().contains(q)
+                    prod.upc.lowercase().contains(q) ||
+                    prod.itemNumber.lowercase().contains(q)
         }
     }
 

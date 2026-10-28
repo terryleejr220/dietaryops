@@ -75,7 +75,12 @@ fun MainAppScreen(viewModel: MainViewModel) {
 
     // Camera & Permissions
     var hasCameraPermission by remember {
-        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
+        )
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -103,13 +108,21 @@ fun MainAppScreen(viewModel: MainViewModel) {
     }
 
     LaunchedEffect(pairedDevices) {
-        val printer = pairedDevices.firstOrNull { it.name?.contains("QLn", ignoreCase = true) == true || it.name?.contains("Zebra", ignoreCase = true) == true } ?: pairedDevices.firstOrNull()
+        val printer = pairedDevices.firstOrNull {
+            it.name?.contains(
+                "QLn",
+                ignoreCase = true
+            ) == true || it.name?.contains("Zebra", ignoreCase = true) == true
+        } ?: pairedDevices.firstOrNull()
         viewModel.setSelectedPrinter(printer)
     }
 
     Scaffold(
         topBar = {
-            Surface(shadowElevation = 4.dp, color = if (isAdminMode) Color(0xFF1B5E20) else MaterialTheme.colorScheme.primary) {
+            Surface(
+                shadowElevation = 4.dp,
+                color = if (isAdminMode) Color(0xFF1B5E20) else MaterialTheme.colorScheme.primary
+            ) {
                 Column {
                     Row(
                         modifier = Modifier
@@ -136,7 +149,11 @@ fun MainAppScreen(viewModel: MainViewModel) {
                             if (isAdminMode) {
                                 FilledTonalButton(
                                     onClick = { viewModel.setAdminMode(false) },
-                                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = Color.White.copy(alpha = 0.2f), contentColor = Color.White)
+                                    colors = ButtonDefaults.filledTonalButtonColors(
+                                        containerColor = Color.White.copy(
+                                            alpha = 0.2f
+                                        ), contentColor = Color.White
+                                    )
                                 ) {
                                     Text("Lock", fontSize = 11.sp)
                                 }

@@ -7,7 +7,8 @@ import android.net.Uri
 import android.widget.Toast
 
 class SettingsManager(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences =
+        context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
 
     var webAppUrl: String
         get() = prefs.getString(KEY_WEB_APP_URL, DEFAULT_WEB_APP_URL) ?: DEFAULT_WEB_APP_URL
@@ -18,15 +19,18 @@ class SettingsManager(context: Context) {
         set(value) = prefs.edit().putString(KEY_SHEET_ID, value.trim()).apply()
 
     var publishedWebUrl: String
-        get() = prefs.getString(KEY_PUBLISHED_WEB_URL, DEFAULT_PUBLISHED_WEB_URL) ?: DEFAULT_PUBLISHED_WEB_URL
+        get() = prefs.getString(KEY_PUBLISHED_WEB_URL, DEFAULT_PUBLISHED_WEB_URL)
+            ?: DEFAULT_PUBLISHED_WEB_URL
         set(value) = prefs.edit().putString(KEY_PUBLISHED_WEB_URL, value.trim()).apply()
 
     var liveDashboardUrl: String
-        get() = prefs.getString(KEY_LIVE_DASHBOARD_URL, DEFAULT_LIVE_DASHBOARD_URL) ?: DEFAULT_LIVE_DASHBOARD_URL
+        get() = prefs.getString(KEY_LIVE_DASHBOARD_URL, DEFAULT_LIVE_DASHBOARD_URL)
+            ?: DEFAULT_LIVE_DASHBOARD_URL
         set(value) = prefs.edit().putString(KEY_LIVE_DASHBOARD_URL, value.trim()).apply()
 
     var kitchenDashboardUrl: String
-        get() = prefs.getString(KEY_KITCHEN_DASHBOARD_URL, DEFAULT_KITCHEN_DASHBOARD_URL) ?: DEFAULT_KITCHEN_DASHBOARD_URL
+        get() = prefs.getString(KEY_KITCHEN_DASHBOARD_URL, DEFAULT_KITCHEN_DASHBOARD_URL)
+            ?: DEFAULT_KITCHEN_DASHBOARD_URL
         set(value) = prefs.edit().putString(KEY_KITCHEN_DASHBOARD_URL, value.trim()).apply()
 
     var autoPrint: Boolean
@@ -34,8 +38,8 @@ class SettingsManager(context: Context) {
         set(value) = prefs.edit().putBoolean(KEY_AUTO_PRINT, value).apply()
 
     fun isEvsDepartment(): Boolean {
-        return department.equals("Environmental Services", ignoreCase = true) || 
-               department.equals("EVS", ignoreCase = true)
+        return department.equals("Environmental Services", ignoreCase = true) ||
+                department.equals("EVS", ignoreCase = true)
     }
 
     val defaultTabForCurrentDepartment: String
@@ -88,15 +92,21 @@ class SettingsManager(context: Context) {
             val clean = value.trim()
             prefs.edit().putString(KEY_DEPARTMENT, clean).apply()
             // Automatically switch sheet tab when department toggles to maintain total isolation
-            departmentSheetTab = if (clean.equals("Environmental Services", ignoreCase = true) || clean.equals("EVS", ignoreCase = true)) {
-                "EVS Scan Log"
-            } else {
-                "Delivery Scan Log"
-            }
+            departmentSheetTab =
+                if (clean.equals("Environmental Services", ignoreCase = true) || clean.equals(
+                        "EVS",
+                        ignoreCase = true
+                    )
+                ) {
+                    "EVS Scan Log"
+                } else {
+                    "Delivery Scan Log"
+                }
         }
 
     var departmentSheetTab: String
-        get() = prefs.getString(KEY_DEPARTMENT_SHEET_TAB, "")?.ifBlank { defaultTabForCurrentDepartment } ?: defaultTabForCurrentDepartment
+        get() = prefs.getString(KEY_DEPARTMENT_SHEET_TAB, "")
+            ?.ifBlank { defaultTabForCurrentDepartment } ?: defaultTabForCurrentDepartment
         set(value) = prefs.edit().putString(KEY_DEPARTMENT_SHEET_TAB, value.trim()).apply()
 
     var currentStaffUser: com.dietaryops.manager.data.model.StaffUser
@@ -191,16 +201,23 @@ class SettingsManager(context: Context) {
         const val ADMIN_EMPLOYEE_ID = "AD99"
         const val ADMIN_NAME = "System Administrator"
 
-        const val DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvHRDz_7_635MtPnq_ac4gRscE4F_G5N72prO4g4oKheo8kYVUM0XD76jEwoQYHm-H9w/exec"
+        const val DEFAULT_WEB_APP_URL =
+            "https://script.google.com/macros/s/AKfycbwvHRDz_7_635MtPnq_ac4gRscE4F_G5N72prO4g4oKheo8kYVUM0XD76jEwoQYHm-H9w/exec"
         const val DEFAULT_SHEET_ID = "16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY"
-        const val DEFAULT_PUBLISHED_WEB_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=1819479005&single=true"
-        const val DEFAULT_LIVE_DASHBOARD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=999999&single=true"
-        const val DEFAULT_KITCHEN_DASHBOARD_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=777002&single=true"
+        const val DEFAULT_PUBLISHED_WEB_URL =
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=1819479005&single=true"
+        const val DEFAULT_LIVE_DASHBOARD_URL =
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=999999&single=true"
+        const val DEFAULT_KITCHEN_DASHBOARD_URL =
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=777002&single=true"
 
         // Standard Operational Default Shelf Life Guidelines
-        const val SHELF_LIFE_DAIRY_FRESH = 7                 // Cooler / TCS / Fresh (dairy, sliced meats, fresh produce)
-        const val SHELF_LIFE_PROTEINS_FROZEN = 14            // Freezer / Frozen raw or prepared proteins
-        const val SHELF_LIFE_COMMERCIAL_SHELF_STABLE = 365   // Commercial Shelf-Stable / Unopened (canned goods, dry storage, condiments, misc dry, supplement, general)
+        const val SHELF_LIFE_DAIRY_FRESH =
+            7                 // Cooler / TCS / Fresh (dairy, sliced meats, fresh produce)
+        const val SHELF_LIFE_PROTEINS_FROZEN =
+            14            // Freezer / Frozen raw or prepared proteins
+        const val SHELF_LIFE_COMMERCIAL_SHELF_STABLE =
+            365   // Commercial Shelf-Stable / Unopened (canned goods, dry storage, condiments, misc dry, supplement, general)
 
         val DEFAULT_CATEGORIES = listOf(
             "Canned Goods",

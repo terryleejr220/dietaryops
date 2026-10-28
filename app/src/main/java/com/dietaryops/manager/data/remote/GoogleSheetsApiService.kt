@@ -96,37 +96,67 @@ data class SheetSyncResponse(
 
 @Keep
 data class CatalogSyncDto(
-    @SerializedName("syscoUpc", alternate = ["upc", "syscoUPC", "UPC", "barcode", "Barcode", "itemUpc", "sysco_upc", "code", "Code", "Sysco UPC"])
+    @SerializedName(
+        "syscoUpc",
+        alternate = ["upc", "syscoUPC", "UPC", "barcode", "Barcode", "itemUpc", "sysco_upc", "code", "Code", "Sysco UPC"]
+    )
     val syscoUpc: String? = null,
 
-    @SerializedName("name", alternate = ["itemName", "item_name", "productName", "product_name", "title", "product", "Product", "Item", "Product / Item", "Product Name", "Description"])
+    @SerializedName(
+        "name",
+        alternate = ["itemName", "item_name", "productName", "product_name", "title", "product", "Product", "Item", "Product / Item", "Product Name", "Description"]
+    )
     val name: String? = null,
 
-    @SerializedName("category", alternate = ["Category", "item_category", "itemCategory", "cat", "CATEGORY", "Location"])
+    @SerializedName(
+        "category",
+        alternate = ["Category", "item_category", "itemCategory", "cat", "CATEGORY", "Location"]
+    )
     val category: String? = null,
 
-    @SerializedName("defaultShelfLifeDays", alternate = ["shelfLifeDays", "shelfLife", "shelf_life_days", "default_shelf_life_days", "daysOffset", "days", "Shelf Life", "shelf_life"])
+    @SerializedName(
+        "defaultShelfLifeDays",
+        alternate = ["shelfLifeDays", "shelfLife", "shelf_life_days", "default_shelf_life_days", "daysOffset", "days", "Shelf Life", "shelf_life"]
+    )
     val defaultShelfLifeDays: Int? = null,
 
     @SerializedName("unit", alternate = ["Unit", "unitOfMeasure", "uom", "UNIT"])
     val unit: String? = null,
 
-    @SerializedName("lastOnHandAmount", alternate = ["onHandAmount", "quantity", "onHand", "quantityOnHand", "on_hand", "lastOnHand", "last_on_hand", "qty", "Amount", "OnHand", "QTY", "Quantity", "previousCount", "previous_count", "prevCount", "prev_count", "lastCount", "last_count", "count", "printable", "printableCount", "previous", "On Hand", "Previous Count", "Prev Count", "Last Count", "Printable", "Printable Count", "Previous", "Count"])
+    @SerializedName(
+        "lastOnHandAmount",
+        alternate = ["onHandAmount", "quantity", "onHand", "quantityOnHand", "on_hand", "lastOnHand", "last_on_hand", "qty", "Amount", "OnHand", "QTY", "Quantity", "previousCount", "previous_count", "prevCount", "prev_count", "lastCount", "last_count", "count", "printable", "printableCount", "previous", "On Hand", "Previous Count", "Prev Count", "Last Count", "Printable", "Printable Count", "Previous", "Count"]
+    )
     val lastOnHandAmount: Double? = null,
 
-    @SerializedName("syscoItemNumber", alternate = ["syscoItemNumber", "Sysco Item #", "Sysco Item #:", "SUPC", "sysco_item_number", "itemNumber", "item_number", "item#"])
+    @SerializedName(
+        "syscoItemNumber",
+        alternate = ["syscoItemNumber", "Sysco Item #", "Sysco Item #:", "SUPC", "sysco_item_number", "itemNumber", "item_number", "item#"]
+    )
     val syscoItemNumber: String? = null,
 
-    @SerializedName("piazzaItemNumber", alternate = ["piazzaItemNumber", "Piazza Item #", "Piazza #", "piazza_item_number", "piazza#"])
+    @SerializedName(
+        "piazzaItemNumber",
+        alternate = ["piazzaItemNumber", "Piazza Item #", "Piazza #", "piazza_item_number", "piazza#"]
+    )
     val piazzaItemNumber: String? = null,
 
-    @SerializedName("vendorItemNumber", alternate = ["vendorItemNumber", "Vendor Item #", "Vendor Item", "vendor_item_number", "vendorItem", "Vendor #", "Vendor Number"])
+    @SerializedName(
+        "vendorItemNumber",
+        alternate = ["vendorItemNumber", "Vendor Item #", "Vendor Item", "vendor_item_number", "vendorItem", "Vendor #", "Vendor Number"]
+    )
     val vendorItemNumber: String? = null,
 
-    @SerializedName("vendorSku", alternate = ["vendorSku", "Vendor SKU", "Vendor Sku", "vendor_sku", "SKU", "sku"])
+    @SerializedName(
+        "vendorSku",
+        alternate = ["vendorSku", "Vendor SKU", "Vendor Sku", "vendor_sku", "SKU", "sku"]
+    )
     val vendorSku: String? = null,
 
-    @SerializedName("alternateBarcodes", alternate = ["alternateBarcodes", "Alternate Barcodes", "Alternate UPC", "Alternate Barcode", "Alt UPC", "Barcodes", "Bar Code", "Alternate Bar Codes", "alternate_barcodes"])
+    @SerializedName(
+        "alternateBarcodes",
+        alternate = ["alternateBarcodes", "Alternate Barcodes", "Alternate UPC", "Alternate Barcode", "Alt UPC", "Barcodes", "Bar Code", "Alternate Bar Codes", "alternate_barcodes"]
+    )
     val alternateBarcodes: String? = null,
 
     @SerializedName("shelfOrderIndex")

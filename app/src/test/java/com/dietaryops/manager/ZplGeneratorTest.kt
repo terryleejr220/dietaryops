@@ -26,7 +26,10 @@ class ZplGeneratorTest {
         assertTrue("ZPL must define length ^LL254", zpl.contains("^LL254"))
         assertTrue("ZPL must define darkness ^MD18", zpl.contains("^MD18"))
         assertTrue("ZPL must define label home ^LH10,10", zpl.contains("^LH10,10"))
-        assertTrue("ZPL must contain item name auto-wrap field block ^FB416,2,0,L,0", zpl.contains("^FB416,2,0,L,0"))
+        assertTrue(
+            "ZPL must contain item name auto-wrap field block ^FB416,2,0,L,0",
+            zpl.contains("^FB416,2,0,L,0")
+        )
         assertTrue("ZPL must contain item name", zpl.contains("Sysco Sliced Roast Beef"))
         assertTrue("ZPL must contain DELIVERED date", zpl.contains("DELIVERED: 03/10/25"))
         assertTrue("ZPL must contain STORAGE LOC", zpl.contains("LOC: COOLER"))
@@ -76,7 +79,10 @@ class ZplGeneratorTest {
             category = "Dry/Frozen",
             storageLocation = "FREEZER"
         )
-        assertTrue("Specified storage location FREEZER should be used", freezerZpl.contains("LOC: FREEZER"))
+        assertTrue(
+            "Specified storage location FREEZER should be used",
+            freezerZpl.contains("LOC: FREEZER")
+        )
 
         val dryZpl = ZplGenerator.generateLabel(
             itemName = "Sysco Flour",
@@ -145,10 +151,22 @@ class ZplGeneratorTest {
         assertTrue("Shelf ZPL must contain length ^LL254", zpl.contains("^LL254"))
         assertTrue("Shelf ZPL must contain darkness ^MD18", zpl.contains("^MD18"))
         assertTrue("Shelf ZPL must contain label home ^LH0,0", zpl.contains("^LH0,0"))
-        assertTrue("Shelf ZPL must contain barcode command ^BCN,65,Y,N,N", zpl.contains("^BCN,65,Y,N,N"))
-        assertTrue("Shelf ZPL must contain barcode value 074864000003", zpl.contains("074864000003"))
-        assertTrue("Shelf ZPL must contain product name field block ^FB426,2,0,L,0", zpl.contains("^FB426,2,0,L,0"))
-        assertTrue("Shelf ZPL must contain item name Sysco Whole Milk", zpl.contains("Sysco Whole Milk"))
+        assertTrue(
+            "Shelf ZPL must contain barcode command ^BCN,65,Y,N,N",
+            zpl.contains("^BCN,65,Y,N,N")
+        )
+        assertTrue(
+            "Shelf ZPL must contain barcode value 074864000003",
+            zpl.contains("074864000003")
+        )
+        assertTrue(
+            "Shelf ZPL must contain product name field block ^FB426,2,0,L,0",
+            zpl.contains("^FB426,2,0,L,0")
+        )
+        assertTrue(
+            "Shelf ZPL must contain item name Sysco Whole Milk",
+            zpl.contains("Sysco Whole Milk")
+        )
         assertTrue("Shelf ZPL and divider line ^GB426,2,2", zpl.contains("^GB426,2,2"))
         assertTrue("Shelf ZPL must contain Par level with unit", zpl.contains("Par: 10 gal"))
         assertTrue("Shelf ZPL must contain Sec: label", zpl.contains("Sec:"))
@@ -157,19 +175,52 @@ class ZplGeneratorTest {
 
     @Test
     fun testShelfLabelParFormattingWithUnits() {
-        val zplCs = ZplGenerator.generateShelfLabelZpl("Tomato Paste", "123456789012", "DRY STORAGE", parLevel = 2.0, unit = "cs")
+        val zplCs = ZplGenerator.generateShelfLabelZpl(
+            "Tomato Paste",
+            "123456789012",
+            "DRY STORAGE",
+            parLevel = 2.0,
+            unit = "cs"
+        )
         assertTrue("Par level must format as 'Par: 2 cs'", zplCs.contains("Par: 2 cs"))
 
-        val zplJug = ZplGenerator.generateShelfLabelZpl("Apple Juice", "123456789012", "COOLER", parLevel = 1.0, unit = "jug")
+        val zplJug = ZplGenerator.generateShelfLabelZpl(
+            "Apple Juice",
+            "123456789012",
+            "COOLER",
+            parLevel = 1.0,
+            unit = "jug"
+        )
         assertTrue("Par level must format as 'Par: 1 jug'", zplJug.contains("Par: 1 jug"))
 
-        val zplB = ZplGenerator.generateShelfLabelZpl("Butter Foil", "123456789012", "COOLER", parLevel = 3.0, unit = "b")
+        val zplB = ZplGenerator.generateShelfLabelZpl(
+            "Butter Foil",
+            "123456789012",
+            "COOLER",
+            parLevel = 3.0,
+            unit = "b"
+        )
         assertTrue("Par level must format as 'Par: 3 b'", zplB.contains("Par: 3 b"))
 
-        val zplEa = ZplGenerator.generateShelfLabelZpl("Large Eggs", "123456789012", "COOLER", parLevel = 12.0, unit = "ea")
+        val zplEa = ZplGenerator.generateShelfLabelZpl(
+            "Large Eggs",
+            "123456789012",
+            "COOLER",
+            parLevel = 12.0,
+            unit = "ea"
+        )
         assertTrue("Par level must format as 'Par: 12 ea'", zplEa.contains("Par: 12 ea"))
 
-        val zplEmptyUnit = ZplGenerator.generateShelfLabelZpl("Generic Item", "123456789012", "DRY STORAGE", parLevel = 5.0, unit = "")
-        assertTrue("Par level with empty unit must default to 'ea'", zplEmptyUnit.contains("Par: 5 ea"))
+        val zplEmptyUnit = ZplGenerator.generateShelfLabelZpl(
+            "Generic Item",
+            "123456789012",
+            "DRY STORAGE",
+            parLevel = 5.0,
+            unit = ""
+        )
+        assertTrue(
+            "Par level with empty unit must default to 'ea'",
+            zplEmptyUnit.contains("Par: 5 ea")
+        )
     }
 }

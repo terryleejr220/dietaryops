@@ -58,7 +58,8 @@ private fun triggerScanFeedback(context: Context) {
 
         // 2. Tactile Haptic Vibration Click
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            val vibratorManager =
+                context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
             vibratorManager?.vibrate(
                 CombinedVibration.createParallel(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
             )
@@ -115,7 +116,11 @@ fun CameraXBarcodeScanner(
             val provider = providerFuture.get()
             cameraProvider = provider
             if (isCameraActive) {
-                val rotation = try { previewView.display?.rotation ?: Surface.ROTATION_0 } catch (_: Exception) { Surface.ROTATION_0 }
+                val rotation = try {
+                    previewView.display?.rotation ?: Surface.ROTATION_0
+                } catch (_: Exception) {
+                    Surface.ROTATION_0
+                }
 
                 val preview = Preview.Builder()
                     .setTargetRotation(rotation)
@@ -155,7 +160,8 @@ fun CameraXBarcodeScanner(
                     // Set default 15% digital zoom so camera lens is razor sharp from 10-12 inches away
                     try {
                         boundCamera.cameraControl.setLinearZoom(0.15f)
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                    }
 
                     // Enable Tap-to-Focus onPreviewView
                     previewView.setOnTouchListener { view, event ->
@@ -163,12 +169,14 @@ fun CameraXBarcodeScanner(
                             try {
                                 val factory = previewView.meteringPointFactory
                                 val point = factory.createPoint(event.x, event.y)
-                                val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
-                                    .setAutoCancelDuration(3, TimeUnit.SECONDS)
-                                    .build()
+                                val action =
+                                    FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AF)
+                                        .setAutoCancelDuration(3, TimeUnit.SECONDS)
+                                        .build()
                                 boundCamera.cameraControl.startFocusAndMetering(action)
                                 view.performClick()
-                            } catch (_: Exception) {}
+                            } catch (_: Exception) {
+                            }
                         }
                         true
                     }
@@ -301,7 +309,11 @@ fun CameraXBarcodeScanner(
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.padding(top = 4.dp)
                         ) {
-                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.CameraAlt,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Resume Scanner")
                         }

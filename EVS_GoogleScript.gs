@@ -362,6 +362,23 @@ function doPost(e) {
 
     logSheet.appendRow([new Date(), rawUpc, name, delivDate, useBy, storage, staff, status]);
 
+    // Automatically increment Current On Hand in Inventory Raw for matching master item
+    const rawSheet = ss.getSheetByName("Inventory Raw") || ss.getSheetByName("Sheet1") || ss.getSheets()[0];
+    if (rawSheet && name) {
+      const rawData = rawSheet.getDataRange().getValues();
+      const targetNameLower = String(name).trim().toLowerCase();
+      const addQty = Number(params.onHandQty || params.quantity || 1) || 1;
+
+      for (let r = 1; r < rawData.length; r++) {
+        const rowItemName = String(rawData[r][0] || "").trim().toLowerCase();
+        if (rowItemName === targetNameLower) {
+          const currentQty = Number(rawData[r][1] || 0) || 0;
+          rawSheet.getRange(r + 1, 2).setValue(currentQty + addQty);
+          break;
+        }
+      }
+    }
+
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       message: "Delivery scan logged successfully",

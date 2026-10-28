@@ -62,6 +62,7 @@ fun BadgeLoginDialog(
                 department = settingsManager.department,
                 role = StaffRole.SUPER_ADMIN
             )
+
             clean == "TL01" -> StaffUser(
                 employeeId = "TL01",
                 displayName = "Terry Little Jr.",
@@ -69,6 +70,7 @@ fun BadgeLoginDialog(
                 department = "Dietary",
                 role = StaffRole.RECEIVER
             )
+
             clean == "AT01" -> StaffUser(
                 employeeId = "AT01",
                 displayName = "Andy Tygart",
@@ -76,6 +78,7 @@ fun BadgeLoginDialog(
                 department = "Dietary",
                 role = StaffRole.MANAGER
             )
+
             clean == "CK01" -> StaffUser(
                 employeeId = "CK01",
                 displayName = "Kitchen Cook",
@@ -83,6 +86,7 @@ fun BadgeLoginDialog(
                 department = "Dietary",
                 role = StaffRole.COOK
             )
+
             clean == "AI01" -> StaffUser(
                 employeeId = "AI01",
                 displayName = "Dietary Aide",
@@ -90,6 +94,7 @@ fun BadgeLoginDialog(
                 department = "Dietary",
                 role = StaffRole.AIDE
             )
+
             clean == "LS01" -> StaffUser(
                 employeeId = "LS01",
                 displayName = "Lorraine S.",
@@ -97,6 +102,7 @@ fun BadgeLoginDialog(
                 department = "EVS",
                 role = StaffRole.MANAGER
             )
+
             clean.equals(settingsManager.employeeId, ignoreCase = true) -> StaffUser(
                 employeeId = settingsManager.employeeId,
                 displayName = settingsManager.staffName,
@@ -104,6 +110,7 @@ fun BadgeLoginDialog(
                 department = settingsManager.department,
                 role = StaffRole.fromString(settingsManager.staffRole)
             )
+
             else -> null
         }
     }
@@ -119,22 +126,24 @@ fun BadgeLoginDialog(
         val scanToken = parsed?.third ?: ""
 
         scope.launch {
-            val result = firestoreRepository.verifyBadgeLogin(scanCompanyCode, scanEmployeeId, scanToken)
+            val result =
+                firestoreRepository.verifyBadgeLogin(scanCompanyCode, scanEmployeeId, scanToken)
             result.onSuccess { user ->
                 // Also fetch company config
                 val compResult = firestoreRepository.fetchCompanyProfile(user.companyCode)
                 val comp = compResult.getOrNull()
-                
+
                 successUser = user
                 settingsManager.currentStaffUser = user
-                
+
                 if (comp != null) {
                     settingsManager.companyName = comp.name
                     settingsManager.sheetId = comp.spreadsheetId
                     settingsManager.webAppUrl = comp.webAppUrl
-                    settingsManager.departmentSheetTab = comp.departmentTabs[user.department] ?: settingsManager.defaultTabForCurrentDepartment
+                    settingsManager.departmentSheetTab = comp.departmentTabs[user.department]
+                        ?: settingsManager.defaultTabForCurrentDepartment
                 }
-                
+
                 onLoginSuccess(user)
             }.onFailure { err ->
                 // Fallback for offline or local supervisor mode
@@ -169,25 +178,32 @@ fun BadgeLoginDialog(
                 // Also fetch company config
                 val compResult = firestoreRepository.fetchCompanyProfile(user.companyCode)
                 val comp = compResult.getOrNull()
-                
+
                 successUser = user
                 settingsManager.currentStaffUser = user
-                
+
                 if (comp != null) {
                     settingsManager.companyName = comp.name
                     settingsManager.sheetId = comp.spreadsheetId
                     settingsManager.webAppUrl = comp.webAppUrl
-                    settingsManager.departmentSheetTab = comp.departmentTabs[user.department] ?: settingsManager.defaultTabForCurrentDepartment
+                    settingsManager.departmentSheetTab = comp.departmentTabs[user.department]
+                        ?: settingsManager.defaultTabForCurrentDepartment
                 }
-                
+
                 onLoginSuccess(user)
             }.onFailure { err ->
                 // Fallback / local check with strict PIN security for Admin
                 val cleanEmpId = employeeIdInput.trim().uppercase()
                 val isAdminId = cleanEmpId == "AD99" || cleanEmpId == "ADMIN"
                 val localUser = when {
-                    isAdminId && (pinInput == "2200" || pinInput == "9999") -> resolveLocalStaffUser(cleanEmpId)
-                    !isAdminId && (pinInput == "1234" || pinInput == "2200") -> resolveLocalStaffUser(cleanEmpId)
+                    isAdminId && (pinInput == "2200" || pinInput == "9999") -> resolveLocalStaffUser(
+                        cleanEmpId
+                    )
+
+                    !isAdminId && (pinInput == "1234" || pinInput == "2200") -> resolveLocalStaffUser(
+                        cleanEmpId
+                    )
+
                     else -> null
                 }
                 if (localUser != null) {
@@ -195,7 +211,8 @@ fun BadgeLoginDialog(
                     settingsManager.currentStaffUser = localUser
                     onLoginSuccess(localUser)
                 } else {
-                    errorMessage = if (isAdminId) "Admin PIN required (2200)" else (err.message ?: "Incorrect PIN")
+                    errorMessage = if (isAdminId) "Admin PIN required (2200)" else (err.message
+                        ?: "Incorrect PIN")
                 }
             }
             isVerifying = false
@@ -272,7 +289,11 @@ fun BadgeLoginDialog(
                         onClick = { selectedTab = LoginTab.BADGE_SCAN },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.QrCodeScanner,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("Scan Badge", fontSize = 13.sp)
                             }
@@ -283,7 +304,11 @@ fun BadgeLoginDialog(
                         onClick = { selectedTab = LoginTab.PIN_PAD },
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Pin, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.Pin,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("PIN Pad", fontSize = 13.sp)
                             }
@@ -467,7 +492,9 @@ fun BadgeLoginDialog(
                                                     .clickable {
                                                         when (key) {
                                                             "C" -> pinInput = ""
-                                                            "⌫" -> if (pinInput.isNotEmpty()) pinInput = pinInput.dropLast(1)
+                                                            "⌫" -> if (pinInput.isNotEmpty()) pinInput =
+                                                                pinInput.dropLast(1)
+
                                                             else -> {
                                                                 if (pinInput.length < 4) {
                                                                     pinInput += key
@@ -478,7 +505,9 @@ fun BadgeLoginDialog(
                                                             }
                                                         }
                                                     },
-                                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                                                color = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                    alpha = 0.6f
+                                                ),
                                                 shape = RoundedCornerShape(12.dp)
                                             ) {
                                                 Box(contentAlignment = Alignment.Center) {
@@ -504,7 +533,10 @@ fun BadgeLoginDialog(
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 if (isVerifying) {
-                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(18.dp),
+                                        strokeWidth = 2.dp
+                                    )
                                 } else {
                                     Text("Unlock Session")
                                 }

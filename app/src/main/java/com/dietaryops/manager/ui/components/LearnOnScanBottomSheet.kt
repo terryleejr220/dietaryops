@@ -46,7 +46,8 @@ fun LearnOnScanBottomSheet(
     var isLinking by remember { mutableStateOf(false) }
 
     val cleanInput = remember(unrecognizedUpcOrItemNum) {
-        SyscoUpcNormalizer.normalize(unrecognizedUpcOrItemNum).ifBlank { unrecognizedUpcOrItemNum.trim() }
+        SyscoUpcNormalizer.normalize(unrecognizedUpcOrItemNum)
+            .ifBlank { unrecognizedUpcOrItemNum.trim() }
     }
 
     LaunchedEffect(Unit) {
@@ -59,8 +60,8 @@ fun LearnOnScanBottomSheet(
         } else {
             allCatalogItems.filter {
                 it.name.contains(searchQuery, ignoreCase = true) ||
-                it.linkedInventoryItem.contains(searchQuery, ignoreCase = true) ||
-                it.category.contains(searchQuery, ignoreCase = true)
+                        it.linkedInventoryItem.contains(searchQuery, ignoreCase = true) ||
+                        it.category.contains(searchQuery, ignoreCase = true)
             }.take(10)
         }
     }
@@ -139,7 +140,8 @@ fun LearnOnScanBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     items(autocompleteSuggestions) { item ->
-                        val isSelected = selectedItem?.syscoUpc == item.syscoUpc || selectedItem?.name == item.name
+                        val isSelected =
+                            selectedItem?.syscoUpc == item.syscoUpc || selectedItem?.name == item.name
                         Surface(
                             color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
                             shape = RoundedCornerShape(8.dp),
@@ -195,14 +197,21 @@ fun LearnOnScanBottomSheet(
                     } else null
 
                     if (targetItem == null) {
-                        Toast.makeText(context, "Select or type an item name from Inventory Raw", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Select or type an item name from Inventory Raw",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         return@Button
                     }
 
                     isLinking = true
                     coroutineScope.launch {
                         val mappedItem = targetItem.copy(
-                            syscoUpc = if (targetItem.syscoUpc.isBlank() || targetItem.syscoUpc.startsWith("0748600")) cleanInput else targetItem.syscoUpc,
+                            syscoUpc = if (targetItem.syscoUpc.isBlank() || targetItem.syscoUpc.startsWith(
+                                    "0748600"
+                                )
+                            ) cleanInput else targetItem.syscoUpc,
                             alternateBarcodes = if (targetItem.syscoUpc != cleanInput && targetItem.syscoUpc.isNotBlank()) {
                                 if (targetItem.alternateBarcodes.isBlank()) cleanInput else "${targetItem.alternateBarcodes}, $cleanInput"
                             } else targetItem.alternateBarcodes,
@@ -211,7 +220,11 @@ fun LearnOnScanBottomSheet(
 
                         productManager.saveProduct(mappedItem)
                         isLinking = false
-                        Toast.makeText(context, "Mapped '$cleanInput' -> '${mappedItem.resolvedItemName}' in Master Catalog!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            "Mapped '$cleanInput' -> '${mappedItem.resolvedItemName}' in Master Catalog!",
+                            Toast.LENGTH_LONG
+                        ).show()
                         onLinkedSuccess(mappedItem)
                     }
                 },
@@ -222,9 +235,17 @@ fun LearnOnScanBottomSheet(
                     .padding(top = 8.dp)
             ) {
                 if (isLinking) {
-                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color.White, strokeWidth = 2.dp)
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
                 } else {
-                    Icon(Icons.Default.AddLink, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(
+                        Icons.Default.AddLink,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Link & Complete Receiving", fontWeight = FontWeight.Bold)
                 }

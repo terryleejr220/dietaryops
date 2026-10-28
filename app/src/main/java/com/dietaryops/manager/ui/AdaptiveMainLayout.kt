@@ -72,18 +72,21 @@ fun AdaptiveMainLayout(
     fun isDestinationVisible(destination: NavDestination): Boolean {
         return when (destination) {
             NavDestination.RECEIVING -> currentStaffUser.hasPermission(AppPermission.PREP_LABELS) ||
-                                        currentStaffUser.hasPermission(AppPermission.RECEIVING_SCAN)
+                    currentStaffUser.hasPermission(AppPermission.RECEIVING_SCAN)
+
             NavDestination.PREP_STICKERS -> currentStaffUser.hasPermission(AppPermission.PREP_LABELS) ||
-                                            currentStaffUser.hasPermission(AppPermission.RECEIVING_SCAN)
+                    currentStaffUser.hasPermission(AppPermission.RECEIVING_SCAN)
+
             NavDestination.KITCHEN_DISPLAY -> currentStaffUser.hasPermission(AppPermission.PREP_LABELS) ||
-                                              currentStaffUser.hasPermission(AppPermission.RECEIVING_SCAN) ||
-                                              currentStaffUser.hasPermission(AppPermission.VIEW_INVENTORY)
+                    currentStaffUser.hasPermission(AppPermission.RECEIVING_SCAN) ||
+                    currentStaffUser.hasPermission(AppPermission.VIEW_INVENTORY)
+
             NavDestination.INVENTORY -> currentStaffUser.hasPermission(AppPermission.VIEW_INVENTORY)
             NavDestination.CANVAS_SHEET -> true
             NavDestination.SETTINGS -> currentStaffUser.hasPermission(AppPermission.PRINTER_SETTINGS) ||
-                                       currentStaffUser.hasPermission(AppPermission.BASIC_ADMIN_SETTINGS) ||
-                                       currentStaffUser.hasPermission(AppPermission.ADVANCED_SETTINGS) ||
-                                       currentStaffUser.hasPermission(AppPermission.BACKEND_SETTINGS)
+                    currentStaffUser.hasPermission(AppPermission.BASIC_ADMIN_SETTINGS) ||
+                    currentStaffUser.hasPermission(AppPermission.ADVANCED_SETTINGS) ||
+                    currentStaffUser.hasPermission(AppPermission.BACKEND_SETTINGS)
         }
     }
 
@@ -142,7 +145,12 @@ fun AdaptiveMainLayout(
                         onValueChange = { profileInitials = it },
                         label = { Text("Staff Initials") },
                         placeholder = { Text("e.g. TR or DO") },
-                        leadingIcon = { Icon(Icons.Default.Fingerprint, contentDescription = null) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Fingerprint,
+                                contentDescription = null
+                            )
+                        },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -155,7 +163,11 @@ fun AdaptiveMainLayout(
                         settingsManager.staffName = profileName
                         settingsManager.staffInitials = profileInitials
                         showProfileDialog = false
-                        Toast.makeText(context, "Saved profile: ${settingsManager.staffName} (${settingsManager.staffInitials})", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Saved profile: ${settingsManager.staffName} (${settingsManager.staffInitials})",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     },
                     shape = RoundedCornerShape(10.dp)
                 ) {
@@ -176,7 +188,11 @@ fun AdaptiveMainLayout(
             onDismiss = { showBadgeLoginDialog = false },
             onLoginSuccess = { user ->
                 showBadgeLoginDialog = false
-                Toast.makeText(context, "Operator Active: ${user.displayName} \u2022 ${user.department}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    context,
+                    "Operator Active: ${user.displayName} \u2022 ${user.department}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         )
     }
@@ -187,20 +203,37 @@ fun AdaptiveMainLayout(
             shape = RoundedCornerShape(20.dp),
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.AccountCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Default.AccountCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Shift Operator Session", fontWeight = FontWeight.Bold)
                 }
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Facility: ${settingsManager.companyCode} (${settingsManager.companyName})", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text(
+                        "Facility: ${settingsManager.companyCode} (${settingsManager.companyName})",
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 13.sp
+                    )
                     Text("Department: ${settingsManager.department}", fontSize = 13.sp)
-                    Text("Operator: ${settingsManager.staffName} (${settingsManager.employeeId})", fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        "Operator: ${settingsManager.staffName} (${settingsManager.employeeId})",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                     Text("Role: ${settingsManager.staffRole}", fontSize = 13.sp)
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 2.dp))
-                    Text("1-Tap Quick Switch Operator:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "1-Tap Quick Switch Operator:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
 
                     Row(
                         modifier = Modifier
@@ -216,7 +249,11 @@ fun AdaptiveMainLayout(
                                 settingsManager.staffInitials = "TL"
                                 settingsManager.staffRole = "RECEIVER"
                                 settingsManager.department = "Dietary"
-                                Toast.makeText(context, "Switched operator to Terry Little Jr. (TL01 - Receiver)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Switched operator to Terry Little Jr. (TL01 - Receiver)",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             },
                             label = { Text("Receiver (TL01)", fontSize = 11.sp) }
                         )
@@ -228,7 +265,11 @@ fun AdaptiveMainLayout(
                                 settingsManager.staffInitials = "AT"
                                 settingsManager.staffRole = "MANAGER"
                                 settingsManager.department = "Dietary"
-                                Toast.makeText(context, "Switched operator to Andy Tygart (AT01 - Manager)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Switched operator to Andy Tygart (AT01 - Manager)",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             },
                             label = { Text("Manager (AT01)", fontSize = 11.sp) }
                         )
@@ -240,7 +281,11 @@ fun AdaptiveMainLayout(
                                 settingsManager.staffInitials = "CK"
                                 settingsManager.staffRole = "COOK"
                                 settingsManager.department = "Dietary"
-                                Toast.makeText(context, "Switched operator to Kitchen Cook (CK01 - Cook)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Switched operator to Kitchen Cook (CK01 - Cook)",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             },
                             label = { Text("Cook (CK01)", fontSize = 11.sp) }
                         )
@@ -252,7 +297,11 @@ fun AdaptiveMainLayout(
                                 settingsManager.staffInitials = "AI"
                                 settingsManager.staffRole = "AIDE"
                                 settingsManager.department = "Dietary"
-                                Toast.makeText(context, "Switched operator to Dietary Aide (AI01 - Aide)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Switched operator to Dietary Aide (AI01 - Aide)",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             },
                             label = { Text("Aide (AI01)", fontSize = 11.sp) }
                         )
@@ -264,7 +313,11 @@ fun AdaptiveMainLayout(
                                 settingsManager.staffInitials = "LS"
                                 settingsManager.staffRole = "MANAGER"
                                 settingsManager.department = "EVS"
-                                Toast.makeText(context, "Switched operator to Lorraine S. (LS01 - EVS Manager)", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(
+                                    context,
+                                    "Switched operator to Lorraine S. (LS01 - EVS Manager)",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             },
                             label = { Text("EVS Manager (LS01)", fontSize = 11.sp) }
                         )
@@ -284,7 +337,11 @@ fun AdaptiveMainLayout(
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Edit Profile", fontSize = 11.sp)
                         }
@@ -303,13 +360,21 @@ fun AdaptiveMainLayout(
                                         Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
                                     }
                                 } else {
-                                    Toast.makeText(context, "Pair Zebra printer first in Settings", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(
+                                        context,
+                                        "Pair Zebra printer first in Settings",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
                                 }
                             },
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1.3f)
                         ) {
-                            Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Icon(
+                                Icons.Default.Print,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp)
+                            )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Print Badge", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
@@ -324,7 +389,11 @@ fun AdaptiveMainLayout(
                     },
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(
+                        Icons.Default.QrCodeScanner,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Scan Lanyard Badge")
                 }
@@ -386,7 +455,11 @@ fun AdaptiveMainLayout(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Analytics, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.Analytics,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Open Live Inventory Dashboard", fontWeight = FontWeight.Bold)
                     }
@@ -399,7 +472,11 @@ fun AdaptiveMainLayout(
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Restaurant, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.Restaurant,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Open Kitchen Operations Dashboard", fontWeight = FontWeight.Bold)
                     }
@@ -407,12 +484,19 @@ fun AdaptiveMainLayout(
                     OutlinedButton(
                         onClick = {
                             showDashboardDialog = false
-                            settingsManager.openUrl(context, "https://docs.google.com/spreadsheets/d/${settingsManager.sheetId}")
+                            settingsManager.openUrl(
+                                context,
+                                "https://docs.google.com/spreadsheets/d/${settingsManager.sheetId}"
+                            )
                         },
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.TableChart, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(
+                            Icons.Default.TableChart,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Open Full Google Sheet", fontWeight = FontWeight.Bold)
                     }
@@ -451,7 +535,9 @@ fun AdaptiveMainLayout(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = if (settingsManager.staffInitials.isNotBlank()) settingsManager.staffInitials.take(2).uppercase() else "DO",
+                                    text = if (settingsManager.staffInitials.isNotBlank()) settingsManager.staffInitials.take(
+                                        2
+                                    ).uppercase() else "DO",
                                     color = Color.White,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp
@@ -459,17 +545,26 @@ fun AdaptiveMainLayout(
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("DietaryOps", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            Text("Manager", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                "Manager",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 ) {
                     NavDestination.entries.forEach { destination ->
                         if (!isDestinationVisible(destination)) return@forEach
-                        
+
                         NavigationRailItem(
                             selected = currentDestination == destination,
                             onClick = { currentDestination = destination },
-                            icon = { Icon(destination.icon, contentDescription = destination.title) },
+                            icon = {
+                                Icon(
+                                    destination.icon,
+                                    contentDescription = destination.title
+                                )
+                            },
                             label = { Text(destination.title, fontSize = 11.sp) }
                         )
                     }
@@ -489,7 +584,11 @@ fun AdaptiveMainLayout(
                                         settingsManager = settingsManager
                                     )
                                 }
-                                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                VerticalDivider(
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                        alpha = 0.5f
+                                    )
+                                )
                                 Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
                                     InventoryLogsScreen(
                                         repository = productManager.repository,
@@ -499,23 +598,27 @@ fun AdaptiveMainLayout(
                                 }
                             }
                         }
+
                         NavDestination.PREP_STICKERS -> {
                             PrepStickersScreen(
                                 printerManager = printerManager,
                                 settingsManager = settingsManager
                             )
                         }
+
                         NavDestination.KITCHEN_DISPLAY -> {
                             KitchenDisplayScreen(
                                 printerManager = printerManager,
                                 settingsManager = settingsManager
                             )
                         }
+
                         NavDestination.CANVAS_SHEET -> {
                             LiveCanvasScreen(
                                 settingsManager = settingsManager
                             )
                         }
+
                         NavDestination.SETTINGS -> {
                             SettingsScreen(
                                 repository = productManager.repository,
@@ -590,7 +693,10 @@ fun AdaptiveMainLayout(
                                 Surface(
                                     color = MaterialTheme.colorScheme.secondaryContainer,
                                     shape = CircleShape,
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f)
+                                    ),
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clickable { showDashboardDialog = true }
@@ -609,7 +715,10 @@ fun AdaptiveMainLayout(
                                 Surface(
                                     color = MaterialTheme.colorScheme.tertiaryContainer,
                                     shape = CircleShape,
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.5f)
+                                    ),
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clickable { showFloorNoteDialog = true }
@@ -628,7 +737,10 @@ fun AdaptiveMainLayout(
                                 Surface(
                                     color = MaterialTheme.colorScheme.primaryContainer,
                                     shape = CircleShape,
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                                    border = androidx.compose.foundation.BorderStroke(
+                                        1.dp,
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                                    ),
                                     modifier = Modifier
                                         .size(34.dp)
                                         .clickable { showOperatorSheet = true }
@@ -701,22 +813,27 @@ fun AdaptiveMainLayout(
                             printerManager = printerManager,
                             settingsManager = settingsManager
                         )
+
                         NavDestination.PREP_STICKERS -> PrepStickersScreen(
                             printerManager = printerManager,
                             settingsManager = settingsManager
                         )
+
                         NavDestination.KITCHEN_DISPLAY -> KitchenDisplayScreen(
                             printerManager = printerManager,
                             settingsManager = settingsManager
                         )
+
                         NavDestination.INVENTORY -> InventoryLogsScreen(
                             repository = productManager.repository,
                             printerManager = printerManager,
                             settingsManager = settingsManager
                         )
+
                         NavDestination.CANVAS_SHEET -> LiveCanvasScreen(
                             settingsManager = settingsManager
                         )
+
                         NavDestination.SETTINGS -> SettingsScreen(
                             repository = productManager.repository,
                             printerManager = printerManager,

@@ -29,7 +29,8 @@ object ZplPrinter {
         val useByStr = useByDate.format(dateFormatter)
         val barcodePayload = "${product.upc}|$delivStr"
 
-        val displayName = if (product.name.length > 22) product.name.take(20) + ".." else product.name
+        val displayName =
+            if (product.name.length > 22) product.name.take(20) + ".." else product.name
         val packStr = product.getFormattedPackInfo()
 
         return """
@@ -76,7 +77,8 @@ object ZplPrinter {
         val openStr = openDate.format(dateFormatter)
         val useByStr = useByDate.format(dateFormatter)
 
-        val displayName = if (product.name.length > 18) product.name.take(16) + ".." else product.name
+        val displayName =
+            if (product.name.length > 18) product.name.take(16) + ".." else product.name
         val packStr = product.getFormattedPackInfo()
 
         return """

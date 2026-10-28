@@ -174,7 +174,11 @@ fun ScannerOverlay(
                         modifier = Modifier
                             .size(6.dp)
                             .clip(CircleShape)
-                            .background(if (isScanningActive) Color(0xFF10B981) else Color(0xFFF59E0B))
+                            .background(
+                                if (isScanningActive) Color(0xFF10B981) else Color(
+                                    0xFFF59E0B
+                                )
+                            )
                     )
                     Text(
                         text = if (isScanningActive) "SCANNER ACTIVE" else "BARCODE DETECTED",
@@ -190,7 +194,10 @@ fun ScannerOverlay(
             Surface(
                 color = Color(0xAA0B132B),
                 shape = RoundedCornerShape(12.dp),
-                border = androidx.compose.foundation.BorderStroke(1.dp, laserColor.copy(alpha = 0.4f)),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    laserColor.copy(alpha = 0.4f)
+                ),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 10.dp)
@@ -231,7 +238,10 @@ fun ScannerOverlay(
                     Surface(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                         shape = CircleShape,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                        ),
                         modifier = Modifier.size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -257,7 +267,11 @@ fun ScannerOverlay(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
                     ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("Resume Scanner", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }

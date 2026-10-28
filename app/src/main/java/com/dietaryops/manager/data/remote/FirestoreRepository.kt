@@ -54,7 +54,8 @@ class FirestoreRepository(
         get() = getScanLogsCollection(null)
 
     suspend fun saveCatalogItem(item: CatalogItem): Result<Unit> {
-        val col = catalogCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
+        val col =
+            catalogCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
         return try {
             val docId = item.syscoUpc.ifBlank { item.name }
             val data = mapOf(
@@ -78,7 +79,8 @@ class FirestoreRepository(
     }
 
     suspend fun addScanRecord(record: ScanRecord): Result<Unit> {
-        val col = scanLogsCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
+        val col =
+            scanLogsCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
         return try {
             val docId = record.id
             val data = mapOf(
@@ -104,7 +106,8 @@ class FirestoreRepository(
     }
 
     suspend fun updateScanRecordOnHandAmount(recordId: String, onHandAmount: Double): Result<Unit> {
-        val col = scanLogsCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
+        val col =
+            scanLogsCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
         return try {
             col.document(recordId).update("onHandAmount", onHandAmount).await()
             Result.success(Unit)
@@ -114,7 +117,8 @@ class FirestoreRepository(
     }
 
     suspend fun markRecordPrinted(recordId: String): Result<Unit> {
-        val col = scanLogsCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
+        val col =
+            scanLogsCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
         return try {
             col.document(recordId).update("printed", true).await()
             Result.success(Unit)
@@ -124,7 +128,8 @@ class FirestoreRepository(
     }
 
     suspend fun deleteScanRecord(recordId: String): Result<Unit> {
-        val col = scanLogsCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
+        val col =
+            scanLogsCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
         return try {
             col.document(recordId).delete().await()
             Result.success(Unit)
@@ -134,7 +139,8 @@ class FirestoreRepository(
     }
 
     suspend fun deleteCatalogItem(upc: String): Result<Unit> {
-        val col = catalogCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
+        val col =
+            catalogCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
         return try {
             col.document(upc).delete().await()
             Result.success(Unit)
@@ -144,7 +150,8 @@ class FirestoreRepository(
     }
 
     suspend fun fetchCatalog(): Result<List<CatalogItem>> {
-        val col = catalogCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
+        val col =
+            catalogCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
         return try {
             val snapshot = col.get().await()
             val items = snapshot.documents.mapNotNull { doc ->
@@ -171,7 +178,8 @@ class FirestoreRepository(
     }
 
     suspend fun fetchScanRecords(): Result<List<ScanRecord>> {
-        val col = scanLogsCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
+        val col =
+            scanLogsCollection ?: return Result.failure(Exception("Firestore instance unavailable"))
         return try {
             val snapshot = col.get().await()
             val records = snapshot.documents.mapNotNull { doc ->
@@ -205,7 +213,8 @@ class FirestoreRepository(
     suspend fun fetchCompanyProfile(companyCode: String): Result<CompanyProfile?> {
         val fs = firestore ?: return Result.failure(Exception("Firestore unavailable"))
         return try {
-            val doc = fs.collection("companies").document(companyCode.trim().uppercase()).get().await()
+            val doc =
+                fs.collection("companies").document(companyCode.trim().uppercase()).get().await()
             if (!doc.exists()) {
                 return Result.success(null)
             }
@@ -215,7 +224,8 @@ class FirestoreRepository(
                 code = doc.getString("code") ?: companyCode.trim().uppercase(),
                 spreadsheetId = doc.getString("spreadsheetId") ?: "",
                 webAppUrl = doc.getString("webAppUrl") ?: "",
-                departments = (doc.get("departments") as? List<*>)?.mapNotNull { it?.toString() } ?: listOf("Dietary"),
+                departments = (doc.get("departments") as? List<*>)?.mapNotNull { it?.toString() }
+                    ?: listOf("Dietary"),
                 departmentTabs = (doc.get("departmentTabs") as? Map<*, *>)?.entries?.associate {
                     it.key.toString() to it.value.toString()
                 } ?: mapOf("Dietary" to "Delivery Log"),
@@ -257,7 +267,11 @@ class FirestoreRepository(
         }
     }
 
-    suspend fun verifyBadgeLogin(companyCode: String, employeeId: String, badgeToken: String): Result<StaffUser> {
+    suspend fun verifyBadgeLogin(
+        companyCode: String,
+        employeeId: String,
+        badgeToken: String
+    ): Result<StaffUser> {
         val userResult = fetchStaffUser(companyCode, employeeId)
         val user = userResult.getOrNull()
             ?: return Result.failure(Exception("Employee ID '$employeeId' not found for facility '$companyCode'"))
@@ -274,7 +288,11 @@ class FirestoreRepository(
         return Result.success(user)
     }
 
-    suspend fun verifyPinLogin(companyCode: String, employeeId: String, pin: String): Result<StaffUser> {
+    suspend fun verifyPinLogin(
+        companyCode: String,
+        employeeId: String,
+        pin: String
+    ): Result<StaffUser> {
         val userResult = fetchStaffUser(companyCode, employeeId)
         val user = userResult.getOrNull()
             ?: return Result.failure(Exception("Employee ID '$employeeId' not found for facility '$companyCode'"))

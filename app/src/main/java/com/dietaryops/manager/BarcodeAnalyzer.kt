@@ -31,6 +31,7 @@ class BarcodeAnalyzer(
             ScanMode.BADGE -> BarcodeScannerOptions.Builder()
                 .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
                 .build()
+
             ScanMode.DELIVERY -> BarcodeScannerOptions.Builder()
                 .setBarcodeFormats(
                     Barcode.FORMAT_CODE_128,
@@ -78,7 +79,9 @@ class BarcodeAnalyzer(
                             if (currentTime - lastTime >= debounceMillis) {
                                 if (lastScanTimestamp.compareAndSet(lastTime, currentTime)) {
                                     val parsed = Gs1BarcodeParser.parseBarcode(rawValue)
-                                    val normalized = parsed.extractedUpc.ifBlank { SyscoUpcNormalizer.normalize(rawValue) }
+                                    val normalized = parsed.extractedUpc.ifBlank {
+                                        SyscoUpcNormalizer.normalize(rawValue)
+                                    }
                                     isScanningEnabled = false
                                     onBarcodeFound(rawValue, normalized)
                                     break

@@ -116,7 +116,8 @@ object ErrorLogger {
 
     fun getRecentErrorLogs(context: Context): String {
         val prefs = context.getSharedPreferences("error_logs", Context.MODE_PRIVATE)
-        return prefs.getString("last_errors", "No error logs recorded.") ?: "No error logs recorded."
+        return prefs.getString("last_errors", "No error logs recorded.")
+            ?: "No error logs recorded."
     }
 
     fun clearErrorLogs(context: Context) {
@@ -130,10 +131,12 @@ object ErrorLogger {
         noteType: String,
         noteContent: String
     ) {
-        val staff = "${settingsManager.staffName} (${settingsManager.employeeId} - ${settingsManager.staffRole})"
+        val staff =
+            "${settingsManager.staffName} (${settingsManager.employeeId} - ${settingsManager.staffRole})"
         val deviceModel = "${Build.MANUFACTURER} ${Build.MODEL} (Android ${Build.VERSION.RELEASE})"
         val timestamp = System.currentTimeMillis()
-        val formattedLog = "[$timestamp] [NOTE: $noteType] $staff | $deviceModel | Content: $noteContent"
+        val formattedLog =
+            "[$timestamp] [NOTE: $noteType] $staff | $deviceModel | Content: $noteContent"
 
         Log.i(TAG, formattedLog)
 
@@ -166,7 +169,8 @@ object ErrorLogger {
                     .document(settingsManager.companyCode)
                     .collection("floor_notes")
                     .add(noteData)
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            }
 
             try {
                 val webhook = settingsManager.webAppUrl
@@ -198,13 +202,15 @@ object ErrorLogger {
                         conn.disconnect()
                     }
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            }
         }
     }
 
     fun getFloorNotes(context: Context): String {
         val prefs = context.getSharedPreferences("floor_notes", Context.MODE_PRIVATE)
-        return prefs.getString("notes_list", "No floor notes logged yet.") ?: "No floor notes logged yet."
+        return prefs.getString("notes_list", "No floor notes logged yet.")
+            ?: "No floor notes logged yet."
     }
 
     fun clearFloorNotes(context: Context) {

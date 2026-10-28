@@ -48,6 +48,7 @@ object Gs1BarcodeParser {
                     "17", "15" -> if (explicitExpirationDate == null) {
                         parseYyMmDdDate(valStr.take(6))?.let { explicitExpirationDate = it }
                     }
+
                     "10" -> lotNumber = valStr
                     "3102", "3202" -> parseWeight(valStr.take(6))?.let { weightLbs = it }
                     else -> {
@@ -66,8 +67,12 @@ object Gs1BarcodeParser {
                     "17", "15" -> if (explicitExpirationDate == null) {
                         parseYyMmDdDate(value.take(6))?.let { explicitExpirationDate = it }
                     }
+
                     "10" -> if (lotNumber == null) lotNumber = value
-                    "3102", "3202" -> if (weightLbs == null) parseWeight(value.take(6))?.let { weightLbs = it }
+                    "3102", "3202" -> if (weightLbs == null) parseWeight(value.take(6))?.let {
+                        weightLbs = it
+                    }
+
                     else -> {
                         if ((ai.startsWith("310") || ai.startsWith("320")) && weightLbs == null) {
                             val decimals = ai.takeLast(1).toIntOrNull() ?: 2
@@ -138,6 +143,7 @@ object Gs1BarcodeParser {
                         pos = dataEnd
                         matched = true
                     }
+
                     "17", "15", "11", "12", "13" -> {
                         val dataStart = pos + 2
                         val dataEnd = (dataStart + 6).coerceAtMost(len)
@@ -146,6 +152,7 @@ object Gs1BarcodeParser {
                         pos = dataEnd
                         matched = true
                     }
+
                     "10", "21" -> {
                         // Variable length data up to 20 chars, terminated by \u001D or end of string
                         val dataStart = pos + 2
@@ -157,6 +164,7 @@ object Gs1BarcodeParser {
                         pos = dataEnd
                         matched = true
                     }
+
                     "30", "37" -> {
                         // Variable length numeric up to 8 digits
                         val dataStart = pos + 2

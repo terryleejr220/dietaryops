@@ -68,9 +68,17 @@ fun FloorNoteDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(if (isViewingLogs) "Submitted Floor Notes" else "Report Floor Note / Idea", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(
+                    if (isViewingLogs) "Submitted Floor Notes" else "Report Floor Note / Idea",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
+                )
                 TextButton(onClick = { isViewingLogs = !isViewingLogs }) {
-                    Text(if (isViewingLogs) "New Note" else "View Log", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (isViewingLogs) "New Note" else "View Log",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         },
@@ -104,7 +112,12 @@ fun FloorNoteDialog(
                     )
 
                     // Note Type Selector
-                    Text("Category:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "Category:",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -168,7 +181,8 @@ fun FloorNoteDialog(
                 Button(
                     onClick = {
                         if (noteContentInput.isBlank()) {
-                            Toast.makeText(context, "Please enter note details", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Please enter note details", Toast.LENGTH_SHORT)
+                                .show()
                             return@Button
                         }
                         isSubmitting = true
@@ -179,16 +193,28 @@ fun FloorNoteDialog(
                             noteContent = noteContentInput.trim()
                         )
                         isSubmitting = false
-                        Toast.makeText(context, "Note submitted! Synced to Google Sheets & Logs.", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(
+                            context,
+                            "Note submitted! Synced to Google Sheets & Logs.",
+                            Toast.LENGTH_SHORT
+                        ).show()
                         onSubmitSuccess()
                     },
                     enabled = !isSubmitting,
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     if (isSubmitting) {
-                        CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
                     } else {
-                        Icon(Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Send,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Submit Note")

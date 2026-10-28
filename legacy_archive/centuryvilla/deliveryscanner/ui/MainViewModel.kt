@@ -48,7 +48,8 @@ class MainViewModel(
     private val _autoPrintMode = MutableStateFlow("OPENED")
     val autoPrintMode: StateFlow<String> = _autoPrintMode.asStateFlow()
 
-    private val _statusMessage = MutableStateFlow("Ready to scan Sysco UPC, Delivery Tag, or Admin Badge")
+    private val _statusMessage =
+        MutableStateFlow("Ready to scan Sysco UPC, Delivery Tag, or Admin Badge")
     val statusMessage: StateFlow<String> = _statusMessage.asStateFlow()
 
     private val _inventoryList = MutableStateFlow<List<InventoryItem>>(emptyList())
@@ -67,12 +68,14 @@ class MainViewModel(
 
     fun toggleAdminMode() {
         _isAdminMode.value = !_isAdminMode.value
-        _statusMessage.value = if (_isAdminMode.value) "Admin Mode Unlocked!" else "Locked to Staff Print Mode."
+        _statusMessage.value =
+            if (_isAdminMode.value) "Admin Mode Unlocked!" else "Locked to Staff Print Mode."
     }
 
     fun setAdminMode(enabled: Boolean) {
         _isAdminMode.value = enabled
-        _statusMessage.value = if (enabled) "Admin Mode Unlocked!" else "Locked to Staff Print Mode."
+        _statusMessage.value =
+            if (enabled) "Admin Mode Unlocked!" else "Locked to Staff Print Mode."
     }
 
     fun setSelectedPrinter(device: BluetoothDevice?) {
@@ -198,7 +201,8 @@ class MainViewModel(
                 _statusMessage.value = "Delivery tag scanned! Printing Opened label..."
                 printOpenedLabel(prod, parsedDelivDate, today, 1, "1 unit")
             } else {
-                _statusMessage.value = "Delivered tag detected (${prod.name}). Ready to print Opened label."
+                _statusMessage.value =
+                    "Delivered tag detected (${prod.name}). Ready to print Opened label."
             }
         } else {
             _isFromDeliveryLabel.value = false
@@ -216,7 +220,8 @@ class MainViewModel(
                     printDeliveryLabel(prod, today, copies, "1 cs")
                 }
             } else {
-                _statusMessage.value = "Scanned case: ${prod.name} (${prod.packSize} units/cs). Ready to print."
+                _statusMessage.value =
+                    "Scanned case: ${prod.name} (${prod.packSize} units/cs). Ready to print."
             }
         }
     }

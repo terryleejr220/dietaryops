@@ -31,7 +31,9 @@ data class StaffUser(
      * Format: DOPS-AUTH:<companyCode>:<employeeId>:<badgeToken>
      */
     fun toBadgePayload(): String {
-        return "DOPS-AUTH:${companyCode.trim().uppercase()}:${employeeId.trim().uppercase()}:${badgeToken.trim()}"
+        return "DOPS-AUTH:${companyCode.trim().uppercase()}:${
+            employeeId.trim().uppercase()
+        }:${badgeToken.trim()}"
     }
 
     companion object {

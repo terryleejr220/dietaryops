@@ -52,7 +52,8 @@ object RemoteConfigManager {
     private val _welcomeMessage = MutableStateFlow(DEFAULT_VALUES[KEY_WELCOME_MESSAGE] as String)
     val welcomeMessage: StateFlow<String> = _welcomeMessage.asStateFlow()
 
-    private val _isFeatureEnabled = MutableStateFlow(DEFAULT_VALUES[KEY_ENABLE_NEW_FEATURE] as Boolean)
+    private val _isFeatureEnabled =
+        MutableStateFlow(DEFAULT_VALUES[KEY_ENABLE_NEW_FEATURE] as Boolean)
     val isFeatureEnabled: StateFlow<Boolean> = _isFeatureEnabled.asStateFlow()
 
     private val _adminPin = MutableStateFlow(DEFAULT_VALUES[KEY_ADMIN_PIN] as String)
@@ -61,7 +62,8 @@ object RemoteConfigManager {
     private val _sheetWebhookUrl = MutableStateFlow(DEFAULT_VALUES[KEY_SHEET_WEBHOOK_URL] as String)
     val sheetWebhookUrl: StateFlow<String> = _sheetWebhookUrl.asStateFlow()
 
-    private val _minRequiredVersion = MutableStateFlow(DEFAULT_VALUES[KEY_MIN_REQUIRED_VERSION] as String)
+    private val _minRequiredVersion =
+        MutableStateFlow(DEFAULT_VALUES[KEY_MIN_REQUIRED_VERSION] as String)
     val minRequiredVersion: StateFlow<String> = _minRequiredVersion.asStateFlow()
 
     private val _bannerMessage = MutableStateFlow(DEFAULT_VALUES[KEY_BANNER_MESSAGE] as String)
@@ -102,11 +104,15 @@ object RemoteConfigManager {
 
     private fun updateStateFlows() {
         val config = remoteConfig ?: return
-        _welcomeMessage.value = config.getString(KEY_WELCOME_MESSAGE).ifBlank { DEFAULT_VALUES[KEY_WELCOME_MESSAGE] as String }
+        _welcomeMessage.value = config.getString(KEY_WELCOME_MESSAGE)
+            .ifBlank { DEFAULT_VALUES[KEY_WELCOME_MESSAGE] as String }
         _isFeatureEnabled.value = config.getBoolean(KEY_ENABLE_NEW_FEATURE)
-        _adminPin.value = config.getString(KEY_ADMIN_PIN).ifBlank { DEFAULT_VALUES[KEY_ADMIN_PIN] as String }
-        _sheetWebhookUrl.value = config.getString(KEY_SHEET_WEBHOOK_URL).ifBlank { DEFAULT_VALUES[KEY_SHEET_WEBHOOK_URL] as String }
-        _minRequiredVersion.value = config.getString(KEY_MIN_REQUIRED_VERSION).ifBlank { DEFAULT_VALUES[KEY_MIN_REQUIRED_VERSION] as String }
+        _adminPin.value =
+            config.getString(KEY_ADMIN_PIN).ifBlank { DEFAULT_VALUES[KEY_ADMIN_PIN] as String }
+        _sheetWebhookUrl.value = config.getString(KEY_SHEET_WEBHOOK_URL)
+            .ifBlank { DEFAULT_VALUES[KEY_SHEET_WEBHOOK_URL] as String }
+        _minRequiredVersion.value = config.getString(KEY_MIN_REQUIRED_VERSION)
+            .ifBlank { DEFAULT_VALUES[KEY_MIN_REQUIRED_VERSION] as String }
         _bannerMessage.value = config.getString(KEY_BANNER_MESSAGE)
     }
 }
