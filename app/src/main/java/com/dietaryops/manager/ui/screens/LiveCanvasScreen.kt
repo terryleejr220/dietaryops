@@ -156,11 +156,20 @@ fun LiveCanvasScreen(
                     WebView(context).apply {
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
+                        settings.databaseEnabled = true
+                        settings.useWideViewPort = true
+                        settings.loadWithOverviewMode = true
+                        settings.javaScriptCanOpenWindowsAutomatically = true
                         settings.builtInZoomControls = true
                         settings.displayZoomControls = false
+                        settings.userAgentString = "Mozilla/5.0 (Linux; Android 13; SM-S916U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+
                         webViewClient = object : WebViewClient() {
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 isLoading = false
+                            }
+                            override fun shouldOverrideUrlLoading(view: WebView?, request: android.webkit.WebResourceRequest?): Boolean {
+                                return false
                             }
                         }
                         loadUrl(currentUrl)

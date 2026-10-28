@@ -205,11 +205,11 @@ class SettingsManager(context: Context) {
             "https://script.google.com/macros/s/AKfycbwvHRDz_7_635MtPnq_ac4gRscE4F_G5N72prO4g4oKheo8kYVUM0XD76jEwoQYHm-H9w/exec"
         const val DEFAULT_SHEET_ID = "16dLMDsfBFH_qAcLk_ex9WVxW86LE5Uggsczn5arTgBY"
         const val DEFAULT_PUBLISHED_WEB_URL =
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=1819479005&single=true"
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=1819479005"
         const val DEFAULT_LIVE_DASHBOARD_URL =
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=999999&single=true"
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=999999"
         const val DEFAULT_KITCHEN_DASHBOARD_URL =
-            "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=777002&single=true"
+            "https://docs.google.com/spreadsheets/d/e/2PACX-1vShGiN4lxHStYAK_WegMQz_h4vyr602p0cSPY541GxaHbvMMbLyDx70G2sNlhK3_Ab9cjGB9LGoKJh_/pubhtml?gid=777002"
 
         // Standard Operational Default Shelf Life Guidelines
         const val SHELF_LIFE_DAIRY_FRESH =
