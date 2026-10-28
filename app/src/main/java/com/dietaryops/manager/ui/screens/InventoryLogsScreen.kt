@@ -86,6 +86,7 @@ fun InventoryLogsScreen(
     var showAddCatalogDialog by remember { mutableStateOf(false) }
     var showMassPrintDialog by remember { mutableStateOf(false) }
     var showReorderDialog by remember { mutableStateOf(false) }
+    var showIgnoredItems by remember { mutableStateOf(false) }
 
     // Auto-sync catalog from published Google Sheet if empty or default
     LaunchedEffect(Unit) {
@@ -134,7 +135,8 @@ fun InventoryLogsScreen(
         activeTab,
         sortMode,
         selectedCatalogFilter,
-        recentlyScannedUpcs
+        recentlyScannedUpcs,
+        showIgnoredItems
     ) {
         val categoryHeaders = setOf(
             "canned goods", "dry storage", "condiments & sauces", "misc dry & cereal",
@@ -144,6 +146,8 @@ fun InventoryLogsScreen(
         )
 
         val filtered = catalogItems.filter { item ->
+            if (item.ignoreOnCountSheet && !showIgnoredItems) return@filter false
+
             val isCategoryHeader = categoryHeaders.contains(item.name.trim().lowercase())
             val isValidCatalogItem = !isCategoryHeader &&
                     !item.name.startsWith("Unrecognized", ignoreCase = true) &&
@@ -764,7 +768,14 @@ fun InventoryLogsScreen(
                                 selectedCatalogFilter =
                                     if (selectedCatalogFilter == "Low Stock") "All" else "Low Stock"
                             },
-                            label = { Text("âš ï¸ Low Stock", fontSize = 10.sp) }
+                            label = { Text("⚠️ Low Stock", fontSize = 10.sp) }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = showIgnoredItems,
+                            onClick = { showIgnoredItems = !showIgnoredItems },
+                            label = { Text(if (showIgnoredItems) "👁️ Showing Ignored" else "👁️ Hide Ignored", fontSize = 10.sp) }
                         )
                     }
                 }

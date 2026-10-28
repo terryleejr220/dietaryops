@@ -98,6 +98,12 @@ data class CatalogItem(
     )
     val linkedInventoryItem: String = "",
 
+    @SerializedName(
+        "ignoreOnCountSheet",
+        alternate = ["ignoreOnCountSheet", "ignore", "Ignore", "ignoreOnCount", "Ignore on Count Sheet", "ignore_on_count_sheet", "hideOnCountSheet"]
+    )
+    val ignoreOnCountSheet: Boolean = false,
+
     @SerializedName("shelfOrderIndex")
     val shelfOrderIndex: Int = 99999
 ) {
@@ -124,7 +130,8 @@ data class CatalogItem(
             casePackQty = casePackQty,
             labelNickname = labelNickname,
             vendorName = vendorName,
-            linkedInventoryItem = linkedInventoryItem
+            linkedInventoryItem = linkedInventoryItem,
+            ignoreOnCountSheet = ignoreOnCountSheet
         )
     }
 
@@ -152,7 +159,8 @@ data class CatalogItem(
                 casePackQty = product.casePackQty,
                 labelNickname = product.labelNickname,
                 vendorName = product.vendorName,
-                linkedInventoryItem = product.linkedInventoryItem
+                linkedInventoryItem = product.linkedInventoryItem,
+                ignoreOnCountSheet = product.ignoreOnCountSheet
             )
         }
     }

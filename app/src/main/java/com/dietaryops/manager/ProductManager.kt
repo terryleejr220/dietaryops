@@ -35,7 +35,8 @@ data class SyscoProduct(
     val casePackQty: Int = 1,
     val labelNickname: String = "",
     val vendorName: String = "Sysco",
-    val linkedInventoryItem: String = ""
+    val linkedInventoryItem: String = "",
+    val ignoreOnCountSheet: Boolean = false
 ) {
     val resolvedItemName: String
         get() = if (linkedInventoryItem.isNotBlank()) linkedInventoryItem.trim() else name.trim()
