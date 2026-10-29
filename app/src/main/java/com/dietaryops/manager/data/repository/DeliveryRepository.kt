@@ -785,6 +785,7 @@ class DeliveryRepository(context: Context) {
             var daysIdx = -1
             var unitIdx = -1
             var qtyIdx = -1
+            var otwIdx = -1
             var isHeaderMapped = false
 
             for (line in lines) {
@@ -939,8 +940,11 @@ class DeliveryRepository(context: Context) {
                     if (nameIdx >= 0 && nameIdx < tokens.size) tokens[nameIdx] else if (upcVal.isBlank() && itemNumVal.isBlank() && piazzaItemNumVal.isBlank() && vendorItemNumVal.isBlank() && vendorSkuVal.isBlank() && altBarcodesVal.isBlank()) firstCol else tokens.getOrNull(
                         1
                     ) ?: ""
-                val catVal =
-                    if (catIdx >= 0 && catIdx < tokens.size) tokens[catIdx] else currentCategory
+                val otwVal = if (otwIdx >= 0 && otwIdx < tokens.size) tokens[otwIdx] else tokens.getOrNull(31) ?: ""
+                val isOtwTagged = otwVal.contains("otw", ignoreCase = true)
+                val rawCat = if (catIdx >= 0 && catIdx < tokens.size) tokens[catIdx] else currentCategory
+                val catVal = if (isOtwTagged && !rawCat.contains("OTW", ignoreCase = true)) "$rawCat (OTW)" else rawCat
+
                 val daysVal =
                     if (daysIdx >= 0 && daysIdx < tokens.size) tokens[daysIdx].toIntOrNull() else null
                 val parsedQty =
