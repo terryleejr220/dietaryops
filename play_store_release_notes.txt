@@ -1,33 +1,32 @@
 <en-US>
-• Sub-50ms Instant Barcode Scanner with POS beep & haptic feedback.
-• Case-to-Unit Breakout Wizard: Auto-calculates ticket quantity per case (e.g. 6 or 12).
-• ServSafe Prep & Flashy "USE FIRST" thermal stickers with bold discard dates.
-• Stable Count Walk: Inventory counts update in-place without list re-ordering.
-• Label Nicknames: Print clean, short product names on Zebra stickers.
-• 1-Tap Mobile Floor Notes: Instant feedback synced to Google Sheets.
-• Prevented auto-printing of unrecognized items.
+• Case Breakdown Presets: Auto-prints exact ticket quantities per case (e.g. 6 for #10 cans).
+• High-Quantity Safety Timeout: 10s auto-fallback to case preset if print > 5 labels.
+• Truck OTW Guided Manifest: Dock receiving checklist with 1-tap "Receive & Print 1 Case".
+• Ignore on Count Sheet: Hides low-turnover items for concise physical count walks.
+• Master Barcode Aliasing: Maps brand scans to generic kitchen items and increments stock.
+• Auto-Refreshing KDS: 5-minute auto-refresh for wall-mounted kitchen displays.
 </en-US>
 <de-DE>
-• Schneller Barcode-Scanner (<50 ms) mit POS-Piepton und Haptik.
-• Gebinde-Assistent: Automatische Etikettenanzahl pro Karton (z. B. 6 oder 12).
-• ServSafe-Zubereitungs- & "ZUERST VERWENDEN"-Aufkleber mit großem Ablaufdatum.
-• Stabile Inventarliste: Zählerstände ändern sich direkt ohne Neuordnung.
-• Etiketten-Kurznamen: Sauberer Produktdruck auf Zebra-Druckern.
-• 1-Tap Feedback & automatische Synchronisierung mit Google Sheets.
+• Gebinde-Voreinstellung: Druckt automatisch die exakte Etikettenanzahl pro Karton.
+• Drucksicherheit mit 10s-Timeout: Automatischer Fallback bei mehr als 5 Etiketten.
+• LKW-Liefer-Manifest: Dock-Checkliste mit 1-Tap "1 Karton Empfangen & Drucken".
+• Zähllisten-Filter: Blendet Nebenartikel für eine übersichtliche Inventur aus.
+• Barcode-Verknüpfung: Ordnet Markenprodukte Hauptküchenartikeln zu.
+• Auto-KDS: Automatische 5-Minuten-Aktualisierung für Wand-Bildschirme.
 </de-DE>
 <es-419>
-• Escáner de código de barras ultra rápido (<50 ms) con pitido y vibración táctil.
-• Asistente de cajas a unidades: Calcula etiquetas por caja automáticamente (6 o 12).
-• Etiquetas ServSafe de preparación y "USAR PRIMERO" con fecha de descarte resaltada.
-• Inventario estable: Actualización de conteo en su lugar sin desordenar la lista.
-• Nombres cortos: Imprime nombres limpios en etiquetas térmicas Zebra.
-• Notas de piso en 1 toque con sincronización a Google Sheets.
+• Impresión por caja: Imprime automáticamente la cantidad exacta de etiquetas por caja.
+• Seguridad de impresión (10s): Opción automática de respaldo si son más de 5 etiquetas.
+• Manifiesto de Camión OTW: Lista de recepción en muelle con 1 toque "Recibir y Imprimir 1 Caja".
+• Filtro de conteo: Oculta artículos secundarios para hojas de inventario más cortas.
+• Mapeo de códigos: Asigna escaneos de marcas a nombres genéricos de cocina.
+• Auto-KDS: Actualización automática cada 5 min para pantallas de cocina.
 </es-419>
 <es-ES>
-• Escáner de código de barras instantáneo (<50 ms) con aviso sonoro y vibración.
-• Asistente de caja a unidades: Calcula etiquetas por caja automáticamente (6 o 12).
-• Pegatinas ServSafe de preparación y "USAR PRIMERO" con fecha de caducidad grande.
-• Lista de inventario estable: Los conteos se actualizan sin reordenar la lista.
-• Nombres cortos de etiqueta: Impresión limpia en impresoras térmicas Zebra.
-• Notas de equipo en 1 toque con sincronización a Google Sheets.
+• Impresión por caja: Imprime automáticamente la cantidad exacta de etiquetas por caja.
+• Seguridad de impresión (10s): Opción automática de respaldo si son más de 5 etiquetas.
+• Manifiesto de Camión OTW: Lista de recepción en muelle con 1 toque "Recibir e Imprimir 1 Caja".
+• Filtro de conteo: Oculta artículos secundarios para hojas de inventario más cortas.
+• Mapeo de códigos: Asigna escaneos de marcas a nombres genéricos de cocina.
+• Auto-KDS: Actualización automática cada 5 min para pantallas de cocina.
 </es-ES>
