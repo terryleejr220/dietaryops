@@ -125,7 +125,13 @@ fun ReceivingScreen(
     var unmappedBarcodeForLearning by remember { mutableStateOf("") }
 
     // High-Quantity Print Warning Safety Dialog state
-    var pendingHighQtyJob by remember { mutableStateOf<Pair<String, Pair<Int, String>>?>(null) }
+    data class HighQtyPrintJob(
+        val itemName: String,
+        val requestedQty: Int,
+        val fallbackCasePackQty: Int,
+        val zpl: String
+    )
+    var pendingHighQtyJob by remember { mutableStateOf<HighQtyPrintJob?>(null) }
 
     // Prep Sticker Dialog state
     var showPrepStickerDialog by remember { mutableStateOf(false) }
@@ -208,11 +214,6 @@ fun ReceivingScreen(
 
             val activePrinter = connectedDevice ?: selectedPrinter
             val casePack = state.product.casePackQty.coerceAtLeast(1)
-            val printQty = if (state.onHandAmount > 0.0) {
-                (state.onHandAmount * casePack).toInt()
-            } else {
-                casePack * settingsManager.defaultLabelQuantity
-            }
 
             if (autoPrint && activePrinter != null && isKnownItem) {
                 val zpl = if (settingsManager.department.equals(
@@ -231,13 +232,24 @@ fun ReceivingScreen(
                         staffInitials = settingsManager.staffInitials
                     )
                 }
-                // Auto-print is strictly hard-capped to 1 label per box scanned
-                printerManager.printDirect(activePrinter, zpl, quantity = 1) { success, msg ->
-                    coroutineScope.launch(Dispatchers.Main) {
-                        statusMessage = msg
+
+                if (casePack > 5) {
+                    withContext(Dispatchers.Main) {
+                        pendingHighQtyJob = HighQtyPrintJob(
+                            itemName = state.product.displayNameForLabel,
+                            requestedQty = casePack,
+                            fallbackCasePackQty = casePack,
+                            zpl = zpl
+                        )
                     }
-                    if (success) {
-                        coroutineScope.launch { productManager.markRecordPrinted(scanRecord.id) }
+                } else {
+                    printerManager.printDirect(activePrinter, zpl, quantity = casePack) { success, msg ->
+                        coroutineScope.launch(Dispatchers.Main) {
+                            statusMessage = msg
+                        }
+                        if (success) {
+                            coroutineScope.launch { productManager.markRecordPrinted(scanRecord.id) }
+                        }
                     }
                 }
             } else if (!isKnownItem) {
@@ -265,8 +277,24 @@ fun ReceivingScreen(
     }
 
     if (pendingHighQtyJob != null) {
-        val (itemName, pair) = pendingHighQtyJob!!
-        val (quantity, zpl) = pair
+        val job = pendingHighQtyJob!!
+        var countdownSeconds by remember(job) { mutableStateOf(10) }
+
+        LaunchedEffect(job) {
+            while (countdownSeconds > 0) {
+                delay(1000L)
+                countdownSeconds--
+            }
+            // Auto-timeout after 10s: print Case Breakdown preset!
+            val activePrinter = connectedDevice ?: selectedPrinter
+            if (activePrinter != null) {
+                printerManager.printDirect(activePrinter, job.zpl, quantity = job.fallbackCasePackQty) { _, msg ->
+                    statusMessage = "10s Timeout — Printed ${job.fallbackCasePackQty} Case Preset label(s): $msg"
+                }
+            }
+            pendingHighQtyJob = null
+        }
+
         AlertDialog(
             onDismissRequest = { pendingHighQtyJob = null },
             icon = {
@@ -276,23 +304,26 @@ fun ReceivingScreen(
                     tint = MaterialTheme.colorScheme.error
                 )
             },
-            title = { Text("⚠️ High Print Quantity Warning", fontWeight = FontWeight.Bold) },
+            title = { Text("⚠️ High Print Quantity Warning ($countdownSeconds s)", fontWeight = FontWeight.Bold) },
             text = {
-                Text(
-                    "You are about to print $quantity labels for '$itemName'. Are you sure this quantity is correct?",
-                    fontSize = 13.sp
-                )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "You are about to print ${job.requestedQty} labels for '${job.itemName}'. Is this quantity correct?",
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        "If no selection is made in $countdownSeconds seconds, the app will auto-print the Case Preset (${job.fallbackCasePackQty} labels).",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         val activePrinter = connectedDevice ?: selectedPrinter
                         if (activePrinter != null) {
-                            printerManager.printDirect(
-                                activePrinter,
-                                zpl,
-                                quantity = quantity
-                            ) { _, msg ->
+                            printerManager.printDirect(activePrinter, job.zpl, quantity = job.requestedQty) { _, msg ->
                                 statusMessage = msg
                             }
                         }
@@ -300,12 +331,22 @@ fun ReceivingScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Yes, Print $quantity Labels")
+                    Text("Yes, Print ${job.requestedQty} Labels")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingHighQtyJob = null }) {
-                    Text("Cancel")
+                OutlinedButton(
+                    onClick = {
+                        val activePrinter = connectedDevice ?: selectedPrinter
+                        if (activePrinter != null) {
+                            printerManager.printDirect(activePrinter, job.zpl, quantity = job.fallbackCasePackQty) { _, msg ->
+                                statusMessage = msg
+                            }
+                        }
+                        pendingHighQtyJob = null
+                    }
+                ) {
+                    Text("Print Case Preset (${job.fallbackCasePackQty})")
                 }
             }
         )
