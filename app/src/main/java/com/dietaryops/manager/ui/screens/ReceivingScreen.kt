@@ -116,6 +116,7 @@ fun ReceivingScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var manualUpcInput by remember { mutableStateOf("") }
     var showManualInputCard by remember { mutableStateOf(false) }
+    var showTruckManifestCard by remember { mutableStateOf(false) }
     var showCustomDaysDialog by remember { mutableStateOf(false) }
     var customDaysInput by remember { mutableStateOf("") }
 
@@ -449,16 +450,17 @@ fun ReceivingScreen(
                     )
                 }
 
-                // Action Row 2: Secondary Quick Buttons (Manual Lookup & Prep Sticker)
+                // Action Row 2: Secondary Quick Buttons (Manual Lookup, Truck OTW, Prep Sticker)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     OutlinedButton(
                         onClick = {
                             val nextShowState = !showManualInputCard
                             showManualInputCard = nextShowState
                             if (nextShowState) {
+                                showTruckManifestCard = false
                                 isCameraActive = false
                             } else {
                                 isCameraActive = true
@@ -470,10 +472,36 @@ fun ReceivingScreen(
                         Icon(
                             Icons.Default.Keyboard,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Manual UPC", fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("Manual UPC", fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            val nextShowState = !showTruckManifestCard
+                            showTruckManifestCard = nextShowState
+                            if (nextShowState) {
+                                showManualInputCard = false
+                                isCameraActive = false
+                            } else {
+                                isCameraActive = true
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (showTruckManifestCard) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            Icons.Default.LocalShipping,
+                            contentDescription = null,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("Truck OTW", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
 
                     Button(
@@ -487,10 +515,10 @@ fun ReceivingScreen(
                         Icon(
                             Icons.Default.Restaurant,
                             contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                            modifier = Modifier.size(15.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Prep Sticker", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("Prep Sticker", fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
                 }
 
@@ -660,6 +688,154 @@ fun ReceivingScreen(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("Lookup '$manualUpcInput'", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Truck OTW Guided Manifest Checklist Card
+                if (showTruckManifestCard) {
+                    val otwItems = remember(allCatalogItems) {
+                        allCatalogItems.filter { item ->
+                            item.category.contains("OTW", ignoreCase = true) ||
+                            item.vendorName.contains("OTW", ignoreCase = true) ||
+                            (item.parLevel > 0 && item.lastOnHandAmount < item.parLevel)
+                        }
+                    }
+
+                    var manifestFilter by remember { mutableStateOf("All Rooms") }
+                    val filteredOtw = remember(otwItems, manifestFilter) {
+                        if (manifestFilter == "All Rooms") otwItems else otwItems.filter { ZplGenerator.getStorageLocationForCategory(it.category).contains(manifestFilter, ignoreCase = true) }
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.LocalShipping, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Text("🚛 Truck OTW Guided Manifest", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                }
+
+                                IconButton(onClick = { showTruckManifestCard = false }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Close")
+                                }
+                            }
+
+                            Text(
+                                "Receive boxes one-by-one as you unload on the dock. Tapping 'Receive 1 Case & Print' increments stock and prints 1 exact label for that box immediately:",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            // Storage Filter Chips
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf("All Rooms", "Cooler", "Freezer", "Dry Storage").forEach { room ->
+                                    FilterChip(
+                                        selected = manifestFilter == room,
+                                        onClick = { manifestFilter = room },
+                                        label = { Text(room, fontSize = 11.sp) }
+                                    )
+                                }
+                            }
+
+                            if (filteredOtw.isEmpty()) {
+                                Text("No pending truck items found for $manifestFilter.", fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(vertical = 12.dp))
+                            } else {
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState())
+                                ) {
+                                    filteredOtw.forEach { item ->
+                                        val location = ZplGenerator.getStorageLocationForCategory(item.category)
+                                        var isReceived by remember { mutableStateOf(false) }
+
+                                        Surface(
+                                            color = if (isReceived) Color(0xFF10B981).copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                            shape = RoundedCornerShape(10.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(10.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(item.displayNameForLabel, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                    Text("Room: $location • On-Hand: ${item.lastOnHandAmount} ${item.unit}", fontSize = 10.sp, color = Color.Gray)
+                                                }
+
+                                                Button(
+                                                    onClick = {
+                                                        isReceived = true
+                                                        val scanRecord = ScanRecord(
+                                                            syscoUpc = item.syscoUpc,
+                                                            itemName = item.resolvedItemName,
+                                                            deliveryDate = LocalDate.now().toString(),
+                                                            useByDate = LocalDate.now().plusDays(item.defaultShelfLifeDays.toLong()).toString(),
+                                                            category = item.category,
+                                                            shelfLifeDays = item.defaultShelfLifeDays,
+                                                            unit = item.unit,
+                                                            onHandAmount = 1.0,
+                                                            receivedBy = currentStaffAttribution
+                                                        )
+
+                                                        coroutineScope.launch {
+                                                            productManager.repository.addScanRecord(scanRecord)
+                                                            productManager.logScanToSheets(scanRecord)
+
+                                                            val activePrinter = connectedDevice ?: selectedPrinter
+                                                            if (activePrinter != null) {
+                                                                val zpl = ZplGenerator.generateLabel(
+                                                                    itemName = item.displayNameForLabel,
+                                                                    upc = item.syscoUpc,
+                                                                    deliveryDate = LocalDate.now(),
+                                                                    useByDate = LocalDate.now().plusDays(item.defaultShelfLifeDays.toLong()),
+                                                                    category = item.category,
+                                                                    storageLocation = location,
+                                                                    staffInitials = settingsManager.staffInitials
+                                                                )
+                                                                printerManager.printDirect(activePrinter, zpl, quantity = 1) { _, msg ->
+                                                                    statusMessage = msg
+                                                                }
+                                                            } else {
+                                                                statusMessage = "Received 1 case of ${item.displayNameForLabel}! (Connect Zebra printer to auto-print label)"
+                                                            }
+                                                        }
+                                                    },
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    colors = ButtonDefaults.buttonColors(
+                                                        containerColor = if (isReceived) Color(0xFF10B981) else MaterialTheme.colorScheme.primary
+                                                    ),
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                ) {
+                                                    Icon(if (isReceived) Icons.Default.Check else Icons.Default.Print, contentDescription = null, modifier = Modifier.size(13.dp))
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text(if (isReceived) "Rec'd (+1)" else "Receive & Print", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
