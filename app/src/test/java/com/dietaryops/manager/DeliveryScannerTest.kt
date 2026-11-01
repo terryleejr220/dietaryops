@@ -26,8 +26,7 @@ class DeliveryScannerTest {
             shelfLifeDays = 5,
             unit = "LB",
             onHandAmount = 4.5,
-            printed = true,
-            syncedToSheets = false
+            printed = true
         )
 
         assertEquals("test-123", scanRecord.id)
@@ -53,7 +52,7 @@ class DeliveryScannerTest {
         assertEquals("test-123", dto.id)
         assertEquals("LB", dto.unit)
         assertEquals("Proteins & Frozen", dto.category)
-        assertEquals(4.5, dto.onHandAmount!!, 0.001)
+        assertEquals(4.5, dto.onHandAmount, 0.001)
     }
 
     @Test
@@ -569,8 +568,7 @@ class DeliveryScannerTest {
             syscoUpc = "074865123401",
             itemName = "Test Item",
             deliveryDate = "2025-03-10",
-            useByDate = "2025-03-15",
-            isAudit = false
+            useByDate = "2025-03-15"
         )
         assertFalse(normalRecord.isAudit)
 
@@ -627,7 +625,6 @@ class DeliveryScannerTest {
     @Test
     fun testCatalogFetchRequestPayload() {
         val request = com.dietaryops.manager.data.remote.CatalogFetchRequest(
-            action = "fetch_catalog",
             spreadsheetId = "test-sheet-id",
             sheetTab = "Inventory Raw"
         )
@@ -648,7 +645,6 @@ class DeliveryScannerTest {
             deliveryDate = "2026-09-24",
             useByDate = "2027-09-24",
             category = "Condiments & Sauces",
-            shelfLifeDays = 365,
             receivedBy = staff
         )
 

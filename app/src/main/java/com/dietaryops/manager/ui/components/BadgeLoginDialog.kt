@@ -67,7 +67,6 @@ fun BadgeLoginDialog(
                 employeeId = "TL01",
                 displayName = "Terry Little Jr.",
                 companyCode = companyCode,
-                department = "Dietary",
                 role = StaffRole.RECEIVER
             )
 
@@ -75,7 +74,6 @@ fun BadgeLoginDialog(
                 employeeId = "AT01",
                 displayName = "Andy Tygart",
                 companyCode = companyCode,
-                department = "Dietary",
                 role = StaffRole.MANAGER
             )
 
@@ -83,7 +81,6 @@ fun BadgeLoginDialog(
                 employeeId = "CK01",
                 displayName = "Kitchen Cook",
                 companyCode = companyCode,
-                department = "Dietary",
                 role = StaffRole.COOK
             )
 
@@ -91,7 +88,6 @@ fun BadgeLoginDialog(
                 employeeId = "AI01",
                 displayName = "Dietary Aide",
                 companyCode = companyCode,
-                department = "Dietary",
                 role = StaffRole.AIDE
             )
 

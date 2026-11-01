@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.BluetoothSearching
+import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -612,7 +613,6 @@ fun SettingsScreen(
                                     upc = "074865123401",
                                     deliveryDate = LocalDate.now(),
                                     useByDate = LocalDate.now().plusDays(5),
-                                    category = "General",
                                     staffInitials = settingsManager.staffInitials
                                 )
                                 printerManager.printDirect(targetDevice, testZpl) { _, msg ->
@@ -1443,7 +1443,7 @@ fun SettingsScreen(
                                         )
                                     } else {
                                         Icon(
-                                            Icons.Default.Login,
+                                            Icons.AutoMirrored.Filled.Login,
                                             contentDescription = null,
                                             modifier = Modifier.size(16.dp)
                                         )

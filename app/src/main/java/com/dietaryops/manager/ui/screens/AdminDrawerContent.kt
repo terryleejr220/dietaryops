@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -127,7 +128,7 @@ fun AdminDrawerContent(
                 Switch(checked = autoPrint, onCheckedChange = onAutoPrintChanged)
             }
 
-            Divider()
+            HorizontalDivider(Modifier, DividerDefaults.Thickness, DividerDefaults.color)
 
             // Manual UPC / Item Search Entry
             Text("Manual Item Lookup", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)

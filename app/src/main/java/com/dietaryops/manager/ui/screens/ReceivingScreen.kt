@@ -51,6 +51,8 @@ import com.dietaryops.manager.ui.components.ScannerOverlay
 import com.dietaryops.manager.ui.theme.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Help
 import com.dietaryops.manager.data.model.AppPermission
 import com.dietaryops.manager.ui.components.LearnOnScanBottomSheet
 import kotlinx.coroutines.Dispatchers
@@ -698,7 +700,7 @@ fun ReceivingScreen(
                                                     )
                                                 }
                                                 Icon(
-                                                    Icons.Default.ArrowForward,
+                                                    Icons.AutoMirrored.Filled.ArrowForward,
                                                     contentDescription = null,
                                                     modifier = Modifier.size(16.dp),
                                                     tint = MaterialTheme.colorScheme.primary
@@ -838,7 +840,6 @@ fun ReceivingScreen(
                                                             category = item.category,
                                                             shelfLifeDays = item.defaultShelfLifeDays,
                                                             unit = item.unit,
-                                                            onHandAmount = 1.0,
                                                             receivedBy = currentStaffAttribution
                                                         )
 
@@ -857,7 +858,7 @@ fun ReceivingScreen(
                                                                     storageLocation = location,
                                                                     staffInitials = settingsManager.staffInitials
                                                                 )
-                                                                printerManager.printDirect(activePrinter, zpl, quantity = 1) { _, msg ->
+                                                                printerManager.printDirect(activePrinter, zpl) { _, msg ->
                                                                     statusMessage = msg
                                                                 }
                                                             } else {
@@ -1063,7 +1064,7 @@ fun ReceivingScreen(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         Icon(
-                                            imageVector = if (state.isKnownCatalog) Icons.Default.CheckCircle else Icons.Default.Help,
+                                            imageVector = if (state.isKnownCatalog) Icons.Default.CheckCircle else Icons.AutoMirrored.Filled.Help,
                                             contentDescription = null,
                                             tint = if (state.isKnownCatalog) FreshGreen else ExpiringSoonAmber,
                                             modifier = Modifier.size(13.dp)
@@ -2152,7 +2153,6 @@ fun ReceivingScreen(
                             unit = updatedProduct.unit,
                             onHandAmount = editOnHand,
                             printed = currentScanRecord?.printed ?: false,
-                            syncedToSheets = false,
                             isAudit = settingsManager.isAuditMode,
                             receivedBy = currentStaffAttribution
                         )
@@ -2540,7 +2540,6 @@ fun ReceivingScreen(
                             else -> ZplGenerator.generatePrepLabelZpl(
                                 prepItemName = prepItemNameInput,
                                 prepDate = LocalDate.now(),
-                                prepType = "PREPARED FOOD",
                                 retentionDays = prepRetentionDaysInput,
                                 staffInitials = settingsManager.staffInitials,
                                 companyHeader = "${settingsManager.companyCode} KITCHEN PREP"
