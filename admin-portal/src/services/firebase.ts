@@ -15,12 +15,14 @@ import {
 import type { Company, StaffUser, ScanRecord } from '../types';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAHcz8JUXUU80ILDQ1LKizrix7jPaEHZk4",
+  apiKey: "AIzaSyC-0gtKcrKG2n7fFHr4i5ThbhmDep9614M",
   authDomain: "com-example-myapplicatio-46804.firebaseapp.com",
+  databaseURL: "https://com-example-myapplicatio-46804-default-rtdb.firebaseio.com",
   projectId: "com-example-myapplicatio-46804",
   storageBucket: "com-example-myapplicatio-46804.firebasestorage.app",
   messagingSenderId: "1035289624449",
-  appId: "1:1035289624449:web:adminportal"
+  appId: "1:1035289624449:web:ad835379f8b57025927280",
+  measurementId: "G-653SK5494M"
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];

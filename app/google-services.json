@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "1035289624449",
+    "firebase_url": "https://com-example-myapplicatio-46804-default-rtdb.firebaseio.com",
     "project_id": "com-example-myapplicatio-46804",
     "storage_bucket": "com-example-myapplicatio-46804.firebasestorage.app"
   },
@@ -14,7 +15,7 @@
       },
       "oauth_client": [
         {
-          "client_id": "1035289624449-84nb76pb3fuh654nvgg3ffuiugr4mcm0.apps.googleusercontent.com",
+          "client_id": "1035289624449-mhg702t0d453d0on2neuctoqu71d32si.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -25,26 +26,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:1035289624449:android:f5239724a65d0f52927280",
-        "android_client_info": {
-          "package_name": "com.example.myapplication"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyAHcz8JUXUU80ILDQ1LKizrix7jPaEHZk4"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1035289624449-mhg702t0d453d0on2neuctoqu71d32si.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
