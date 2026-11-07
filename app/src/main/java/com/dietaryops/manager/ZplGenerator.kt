@@ -100,6 +100,9 @@ object ZplGenerator {
 ; --- 5. CODE 128 BARCODE (Shifted left to ^FO30 to prevent edge cutoff on 14-digit GTINs) ---
 ^FO30,185^BY1,2,30^BCN,30,Y,N,N^FD$upc^FS
 
+; --- 6. COMPANY HEADER FOOTER BRANDING (printed as a footer branding line to preserve the existing layout) ---
+^FO10,232^A0N,14,14^FB416,1,0,C,0^FD$companyHeader^FS
+
 ^XZ
         """.trimIndent()
     }
